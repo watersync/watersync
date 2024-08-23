@@ -1,0 +1,70 @@
+{% extends 'project_dashboard.html' %}
+
+{% load leaflet_tags %}
+{% leaflet_js %}
+{% leaflet_css %}
+
+{% block content %}
+<div class="float-right">
+	<a class="btn btn-success" href="{% url 'core:add-location' user.id project.pk %}"><i class="fa fa-plus"></i> Add location </a>
+</div>
+	<br>
+	<div id="map" style="height: 500px;"></div>
+	  <table class="table table-striped table-sm">
+		  <thead>
+			<tr>
+			  <th scope="col">#</th>
+			  <th scope="col">name</th>
+			  <th scope="col">added by</th>
+			  <th scope="col">created at</th>
+			  <th scope="col">details</th>
+		
+			</tr>
+		  </thead>
+		  <tbody>
+			{% for location in location_list %}
+			<tr>
+			<th scope="row">{{ forloop.counter }}</th>
+			  <td>{{location.name}}</td>
+			  <td>{{location.added_by}} </td>
+			  <td>{{location.created_at}} </td>
+			  <td><a class="btn btn-sm btn-info" href="{% url 'core:detail-location' user.id project.pk location.pk %}">Details...</a></td>
+		
+			{% endfor %}
+			</tr>
+		  </tbody>
+		</table>
+
+<script>
+    // Initialize the map with max bounds set to the world view
+    var map = L.map('map', {
+        maxBounds: [
+            [-90, -180], // Southwest coordinates
+            [90, 180]    // Northeast coordinates
+        ],
+        maxBoundsViscosity: 1.0 // Ensures the map doesn't pan outside the bounds
+    }).setView([0, 0], 2);
+
+    // Add the OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var bounds = L.latLngBounds();
+
+    // Loop through the locations and add markers
+    {% for location in location_list %}
+    var marker = L.marker([{{ location.geom.y }}, {{ location.geom.x }}]).addTo(map)
+        .bindPopup('<b>{{ location.name }}</b><br>{{ location.description }}')
+        .openPopup();
+    bounds.extend(marker.getLatLng());
+    {% endfor %}
+
+    // Fit the map to the bounds of the markers if bounds are valid
+    if (bounds.isValid()) {
+        map.fitBounds(bounds);
+    }
+</script>
+{% endblock %}
+

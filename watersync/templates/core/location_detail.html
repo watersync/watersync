@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load leaflet_tags %}
+{% leaflet_js %}
+{% leaflet_css %}
+<div class="container mt-4">
+    <a href="{% url 'core:locations' user.id project.pk %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <h2>{{ object.name }}</h2>
+    <p class="text-muted">Location Details</p>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Description</h5>
+            <p class="card-text">{{ object.description }}</p>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Location Information</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Altitude:</strong> {{ object.altitude }}</li>
+                <li class="list-group-item"><strong>Created At:</strong> {{ object.created_at }}</li>
+                <li class="list-group-item"><strong>Updated At:</strong> {{ object.updated_at }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <a href="{% url 'core:update-location' user.id project.pk object.pk %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'core:delete-location' user.id project.pk object.pk %}" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Delete
+    </a>
+</div>
+
+{% if object.geom %}
+<script>
+    var map = L.map('map').setView([{{ object.geom.y }}, {{ object.geom.x }}], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    L.marker([{{ object.geom.y }}, {{ object.geom.x }}]).addTo(map)
+        .bindPopup('{{ object.name }}')
+        .openPopup();
+</script>
+{% endif %}
+{% endblock %}

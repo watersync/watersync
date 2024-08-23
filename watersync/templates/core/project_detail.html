@@ -1,0 +1,77 @@
+{% extends 'project_dashboard.html' %}
+
+{% block content %}
+{% load leaflet_tags %}
+{% leaflet_js %}
+{% leaflet_css %}
+    <div class="container mt-4">
+        <h3 class="text-muted">Project Details</h3>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Description</h5>
+                <p class="card-text">{{ project.description }}</p>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Project Information</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Start Date:</strong> {{ project.start_date }}</li>
+                    <li class="list-group-item"><strong>End Date:</strong> {{ project.end_date }}</li>
+                    <li class="list-group-item"><strong>Created At:</strong> {{ project.created_at }}</li>
+                    <li class="list-group-item"><strong>Updated At:</strong> {{ project.updated_at }}</li>
+                    <li class="list-group-item"><strong>Status:</strong> {{ project.is_active|yesno:"Active,Inactive" }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Location</h5>
+                {% if project.location %}
+                    <div id="map" style="height: 400px;"></div>
+                {% else %}
+                    <p>No location data available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Users</h5>
+                <ul class="list-group list-group-flush">
+                    {% for user in project.user.all %}
+                        <li class="list-group-item">{{ user.email }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <a href="{% url 'core:update-project' user.id project.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'core:delete-project' user.id project.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+    </div>
+
+    {% if project.location %}
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([{{ project.location.y }}, {{ project.location.x }}], 13);
+
+        // Add a tile layer (OpenStreetMap tiles)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add a marker to the map
+        L.marker([{{ project.location.y }}, {{ project.location.x }}]).addTo(map)
+            .bindPopup('{{ project.name }}')
+            .openPopup();
+    </script>
+    {% endif %}
+{% endblock %}

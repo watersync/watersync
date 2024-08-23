@@ -1,0 +1,27 @@
+{% extends 'base_dashboard.html' %}
+
+{% load crispy_forms_tags %}
+{% load leaflet_tags %}
+
+{% block content %}
+  <h2>Add New Project</h2>
+  
+  {% leaflet_js plugins="forms" %}
+  {% leaflet_css plugins="forms" %}
+  
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-6">
+        {{ form.name|as_crispy_field }}
+      </div>
+      <div class="col-6">
+        {{ form.description|as_crispy_field }}
+      </div>
+    </div>
+    <div class="form-group">
+      {{ form.location|as_crispy_field }}
+    </div>
+    <button type="submit" class="btn btn-success">Save Project</button>
+  </form>
+{% endblock %}

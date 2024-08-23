@@ -1,0 +1,10 @@
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        <!-- Corrected the Cancel URL: -->
+        <a href="{% url 'core:locations' user.id project.pk %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

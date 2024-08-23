@@ -1,0 +1,32 @@
+/* These styles are generated from project.scss. */
+
+.alert-debug {
+  color: black;
+  background-color: white;
+  border-color: #d6e9c6;
+}
+
+.alert-error {
+  color: #b94a48;
+  background-color: #f2dede;
+  border-color: #eed3d7;
+}
+
+/* Custom styles for nav-links */
+.custom-nav-link {
+  color: white !important; /* Default color */
+  text-decoration: none;
+  transition: color 0.5s ease-in-out;
+}
+
+.custom-nav-link:hover {
+  color: gray !important; /* Color on hover */
+}
+
+.custom-nav-link i {
+  color: white !important; /* Icon color */
+}
+
+.custom-nav-link:hover i {
+  color: gray !important; /* Icon color on hover */
+}

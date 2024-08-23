@@ -1,0 +1,26 @@
+{% extends 'base_dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ sensor.identifier }}</h2>
+    <p class="text-muted">Sensor Details</p>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Sensor Information</h5>
+            <ul class="list-group list-group-flush">
+                {% for key, value in sensor.detail.items %}
+                    <li class="list-group-item">
+                        <strong>{{ key|capfirst }}:</strong> {{ value }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>  
+
+    <a href="{% url 'sensor:update-sensor' user.id sensor.pk %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'sensor:delete-sensor' user.id sensor.pk %}" class="btn btn-danger"
+    data-bs-toggle="modal" data-bs-target="#deleteModal">
+        <i class="fas fa-trash"></i> Delete
+    </a>
+</div>{% endblock %}
