@@ -10,7 +10,11 @@ class Sample(models.Model):
 
         This model represents the total volume of water taken at a specific time
         from a well (or other location) for analysis. It does not differentiate 
-        between multiple containers filled at the same time.
+        between multiple containers filled at the same time. For not I keep the 
+        unique_together as timestamp, just to make sure that two identical
+        elements are not inserted, but surely it is possible (but unlikely) 
+        to have two samples from the same location on the same day. Which is 
+        why I am considering switching to unique_for_date=True there.
 
     Attributes:
         location: where the sample was taken
@@ -19,7 +23,7 @@ class Sample(models.Model):
     """
 
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
     detail = models.JSONField(null=True, blank=True)
 
     class Meta:

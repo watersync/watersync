@@ -1,0 +1,15 @@
+{% extends 'project_dashboard.html' %}
+
+{% block content %}
+<div class="float-right py-4">
+  <a class="btn btn-success" href="{% url 'sensor:add-sensor' user.id %}"><i class="fa fa-plus"></i> Upload data </a>
+</div>
+<div class="d-flex justify-content-between mb-3">
+  <h4>Timeseries Data</h4>
+</div>
+
+<br>
+
+  {% include "sensor/partial/record_list.html" %}
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'project_dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ deployment.sensor }} at {{ deployment.location }} </h2>
+    <br>
+    <p class="text-muted">Deployment Details</p>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Deployment Information</h5>
+            <ul class="list-group list-group-flush">
+                {% for key, value in sensor.detail.items %}
+                    <li class="list-group-item">
+                        <strong>{{ key|capfirst }}:</strong> {{ value }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <a href="{% url 'sensor:update-deployment' user.id project.pk deployment.pk %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+    <form action="{% url 'sensor:decommission-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning" {% if deployment.decommissioned_at is not None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            <i class="fas fa-trash"></i> Decommission
+        </button>
+    </form>
+
+    <form action="{% url 'sensor:delete-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" {% if deployment.decommissioned_at is None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </form>
+
+    <h2 class="py-4">Deployment Data</h2>
+
+    <!-- Include the Plotly graph -->
+    {% include "sensor/partial/record_list_graph.html" %}
+    
+    <!-- Include the records list -->
+    {% include "sensor/partial/record_list.html" %}
+</div>
+{% endblock %}

@@ -17,7 +17,6 @@
             <p class="card-text">{{ object.description }}</p>
         </div>
     </div>
-    
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Location Information</h5>
@@ -35,6 +34,25 @@
     <a href="{% url 'core:delete-location' user.id project.pk object.pk %}" class="btn btn-danger">
         <i class="fas fa-trash"></i> Delete
     </a>
+    <div id="map" style="height: 500px;"></div>
+    <br>
+    <hr>
+    <div id="gwlmeasurements" class="container p-4">
+    <h2>Manual groundwater level measurements</h2>
+        {% include 'groundwater/partial/gwl_list_partial.html' %}
+    </div>
+    <br>
+    <hr>
+    <div id="sensordeployments" class="container p-4">
+    <h2>Timeseries from deployed sensors</h2>
+        {% include 'sensor/partial/deployment_list.html' %}
+    </div>
+    <br>
+    <hr>
+    <div id="wqsamples" class="container p-4">
+    <h2>Water quality samples</h2>
+        {% include 'groundwater/partial/gwl_list_partial.html' %}
+    </div>
 </div>
 
 {% if object.geom %}

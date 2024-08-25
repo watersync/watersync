@@ -1,0 +1,39 @@
+{% extends 'project_dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ sample.location }} at {{ sample.timestamp }} </h2>
+    <br>
+    <p class="text-muted">Sample Details</p>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Sample Information</h5>
+            <ul class="list-group list-group-flush">
+                {% for key, value in sample.detail.items %}
+                    <li class="list-group-item">
+                        <strong>{{ key|capfirst }}:</strong> {{ value }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <a href="{% url 'waterquality:update-sample' user.id project.pk location.pk sample.pk %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+
+    <form action="{% url 'waterquality:delete-sample' user.id project.pk location.pk sample.pk %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </form>
+
+    <h2 class="py-4">Measurements</h2>
+
+    {% comment %} <!-- Include the Plotly graph -->
+    {% include "waterquality/partial/measurement_list_graph.html" %}
+    
+    <!-- Include the records list -->
+    {% include "waterquality/partial/measurement_list.html" %} {% endcomment %}
+</div>
+{% endblock %}

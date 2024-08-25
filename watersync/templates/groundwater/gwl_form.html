@@ -1,0 +1,27 @@
+{% extends 'project_dashboard.html' %}
+
+{% load crispy_forms_tags %}
+{% load leaflet_tags %}
+
+{% block content %}
+  <h2>Add New Location</h2>
+  
+  {% leaflet_js plugins="forms" %}
+  {% leaflet_css plugins="forms" %}
+  
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-6">
+        {{ form.depth|as_crispy_field }}
+      </div>
+      <div class="col-6">
+        {{ form.comment|as_crispy_field }}
+      </div>
+      <div class="col-6">
+        {{ form.timestamp|as_crispy_field }}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success">Save measurement</button>
+  </form>
+{% endblock %}

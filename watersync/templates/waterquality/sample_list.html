@@ -1,0 +1,28 @@
+{% extends 'project_dashboard.html' %}
+
+{% block content %}
+<div class="float-right py-2">
+  <a class="btn btn-success" href="{% url 'waterquality:add-sample' user.id project.pk location.pk %}"><i class="fa fa-plus"></i> Add sample </a>
+</div>
+<br>
+<table class="table table-striped table-sm">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">location</th>
+        <th scope="col">timestamp</th>
+        <th scope="col">detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sample in sample_list %}
+      <tr>
+      <th scope="row">{{ forloop.counter }}</th>
+        <td>{{sample.location}}</td>
+        <td>{{sample.timestamp}} </td>
+        <td><a class="btn btn-sm btn-info" href="{% url 'waterquality:detail-sample' user.id project.pk location.pk sample.pk %}">Details...</a></td>
+      {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+{% endblock %}

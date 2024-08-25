@@ -1,0 +1,33 @@
+{% extends 'project_dashboard.html' %}
+
+{% block content %}
+<div class="float-right py-2">
+  <a class="btn btn-success" href="{% url 'waterquality:add-measurement' user.id project.pk location.pk sample.pk %}"><i class="fa fa-plus"></i> Add measurement </a>
+</div>
+<br>
+<table class="table table-striped table-sm">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">sample</th>
+        <th scope="col">property</th>
+        <th scope="col">value</th>
+        <th scope="col">unit</th>
+        <th scope="col">details</th>
+
+      </tr>
+    </thead>
+    <tbody>
+      {% for measurement in measurement_list %}
+      <tr>
+      <th scope="row">{{ forloop.counter }}</th>
+        <td>{{measurement.sample}}</td>
+        <td>{{measurement.property}} </td>
+        <td>{{measurement.value}} </td>
+        <td>{{measurement.unit}} </td>
+        <td><a class="btn btn-sm btn-info" href="{% url 'waterquality:detail-measurement' user.id project.pk location.pk sample.pk measurement.pk %}">Details...</a></td>
+      {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+{% endblock %}

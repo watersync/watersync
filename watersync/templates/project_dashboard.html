@@ -26,12 +26,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'core:projects' user.id  %}" class="custom-nav-link align-middle px-0">
-                                    <i class="fa-solid fa-tower-broadcast p-2"></i> <span class="ms-1 d-none d-sm-inline">Deployed sensors</span>
+                                <a href="{% url 'sensor:deployments' user.id project.pk %}" class="custom-nav-link align-middle px-0">
+                                    <i class="fa-solid fa-tower-broadcast p-2"></i> <span class="ms-1 d-none d-sm-inline">Sensors</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'core:detail-project' user.id project.pk  %}" class="custom-nav-link align-middle px-0">
+                                <a href="{% url 'core:detail-project' user.id project.pk %}" class="custom-nav-link align-middle px-0">
                                     <i class="fa-solid fa-circle-info p-2"></i> <span class="ms-1 d-none d-sm-inline">Project details</span>
                                 </a>
                             </li>

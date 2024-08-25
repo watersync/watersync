@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load leaflet_tags %}
+{% leaflet_js %}
+{% leaflet_css %}
+<div class="container mt-4">
+    <a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <h2>{{ object.name }}</h2>
+    <p class="text-muted">Measurement Details</p>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Description</h5>
+            <p class="card-text">{{ object.description }}</p>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Measurement Information</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Depth:</strong> {{ object.depth }}</li>
+                <li class="list-group-item"><strong>Timestamp:</strong> {{ object.timestamp }}</li>
+                <li class="list-group-item"><strong>Location:</strong> {{ object.location }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <a href="{% url 'groundwater:update-gwlmeasurement' user.id project.pk location.pk object.pk %}" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'groundwater:delete-gwlmeasurement' user.id project.pk location.pk object.pk %}" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Delete
+    </a>
+</div>
+
+{% endblock %}

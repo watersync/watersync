@@ -28,6 +28,10 @@ urlpatterns = [
          include("watersync.core.urls", namespace="watersync-core")),
     path("users/<int:user_id>/",
          include("watersync.sensor.urls", namespace="watersync-sensor")),
+    path("users/<int:user_id>/",
+         include("watersync.groundwater.urls", namespace="watersync-groundwater")),
+    path("users/<int:user_id>/",
+         include("watersync.waterquality.urls", namespace="watersync-waterquality")),
     # Media files
     * static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]

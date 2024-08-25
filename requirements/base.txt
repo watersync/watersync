@@ -9,6 +9,8 @@ django-celery-beat==2.6.0  # https://github.com/celery/django-celery-beat
 flower==2.0.1  # https://github.com/mher/flower
 uvicorn[standard]==0.30.6  # https://github.com/encode/uvicorn
 uvicorn-worker==0.2.0  # https://github.com/Kludex/uvicorn-worker
+pandas==2.2.2
+plotly==5.23.0
 
 # Django
 # ------------------------------------------------------------------------------

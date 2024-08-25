@@ -16,6 +16,10 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
       crossorigin="anonymous">
 
+      <link 
+      href="https://cdn.datatables.net/2.1.4/css/dataTables.dataTables.min.css" 
+      rel="stylesheet" />
+
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" 
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
@@ -40,6 +44,14 @@
         src="https://unpkg.com/htmx.org@2.0.2" 
         integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" 
         crossorigin="anonymous"></script>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script 
+        src="https://cdn.datatables.net/2.1.4/js/dataTables.min.js"></script>
+
+    <script 
+        src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.min.js"></script>
+
     {% endblock javascript %}
   </head>
   <body class="{% block bodyclass %}{% endblock bodyclass %}">

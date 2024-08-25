@@ -12,7 +12,7 @@
         <th scope="col">Identifier</th>
         <th scope="col">Owner</th>
         <th scope="col">More Details</th>
-  
+        <th scope="col">Available</th>
       </tr>
     </thead>
     <tbody>
@@ -21,6 +21,7 @@
       <th scope="row">{{ forloop.counter }}</th>
         <td>{{sensor.identifier}}</td>
         <td>{{sensor.owner}} </td>
+        <td>{{sensor.available}} </td>
         <td><a class="btn btn-sm btn-info" href="{% url 'sensor:detail-sensor' user.id sensor.id %}">Details...</a></td>
   
       {% endfor %}

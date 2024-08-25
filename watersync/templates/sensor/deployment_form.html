@@ -1,0 +1,22 @@
+{% extends 'project_dashboard.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h2>Deploy sensor</h2>
+  
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-6">
+        {{ form.sensor|as_crispy_field }}
+      </div>
+      <div class="col-6">
+        {{ form.location|as_crispy_field }}
+      </div>
+    </div>
+    <div class="form-group">
+      {{ form.detail|as_crispy_field }}
+    </div>
+    <button type="submit" class="btn btn-success">Deploy</button>
+  </form>
+{% endblock %}

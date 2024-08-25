@@ -1,6 +1,8 @@
 from watersync.users.models import User
 from django.views.generic import (
     CreateView, UpdateView, ListView, DeleteView, DetailView)
+from watersync.groundwater.views import GWLListView
+from watersync.sensor.views import DeploymentListView
 from .models import Project, Location
 from .forms import ProjectForm, LocationForm
 from django.utils import timezone
@@ -153,7 +155,7 @@ class LocationListView(ListView):
 
 
 class LocationDetailView(LoginRequiredMixin, DetailView):
-    model = Project
+    model = Location
     template_name = 'core/location_detail.html'
 
     def get_object(self):
@@ -162,7 +164,18 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['created_at'] = timezone.now()
-        context['project'] = get_object_or_404(
-            Project, pk=self.kwargs['project_pk'])
+        location = self.get_object()  # Get the location object
+
+        # Reuse the GWLListView's get_queryset method to get the measurements
+        gwl_list_view = GWLListView()
+        deployment_view = DeploymentListView()
+        gwl_list_view.request = self.request  # Pass the request to the list view
+        gwl_list_view.kwargs = self.kwargs  # Pass the kwargs to the list view
+        deployment_view.request = self.request
+        deployment_view.kwargs = self.kwargs
+        # Get the queryset
+        context['gwlmanualmeasurements_list'] = gwl_list_view.get_queryset()
+        context['deployment_list'] = deployment_view.get_queryset()
+
+        context['project'] = location.project  # Add the project to the context
         return context

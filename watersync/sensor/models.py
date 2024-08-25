@@ -16,6 +16,7 @@ class Sensor(models.Model):
 
     identifier = models.CharField(max_length=55, unique=True)
     owner = models.ForeignKey(User, on_delete=models.PROTECT)
+    available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
     class Meta:
@@ -46,7 +47,7 @@ class Deployment(models.Model):
     """
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
     sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT)
-    deployed_at = models.DateTimeField()
+    deployed_at = models.DateTimeField(auto_now_add=True)
     decommissioned_at = models.DateTimeField(null=True, blank=True)
     detail = models.JSONField(null=True, blank=True)
 
@@ -54,9 +55,26 @@ class Deployment(models.Model):
         verbose_name_plural = 'Sensor deployments'
         unique_together = ('sensor', 'location', 'deployed_at')
 
-    def decommission(self):
-        self.decommissioned_at = timezone.now()
+    def deploy(self):
+        """
+        Creates a new deployment and sets the sensor's availability to False.
+        """
+        if not self.sensor.available:
+            raise ValueError(
+                "This sensor is already deployed and not available.")
+        self.sensor.available = False
+        self.sensor.save()
         self.save()
+
+    def decommission(self):
+        """
+        Decommissions the deployment and sets the sensor's availability to True.
+        """
+        if self.decommissioned_at is None:
+            self.decommissioned_at = timezone.now()
+            self.sensor.available = True
+            self.sensor.save()
+            self.save()
 
     @classmethod
     def find_deployment(cls, station, sensor, timestamp=None):
