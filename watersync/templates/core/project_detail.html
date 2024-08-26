@@ -1,4 +1,10 @@
 {% extends 'project_dashboard.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ project.name }}</li>
+{% endblock breadcrumb %}
 
 {% block content %}
 {% load leaflet_tags %}
@@ -9,7 +15,8 @@
         
         <div class="card mb-4">
             <div class="card-body">
-                <h5 class="card-title">Description</h5>
+                <h4 class="card-text">{{ project.name }}</h4>
+                <br>
                 <p class="card-text">{{ project.description }}</p>
             </div>
         </div>
@@ -31,7 +38,7 @@
             <div class="card-body">
                 <h5 class="card-title">Location</h5>
                 {% if project.location %}
-                    <div id="map" style="height: 400px;"></div>
+                    <div id="map"></div>
                 {% else %}
                     <p>No location data available.</p>
                 {% endif %}
@@ -58,20 +65,19 @@
     </div>
 
     {% if project.location %}
+    <script src="{% static 'js/map.js' %}"></script>
     <script>
-        // Initialize the map
-        var map = L.map('map').setView([{{ project.location.y }}, {{ project.location.x }}], 13);
 
-        // Add a tile layer (OpenStreetMap tiles)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Add a marker to the map
-        L.marker([{{ project.location.y }}, {{ project.location.x }}]).addTo(map)
-            .bindPopup('{{ project.name }}')
-            .openPopup();
-    </script>
+        var locations = [
+              {
+                  lat: {{ project.location.y }},
+                  lng: {{ project.location.x }},
+                  name: "{{ project.name }}",
+              }
+          ];
+      
+          var map = initializeMap('map');
+          plotLocations(map, locations);
+      </script>
     {% endif %}
 {% endblock %}

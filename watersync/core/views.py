@@ -1,3 +1,4 @@
+from django.http import HttpRequest, HttpResponse
 from watersync.users.models import User
 from django.views.generic import (
     CreateView, UpdateView, ListView, DeleteView, DetailView)
@@ -19,38 +20,16 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
     template_name = 'core/project_form.html'
 
     def form_valid(self, form):
-        # Save the project instance to get the primary key
         response = super().form_valid(form)
 
-        # Add the current user to the project's user field
-        self.object.user.add(self.request.user)
+        if not self.object.user.filter(pk=self.request.user.pk).exists():
+            self.object.user.add(self.request.user)
 
         return response
 
     def get_success_url(self):
-        return reverse('core:projects', kwargs={'user_id': self.kwargs['user_id']})
-
-
-class ProjectDeleteView(LoginRequiredMixin, DeleteView):
-    model = Project
-
-    def get_object(self):
-        return get_object_or_404(Project, pk=self.kwargs['project_pk'])
-
-    def get_success_url(self):
-        return reverse('core:projects', kwargs={'user_id': self.kwargs['user_id']})
-
-
-class ProjectUpdateView(LoginRequiredMixin, UpdateView):
-    model = Project
-    form_class = ProjectForm
-    template_name = 'core/project_update_form.html'
-
-    def get_object(self):
-        return get_object_or_404(Project, pk=self.kwargs['project_pk'])
-
-    def get_success_url(self):
-        return reverse('core:projects', kwargs={'user_id': self.kwargs['user_id']})
+        return reverse('core:projects',
+                       kwargs={'user_id': self.request.user.id})
 
 
 class ProjectListView(LoginRequiredMixin, ListView):
@@ -58,15 +37,9 @@ class ProjectListView(LoginRequiredMixin, ListView):
     paginate_by = 6
     template_name = 'core/project_list.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['created_at'] = timezone.now()
-        context['user'] = User.objects.get(pk=self.kwargs['user_id'])
-        return context
-
     def get_queryset(self):
-        user_id = self.kwargs['user_id']
-        return Project.objects.filter(user__id=user_id)
+        user = self.request.user
+        return Project.objects.filter(user=user)
 
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):
@@ -76,7 +49,43 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     def get_object(self):
         return get_object_or_404(Project, pk=self.kwargs['project_pk'])
 
-# Location views
+
+class ProjectUpdateView(LoginRequiredMixin, UpdateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'core/project_form.html'
+
+    def get_object(self):
+        return get_object_or_404(Project, pk=self.kwargs['project_pk'])
+
+    def get_success_url(self):
+        return reverse('core:detail-project',
+                       kwargs={'user_id': self.request.user.id,
+                               'project_pk': self.kwargs['project_pk']})
+
+
+class ProjectDeleteView(LoginRequiredMixin, DeleteView):
+    model = Project
+    template_name = 'confirm_delete.html'
+
+    def get_object(self):
+        return get_object_or_404(Project,
+                                 pk=self.kwargs['project_pk'],
+                                 user=self.request.user)
+
+    def get_success_url(self):
+        return reverse('core:projects',
+                       kwargs={'user_id': self.request.user.pk})
+
+
+# Exporting just the .as_view() elements
+project_create_view = ProjectCreateView.as_view()
+project_delete_view = ProjectDeleteView.as_view()
+project_update_view = ProjectUpdateView.as_view()
+project_detail_view = ProjectDetailView.as_view()
+project_list_view = ProjectListView.as_view()
+
+# ========================= Location views ============================ #
 
 
 class LocationCreateView(CreateView):
@@ -179,3 +188,11 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
 
         context['project'] = location.project  # Add the project to the context
         return context
+
+
+# Exporting just the .as_view() elements
+location_create_view = LocationCreateView.as_view()
+location_delete_view = LocationDeleteView.as_view()
+location_update_view = LocationUpdateView.as_view()
+location_detail_view = LocationDetailView.as_view()
+location_list_view = LocationListView.as_view()

@@ -23,12 +23,8 @@
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" 
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""/>
 
-      <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% endblock css %}
     {% block javascript %}
     <!-- Bootstrap JS -->
@@ -44,13 +40,25 @@
         src="https://unpkg.com/htmx.org@2.0.2" 
         integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" 
         crossorigin="anonymous"></script>
-    <!-- Include Plotly.js -->
+    <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
     <script 
         src="https://cdn.datatables.net/2.1.4/js/dataTables.min.js"></script>
 
     <script 
         src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- jquery -->
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+
+
 
     {% endblock javascript %}
   </head>

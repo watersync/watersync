@@ -1,10 +1,11 @@
+{% extends "base_dashboard.html" %}
 {% block content %}
 <form method="post">
     {% csrf_token %}
     <div class="form-group">
+        <h2>Are you sure you want to delete {{ object }}</h2>
         <button type="submit" class="btn btn-danger">Confirm Delete</button>
-        <!-- Corrected the Cancel URL: -->
-        <a href="{% url 'core:locations' user.id project.pk %}" class="btn btn-secondary">Cancel</a>
+        <button type="button" class="btn btn-secondary" onclick="history.back()">Cancel</button>
     </div>
 </form>
 {% endblock %}

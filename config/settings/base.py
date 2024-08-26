@@ -363,3 +363,10 @@ SPECTACULAR_SETTINGS = {
 }
 # Your stuff...
 # ------------------------------------------------------------------------------
+LEAFLET_CONFIG = {
+    'SPATIAL_EXTENT': (-180.0, -90.0, 180.0, 90.0),
+    'DEFAULT_CENTER': (0, 0),
+    'DEFAULT_ZOOM': 2,
+    'MAX_BOUNDS': [[-90, -180], [90, 180]],  # Restrict panning to these bounds
+    'WORLD_COPY_JUMP': False,  # Prevents duplicate worlds
+}

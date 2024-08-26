@@ -30,9 +30,9 @@ class Project(models.Model):
     description = models.TextField(null=True, blank=True)
     location = geomodels.PointField(srid=4326, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    end_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:

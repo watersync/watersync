@@ -2,33 +2,33 @@
 
 {% load crispy_forms_tags %}
 {% load leaflet_tags %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active" aria-current="page">Add location</li>
+{% endblock breadcrumb %}
 
 {% block content %}
-  <h2>Add New Location</h2>
-  
-  {% leaflet_js plugins="forms" %}
-  {% leaflet_css plugins="forms" %}
-  
-  <form method="post" novalidate>
+{% leaflet_js plugins="forms" %}
+{% leaflet_css plugins="forms" %}
+  <h2>{{ form.instance.pk|yesno:"Edit Location,Add New Location" }}</h2>
+  <form method="post">
     {% csrf_token %}
-    <div class="row">
-      <div class="col-6">
-        {{ form.name|as_crispy_field }}
-      </div>
-      <div class="col-6">
-        {{ form.type|as_crispy_field }}
-      </div>
-      <div class="col-6">
-        {{ form.description|as_crispy_field }}
-      </div>
-      <div class="col-6">
-        {{ form.detail|as_crispy_field }}
-      </div>
-    </div>
-    <div class="form-group">
-      {{ form.altitude|as_crispy_field }}
-      {{ form.geom|as_crispy_field }}
-    </div>
-    <button type="submit" class="btn btn-success">Save Location</button>
+    {{ form|crispy }}
+    <div id="form" style="min-height: 200px;"></div>    <!-- Hidden textarea that will store the JSON string -->
+    <textarea name="details" id="id_detail" hidden>{{ form.detail.value|default_if_none:"{}" }}</textarea>
+    {% if 'update' in request.path %}
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    {% elif 'add' in request.path %}
+      <button type="submit" class="btn btn-success">Save Location</button>
+    {% endif %}
   </form>
-{% endblock %}
+
+  <script type="text/javascript" src="{% static 'js/project.js' %}"></script>
+  <script type="text/javascript">
+    // Initialize the JSON Editor
+    initializeJSONEditor('form', "{% static 'schemas/piezometer_detail_schema.json' %}", 'id_detail');
+  </script>
+{% endblock content %}

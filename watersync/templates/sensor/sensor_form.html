@@ -1,22 +1,34 @@
 {% extends 'base_dashboard.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sensor:sensors' user.id %}">Sensors</a></li>
+<li class="breadcrumb-item active" aria-current="page">Add sensor</li>
+{% endblock breadcrumb %}
 
 {% block content %}
-  <h2>Add New Sensor</h2>
+<h2>{{ form.instance.pk|yesno:"Edit Sensor,Add New Sensor" }}</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.identifier|as_crispy_field }}
+  {{ form.user|as_crispy_field }}
   
-  <form method="post" novalidate>
-    {% csrf_token %}
-    <div class="row">
-      <div class="col-6">
-        {{ form.identifier|as_crispy_field }}
-      </div>
-      <div class="col-6">
-        {{ form.owner|as_crispy_field }}
-      </div>
-    </div>
-    <div class="form-group">
-      {{ form.detail|as_crispy_field }}
-    </div>
-    <button type="submit" class="btn btn-success">Save Sensor</button>
-  </form>
-{% endblock %}
+  <div class="form-group">
+    <label for="jsoneditor">Detail</label>
+    <!-- The div for JSONEditor -->
+    <div id="form" style="min-height: 200px;"></div>
+    <!-- Hidden textarea that will store the JSON string -->
+    <textarea name="details" id="id_detail" hidden>{{ form.detail.value|default_if_none:"{}" }}</textarea>
+  </div>
+  
+  <button type="submit" class="btn btn-success">Save Sensor</button>
+</form>
+
+
+<script type="text/javascript" src="{% static 'js/project.js' %}"></script>
+<script type="text/javascript">
+  // Initialize the JSON Editor
+  initializeJSONEditor('form', "{% static 'schemas/sensor_detail_schema.json' %}", 'id_detail');
+</script>
+{% endblock content %}

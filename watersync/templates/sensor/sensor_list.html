@@ -1,5 +1,9 @@
 {% extends 'base_dashboard.html' %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Sensors</li>
+{% endblock %}
+
 {% block content %}
 <div class="float-right">
   <a class="btn btn-success" href="{% url 'sensor:add-sensor' user.id %}"><i class="fa fa-plus"></i> Add Sensor</a>

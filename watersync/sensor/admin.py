@@ -5,9 +5,9 @@ from .models import Sensor, SensorRecord
 @admin.register(Sensor)
 class SensorAdmin(admin.ModelAdmin):
     # Columns to display in the list view
-    list_display = ('identifier', 'owner')
+    list_display = ('identifier',)
     search_fields = ('identifier',)  # Fields to search by
-    list_filter = ('owner',)  # Add filters in the right sidebar
+    list_filter = ('user',)  # Add filters in the right sidebar
 
 
 @admin.register(SensorRecord)

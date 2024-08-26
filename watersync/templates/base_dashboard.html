@@ -1,3 +1,9 @@
+<!-- This template is used for the basic dashboard where the user can manage user-level items. In this version, those
+ items are `Project` and `Sensor` objects. Therefore in the sidebar, there are only two navigation options to those
+ two pages. 
+ 
+ Majority of the content is managed through the `project` view.
+ -->
 {% extends 'base.html' %}
 
 {% load static i18n %}<!DOCTYPE html>
@@ -48,14 +54,14 @@
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}"><i class="fa-solid fa-house"></i></a></li>
                             {% block breadcrumb %}
-                            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
                             {% endblock breadcrumb %}
                         </ol>
                     </nav>
-                    <hr>
+                <hr>
                     <div class="flex-fill">
                         <div class="p-4">
-                            <div class="container" style="padding-bottom: 60px;">
+                            <div class="container" style="padding-bottom: 60px;"
+                                >
                                 {% if messages %}
                                     {% for message in messages %}
                                         <div class="alert alert-dismissible alert-{{ message.tags }} mt-2">
@@ -66,7 +72,7 @@
                                 {% endif %}
                                 {% block main %}
                                     {% block content %}
-                                    {% comment %} This is where the routed content goes. {% endcomment %}
+
                                     {% endblock content %}
                                 {% endblock main %}
                             </div>

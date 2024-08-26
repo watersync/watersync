@@ -9,13 +9,12 @@ class Sensor(models.Model):
 
     Attributes:
         identifier: The unique identifier of the sensor.
-        owner: The owner of the sensor.
+        user: The owner of the sensor.
         detail: Additional information about the sensor 
             in a JSON format.
     """
-
     identifier = models.CharField(max_length=55, unique=True)
-    owner = models.ForeignKey(User, on_delete=models.PROTECT)
+    user = models.ManyToManyField(User, related_name='sensors')
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 

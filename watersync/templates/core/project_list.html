@@ -1,4 +1,14 @@
 {% extends 'base_dashboard.html' %}
+{% comment %} 
+Mandatory things remaining to add to this template: 
+    1. Indication of whether the project is ongoing or archived.
+    2. Start date/end date.
+    3. Simplified pagination control.
+{% endcomment %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Projects</li>
+{% endblock %}
 
 {% block content %}
     <div class="float-right">
@@ -6,7 +16,7 @@
     </div>
     <br>
     {% if object_list %}
-        <div class="row">
+        <div  id="project-list" class="row">
             {% for project in object_list %}
                 <div class="col-md-4 mb-4">
                     <div class="card">
@@ -15,15 +25,6 @@
                                 <a href="{% url 'core:detail-project' user.id project.pk %}" class="text-dark">{{ project.name }}</a>
                             </h5>
                             <h6 class="card-subtitle mb-2 text-muted">{{ project.description }}</h6>
-
-                            <div class="d-flex justify-content-end">
-                                <a href="{% url 'core:update-project' user.id project.pk %}" class="text-warning me-3" title="Edit project">
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                <a href="{% url 'core:delete-project' user.id project.pk %}" class="text-danger" title="Delete Project">
-                                    <i class="fa fa-trash"></i>
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>
