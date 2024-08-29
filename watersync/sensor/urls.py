@@ -21,9 +21,10 @@ from watersync.sensor.views import (DeploymentCreateView, DeploymentListView,
                                     DeploymentDeleteView, DeploymentUpdateView,
                                     DeploymentDetailView,
                                     DeploymentDecommissionView)
-from watersync.sensor.views import (
-    SensorRecordListView, SensorRecordCreateView,
-    SensorRecordUpdateView, SensorRecordDeleteView, SensorRecordDownloadView)
+from watersync.sensor.views import (SensorRecordListView, SensorRecordCreateView,
+                                    SensorRecordUpdateView,
+                                    SensorRecordDeleteView,
+                                    SensorRecordDownloadView)
 
 app_name = "sensor"
 
@@ -42,11 +43,11 @@ urlpatterns = [
          SensorDetailView.as_view(), name='detail-sensor'),
 
     # Update sensor with user_id
-    path('sensor/update/<int:sensor_pk>/',
+    path('sensor/<int:sensor_pk>/update/',
          SensorUpdateView.as_view(), name='update-sensor'),
 
     # Delete sensor with user_id
-    path('sensor/delete/<int:sensor_pk>/',
+    path('sensor/<int:sensor_pk>/delete/',
          SensorDeleteView.as_view(), name='delete-sensor'),
 
     # ============== Sensor deployments ====================
@@ -93,4 +94,5 @@ urlpatterns = [
     path('project/<int:project_pk>/deployment/<int:deployment_pk>/download-timeseries/',
          SensorRecordDownloadView.as_view(),
          name='download-timeseries'),
+
 ]

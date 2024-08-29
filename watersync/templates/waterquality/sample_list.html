@@ -1,28 +1,13 @@
 {% extends 'project_dashboard.html' %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a></li>
+<li class="breadcrumb-item active" aria-current="page">Samples</li>
+{% endblock breadcrumb %}
+
 {% block content %}
-<div class="float-right py-2">
-  <a class="btn btn-success" href="{% url 'waterquality:add-sample' user.id project.pk location.pk %}"><i class="fa fa-plus"></i> Add sample </a>
-</div>
-<br>
-<table class="table table-striped table-sm">
-    <thead>
-      <tr>
-        <th scope="col">#</th>
-        <th scope="col">location</th>
-        <th scope="col">timestamp</th>
-        <th scope="col">detail</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for sample in sample_list %}
-      <tr>
-      <th scope="row">{{ forloop.counter }}</th>
-        <td>{{sample.location}}</td>
-        <td>{{sample.timestamp}} </td>
-        <td><a class="btn btn-sm btn-info" href="{% url 'waterquality:detail-sample' user.id project.pk location.pk sample.pk %}">Details...</a></td>
-      {% endfor %}
-      </tr>
-    </tbody>
-  </table>
+{% include "waterquality/partial/sample_list.html" %}
 {% endblock %}

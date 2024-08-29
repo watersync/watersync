@@ -1,0 +1,29 @@
+<!-- Filter Form -->
+<div class="card p-4">
+  <form method="get" class="form-inline">
+    <div class="form-group mr-4 mb-3">
+      <label for="type" class="mr-2">Measured property:</label>
+      <select class="form-select" name="type" id="type">
+        <option value="">--Select type--</option>
+        {% for sensor_type in sensor_types %}
+        <option value="{{ sensor_type }}">{{ sensor_type }}</option>
+        {% endfor %}
+  
+      </select>        
+    </div>
+
+    <div class="d-flex justify-content-center mb-4 gap-2">
+      <div class="form-group col-md-6 mr-4 mb-3">
+        <label for="date_start" class="mr-2">Start Date:</label>
+        <input type="date" name="date_start" id="date_start" class="form-control" value="{{ request.GET.date_start }}">
+      </div>
+    
+      <div class="form-group col-md-6 mb-3">
+        <label for="date_end" class="mr-2">End Date:</label>
+        <input type="date" name="date_end" id="date_end" class="form-control" value="{{ request.GET.date_end }}">
+      </div>
+    </div>
+  
+    <button type="submit" class="btn btn-primary mb-3">Filter</button>
+  </form>
+</div>

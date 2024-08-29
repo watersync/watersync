@@ -1,0 +1,10 @@
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Users</h5>
+        <ul class="list-group list-group-flush">
+            {% for user in object.user.all %}
+                <li class="list-group-item">{{ user.email }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>

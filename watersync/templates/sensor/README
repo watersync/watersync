@@ -1,0 +1,28 @@
+# Structure
+
+## The `sensor` views
+
+The `sensor` templates are at the same level as `project`. They all refer to
+sensors that are owned by a user (just like the projects). They can also be 
+owned by multiple users. 
+
+## The `deployment` views
+
+The `deployment` views on the other hand are coupled to (and routed through) the
+`location, because we expect each deployment (aka sensor timeseries) to be
+collected to a location which is always linked to a `project`.
+
+## The `sensorrecord views
+
+As the sensor records are usually numerous and collected in a non-organic way,
+it does not make much sense to display them in the dashboard as a table but 
+rather in a graphical form. Additionally there is a filtration option to 
+retrieve and plot only required data and then download those data.
+
+Moreover, the sensor records are always coupled to
+a deployment (a combination of sensor and location). Because of this relation, 
+it makes sense to not have separate views for them but rather include them in 
+the deployment detail view.
+
+In summary, the sensor records are always displayed (and are downloadable) from 
+the level of sensor deployment.

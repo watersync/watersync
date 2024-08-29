@@ -1,25 +1,18 @@
-{% extends 'base.html' %}
-
+{% extends 'project_dashboard.html' %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}">GWL measurements</a></li>
+<li class="breadcrumb-item active" aria-current="page"></li>
+{% endblock breadcrumb %}
 {% block content %}
-{% load leaflet_tags %}
-{% leaflet_js %}
-{% leaflet_css %}
 <div class="container mt-4">
-    <a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Back
-    </a>
-    <h2>{{ object.name }}</h2>
-    <p class="text-muted">Measurement Details</p>
-    
+    <h2>Measurement Details</h2>
+    <br>
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Description</h5>
-            <p class="card-text">{{ object.description }}</p>
-        </div>
-    </div>
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Measurement Information</h5>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item"><strong>Depth:</strong> {{ object.depth }}</li>
                 <li class="list-group-item"><strong>Timestamp:</strong> {{ object.timestamp }}</li>

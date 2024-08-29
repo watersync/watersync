@@ -1,21 +1,29 @@
 {% extends 'project_dashboard.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sensor:deployments' user.id project.pk %}">Deployed sensors</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ deployment }}</li>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2>{{ deployment.sensor }} at {{ deployment.location }} </h2>
+    <h3 class="text-muted">Deployment Details</h3>    
     <br>
-    <p class="text-muted">Deployment Details</p>
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Deployment Information</h5>
+            <h5 class="card-title">Basic Information</h5>
             <ul class="list-group list-group-flush">
-                {% for key, value in sensor.detail.items %}
-                    <li class="list-group-item">
-                        <strong>{{ key|capfirst }}:</strong> {{ value }}
-                    </li>
-                {% endfor %}
+                <li class="list-group-item"><strong>Location:</strong> {{ deployment.location }}</li>
+                <li class="list-group-item"><strong>Sensor:</strong> {{ deployment.sensor }}</li>
+                <li class="list-group-item"><strong>Deployed at:</strong> {{ deployment.deployed_at }}</li>
+                <li class="list-group-item"><strong>Decommissioned at:</strong> {{ deployment.decommissioned_at }}</li>
             </ul>
         </div>
     </div>
+
+    {% include "shared/detail_list.html" %}
 
     <a href="{% url 'sensor:update-deployment' user.id project.pk deployment.pk %}" class="btn btn-warning">
         <i class="fas fa-edit"></i> Edit
@@ -32,14 +40,10 @@
         <button type="submit" class="btn btn-danger" {% if deployment.decommissioned_at is None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
             <i class="fas fa-trash"></i> Delete
         </button>
+        <p class="text-danger"><em>WARNING: deleting the deployment deletes all the records as well!</em></p>
     </form>
-
-    <h2 class="py-4">Deployment Data</h2>
-
-    <!-- Include the Plotly graph -->
-    {% include "sensor/partial/record_list_graph.html" %}
     
-    <!-- Include the records list -->
     {% include "sensor/partial/record_list.html" %}
+    
 </div>
 {% endblock %}

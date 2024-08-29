@@ -10,15 +10,6 @@ is no scenario where this form is elswhere than add or update views.
 {% leaflet_js plugins="forms" %}
 {% leaflet_css plugins="forms" %}
   <h2>{{ form.instance.pk|yesno:"Edit Project,Add New Project" }}</h2>
-  <form method="post">
     {% csrf_token %}
-    {{ form|crispy }}
-    
-    {% if 'update' in request.path %}
-      <button type="submit" class="btn btn-primary">Save Changes</button>
-    {% elif 'add' in request.path %}
-      <button type="submit" class="btn btn-success">Save Project</button>
-    {% endif %}
-    
-  </form>
+    {% crispy form %}
 {% endblock content %}

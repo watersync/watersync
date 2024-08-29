@@ -1,5 +1,6 @@
 from django.db import models
 from watersync.core.models import Location
+from django.utils import timezone
 
 
 class Sample(models.Model):
@@ -22,8 +23,10 @@ class Sample(models.Model):
         detail: space for any additional information in key-value pair format.
     """
 
-    location = models.ForeignKey(Location, on_delete=models.PROTECT)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    location = models.ForeignKey(
+        Location, related_name='samples', on_delete=models.PROTECT)
+    timestamp = models.DateTimeField(
+        default=timezone.now, null=True, blank=True)
     detail = models.JSONField(null=True, blank=True)
 
     class Meta:
@@ -33,7 +36,7 @@ class Sample(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"Sample from {self.location} at {self.timestamp:%Y-%m-%d %H:%M}"
+        return f"{self.location.name.lower()}-{self.timestamp:%Y-%m-%d}"
 
 
 class Measurement(models.Model):
@@ -54,7 +57,8 @@ class Measurement(models.Model):
         detail (JSONField): Additional details about the measurement.
     """
 
-    sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
+    sample = models.ForeignKey(
+        Sample, related_name='measurements', on_delete=models.CASCADE)
     property = models.CharField(max_length=50)
     value = models.FloatField()
     unit = models.CharField(max_length=50)

@@ -54,6 +54,9 @@ class Deployment(models.Model):
         verbose_name_plural = 'Sensor deployments'
         unique_together = ('sensor', 'location', 'deployed_at')
 
+    def __str__(self) -> str:
+        return f'{self.sensor.identifier} at {self.location.name}'
+
     def deploy(self):
         """
         Creates a new deployment and sets the sensor's availability to False.
@@ -126,7 +129,8 @@ class SensorRecord(models.Model):
         "volume": "Volume"
     }
 
-    deployment = models.ForeignKey(Deployment, on_delete=models.PROTECT)
+    deployment = models.ForeignKey(
+        Deployment, on_delete=models.CASCADE, related_name='records')
     value = models.DecimalField(max_digits=8, decimal_places=3)
     unit = models.CharField(max_length=10)
     type = models.CharField(max_length=20, choices=SENSOR_MEASUREMENT_TYPES)

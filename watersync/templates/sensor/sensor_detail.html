@@ -7,19 +7,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>{{ sensor.identifier }}</h2>
-    <p class="text-muted">Sensor Details</p>
+    <h3 class="text-muted">Sensor Details</h3>
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Sensor Information</h5>
-            <ul class="list-group list-group-flush">
-                {% for item in sensor.detail %}
-                    <li class="list-group-item">
-                        <strong>{{ item.key|capfirst }}:</strong> {{ item.value }}
-                    </li>
-                {% endfor %}
-            </ul>
+            <h4 class="card-text">{{ sensor.identifier }}</h4>
         </div>
+    </div>
+    {% include "shared/user_list.html" %}
+    {% include "shared/detail_list.html" %}
     </div>  
 
     <a href="{% url 'sensor:update-sensor' user.id sensor.pk %}" class="btn btn-warning">

@@ -1,0 +1,12 @@
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Details</h5>
+        <ul class="list-group list-group-flush">
+            {% for item in object.detail %}
+                <li class="list-group-item">
+                    <strong>{{ item.property|capfirst }}:</strong> {{ item.value }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>  

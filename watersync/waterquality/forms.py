@@ -1,32 +1,22 @@
 from watersync.waterquality.models import Sample, Measurement
 from django import forms
-from django.forms import Textarea
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Fieldset, Field
-import pandas as pd
+from django.forms import HiddenInput, DateTimeInput
+from django.utils import timezone
 
 
 class SampleForm(forms.ModelForm):
     class Meta:
         model = Sample
-        fields = ('detail', )
+        fields = ('timestamp', 'detail', )
         widgets = {
-            'detail': Textarea(attrs={'rows': 5, 'cols': 40, 'placeholder': 'Enter JSON data here'}),
+            'timestamp': DateTimeInput(attrs={'type': 'datetime-local'}),
+            'detail': HiddenInput()
         }
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.add_input(Submit('submit', 'Save sensor'))
-
-        # Custom layout with Crispy Forms to structure the form
-        self.helper.layout = Layout(
-            Fieldset(
-                'Details about the sample',
-                Field('detail', css_class='json-field'),
-            )
-        )
+        super(SampleForm, self).__init__(*args, **kwargs)
+        if 'initial' not in kwargs:
+            self.fields['timestamp'].initial = timezone.now()
 
 
 class MeasurementForm(forms.ModelForm):
@@ -34,19 +24,5 @@ class MeasurementForm(forms.ModelForm):
         model = Measurement
         fields = ('property', 'value', 'unit', 'detail')
         widgets = {
-            'detail': Textarea(attrs={'rows': 5, 'cols': 40, 'placeholder': 'Enter JSON data here'}),
+            'detail': HiddenInput()
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.add_input(Submit('submit', 'Save sensor'))
-
-        # Custom layout with Crispy Forms to structure the form
-        self.helper.layout = Layout(
-            Fieldset(
-                'Details about the sample',
-                Field('detail', css_class='json-field'),
-            )
-        )

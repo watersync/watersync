@@ -1,9 +1,0 @@
-{% extends 'base.html' %}
-
-{% load crispy_forms_tags %}
-{% load leaflet_tags %}
-{% block content %}
-  {% leaflet_js plugins="forms" %}
-  {% leaflet_css plugins="forms" %}
-  {% crispy form %}
-{% endblock %}

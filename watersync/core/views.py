@@ -1,15 +1,15 @@
-from django.http import HttpRequest, HttpResponse
-from watersync.users.models import User
 from django.views.generic import (
     CreateView, UpdateView, ListView, DeleteView, DetailView)
 from watersync.groundwater.views import GWLListView
 from watersync.sensor.views import DeploymentListView
+from watersync.waterquality.views import SampleListView
 from .models import Project, Location
 from .forms import ProjectForm, LocationForm
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
+from django.contrib.gis.geos import Point
 
 # Project views
 
@@ -88,7 +88,7 @@ project_list_view = ProjectListView.as_view()
 # ========================= Location views ============================ #
 
 
-class LocationCreateView(CreateView):
+class LocationCreateView(LoginRequiredMixin, CreateView):
     model = Location
     form_class = LocationForm
     template_name = 'core/location_form.html'
@@ -103,7 +103,13 @@ class LocationCreateView(CreateView):
         form.instance.project = get_object_or_404(
             Project, pk=self.kwargs['project_pk'])
         form.instance.added_by = self.request.user
+        print(f"Form valid. Instance: {form.instance}")
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        print("Form invalid")
+        print(form.errors)  # Log form errors to the console
+        return super().form_invalid(form)
 
     def get_success_url(self):
         return reverse('core:locations', kwargs={
@@ -114,18 +120,16 @@ class LocationCreateView(CreateView):
 
 class LocationDeleteView(LoginRequiredMixin, DeleteView):
     model = Location
-    template_name = 'core/location_confirm_delete.html'
+    template_name = 'confirm_delete.html'
 
     def get_object(self):
         return get_object_or_404(Location, pk=self.kwargs['location_pk'], project__pk=self.kwargs['project_pk'])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Ensure 'user' is passed to the template
-        context['user'] = self.request.user
+
         context['project'] = get_object_or_404(
-            Project, pk=self.kwargs['project_pk'])  # Add project to context
-        return context
+            Project, pk=self.kwargs['project_pk'])
 
     def get_success_url(self):
         return reverse('core:locations', kwargs={
@@ -134,14 +138,31 @@ class LocationDeleteView(LoginRequiredMixin, DeleteView):
         })
 
 
-class LocationUpdateView(UpdateView):
+class LocationUpdateView(LoginRequiredMixin, UpdateView):
     model = Location
     form_class = LocationForm
-    template_name = 'core/location_update_form.html'
-    success_url = reverse_lazy('core:list')
+    template_name = 'core/location_form.html'
+
+    def get_object(self):
+        return get_object_or_404(Location, pk=self.kwargs['location_pk'])
+
+    def get_success_url(self):
+        return reverse('core:detail-location', kwargs={
+            'user_id': self.request.user.id,
+            'project_pk': self.kwargs['project_pk'],
+            'location_pk': self.kwargs['location_pk']
+        })
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['project'] = get_object_or_404(
+            Project, pk=self.kwargs['project_pk'])
+
+        return context
 
 
-class LocationListView(ListView):
+class LocationListView(LoginRequiredMixin, ListView):
     model = Location
     template_name = 'core/location_list.html'
 
@@ -178,14 +199,17 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
         # Reuse the GWLListView's get_queryset method to get the measurements
         gwl_list_view = GWLListView()
         deployment_view = DeploymentListView()
+        sample_view = SampleListView()
         gwl_list_view.request = self.request  # Pass the request to the list view
         gwl_list_view.kwargs = self.kwargs  # Pass the kwargs to the list view
         deployment_view.request = self.request
         deployment_view.kwargs = self.kwargs
+        sample_view.request = self.request
+        sample_view.kwargs = self.kwargs
         # Get the queryset
         context['gwlmanualmeasurements_list'] = gwl_list_view.get_queryset()
         context['deployment_list'] = deployment_view.get_queryset()
-
+        context['sample_list'] = sample_view.get_queryset()
         context['project'] = location.project  # Add the project to the context
         return context
 

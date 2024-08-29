@@ -1,0 +1,6 @@
+TODOs in this module:
+
+## forms.py
+
+- Validate the form so the start date is not after the end date.
+- Include a nicer date picker.

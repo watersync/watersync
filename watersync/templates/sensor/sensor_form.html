@@ -11,24 +11,23 @@
 <h2>{{ form.instance.pk|yesno:"Edit Sensor,Add New Sensor" }}</h2>
 <form method="post">
   {% csrf_token %}
-  {{ form.identifier|as_crispy_field }}
-  {{ form.user|as_crispy_field }}
+  {{ form|crispy }}
   
-  <div class="form-group">
-    <label for="jsoneditor">Detail</label>
-    <!-- The div for JSONEditor -->
-    <div id="form" style="min-height: 200px;"></div>
-    <!-- Hidden textarea that will store the JSON string -->
-    <textarea name="details" id="id_detail" hidden>{{ form.detail.value|default_if_none:"{}" }}</textarea>
-  </div>
-  
-  <button type="submit" class="btn btn-success">Save Sensor</button>
+  <div class="card p-2 mt-4" id="detail_form"></div>
+
+  <button type="submit" class="btn btn-primary mt-4">Save Sensor</button>
 </form>
 
 
 <script type="text/javascript" src="{% static 'js/project.js' %}"></script>
 <script type="text/javascript">
-  // Initialize the JSON Editor
-  initializeJSONEditor('form', "{% static 'schemas/sensor_detail_schema.json' %}", 'id_detail');
-</script>
+    // Initialize the detail input
+    var elementId = 'detail_form';
+    var schemaUrl = "{% static 'schemas/sensor_detail_schema.json' %}";
+    var hiddenFieldId = 'id_detail';
+    var initialData = {{ form.detail.value|default:"{}"|safe }};
+
+    initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
+
+  </script>
 {% endblock content %}

@@ -78,7 +78,7 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # "django.contrib.humanize", # Handy template tags
-    "unfold",
+    # "unfold", # there are some issues like the delete button not showing
     "django.contrib.admin",
     "django.contrib.gis",
     "django.forms",

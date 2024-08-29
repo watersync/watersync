@@ -1,0 +1,30 @@
+TODOs for this module:
+
+## models.py
+
+In the groundwater level measurement model:
+
+- created_at
+- created_by
+- updated_at
+- updated_by
+
+!!! important
+
+    There should be a field representing the actual depth to groundwater with
+    the height of the piezometer subtracted from it. As it happens that the
+    piezometers can change the height, it should be immediatelly calculated and
+    stored with the original measurement. BTW the original measurement should
+    be from the the top of the casing to the grounwater level in the piezometer
+    for simplified field data collection.
+
+!!! idea
+
+    We should assume that whenever a measurement is made at a locaiton, a status
+    is also updated. So maybe we should link the measurement to the status
+    update. That would allow to remove the comment field from the model and
+    keep the commen togather with the status update.
+
+## Outside of individual files
+
+- allow to add a GWL measurement only to locations that have type 'well'

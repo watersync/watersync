@@ -25,7 +25,7 @@ CACHES = {
         "LOCATION": "",
     },
 }
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 30_000
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-host

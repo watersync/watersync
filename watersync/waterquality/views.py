@@ -5,11 +5,12 @@ from django.views.generic import (
 from watersync.core.models import Location, Project
 from watersync.waterquality.models import Sample, Measurement
 from watersync.waterquality.forms import SampleForm, MeasurementForm
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 # ================ Sample views ========================
 
-class SampleCreateView(CreateView):
+class SampleCreateView(LoginRequiredMixin, CreateView):
     model = Sample
     form_class = SampleForm
     template_name = 'waterquality/sample_form.html'
@@ -28,27 +29,20 @@ class SampleCreateView(CreateView):
 
         context['project'] = get_object_or_404(Project, pk=project_pk)
         context['location'] = get_object_or_404(Location, pk=location_pk)
-        context['user_id'] = self.request.user.id
         return context
 
     def form_valid(self, form):
-        # Here you can add any additional processing before saving
         sample = form.save(commit=False)
-
-        # Assuming 'sample_id' is the field in your model where you want to store the ID from the URL
         location_id_from_url = self.kwargs.get('location_pk')
 
         if location_id_from_url:
             sample.location_id = location_id_from_url
 
-        # Now save the instance
         sample.save()
-
-        # Proceed with the default form_valid behavior
         return super().form_valid(form)
 
 
-class SampleListView(ListView):
+class SampleListView(LoginRequiredMixin, ListView):
     model = Sample
     template_name = 'waterquality/sample_list.html'
 
@@ -61,23 +55,17 @@ class SampleListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id  # Get the user ID from the request
-        # Get the project_pk from the URL
+
         project_pk = self.kwargs.get('project_pk')
         location_pk = self.kwargs.get('location_pk')
 
-        # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
         context['location'] = get_object_or_404(Location, pk=location_pk)
-
-        # Pass user_id, project_pk, and location_pk to the template
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
 
         return context
 
 
-class SampleDetailView(DetailView):
+class SampleDetailView(LoginRequiredMixin, DetailView):
     model = Sample
     template_name = 'waterquality/sample_detail.html'
 
@@ -88,25 +76,19 @@ class SampleDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         sample = self.get_object()
 
-        # Fetch the sensor records for this deployment
-        measurements = Measurement.objects.filter(
-            sample=sample)
+        measurements = sample.measurements.all()
 
-        context['measuremet_list'] = measurements
-
-        # Additional context
+        context['measurement_list'] = measurements
         context['project'] = sample.location.project
         context['sample'] = sample
         context['location'] = sample.location
-        context['user_id'] = self.request.user.id
-        context['project_pk'] = sample.location.project.pk
-        context['sample_pk'] = sample.pk
 
         return context
 
 
-class SampleDeleteView(DeleteView):
+class SampleDeleteView(LoginRequiredMixin, DeleteView):
     model = Sample
+    template_name = 'confirm_delete.html'
 
     def get_object(self):
         return get_object_or_404(Sample, pk=self.kwargs['sample_pk'])
@@ -120,21 +102,16 @@ class SampleDeleteView(DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
         project_pk = self.kwargs.get('project_pk')
         location_pk = self.kwargs.get('location_pk')
 
-        # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['location_pk'] = location_pk
+        context['location'] = get_object_or_404(Location, pk=location_pk)
 
         return context
 
 
-class SampleUpdateView(UpdateView):
+class SampleUpdateView(LoginRequiredMixin, UpdateView):
     model = Sample
     form_class = SampleForm
     template_name = 'waterquality/sample_form.html'
@@ -143,37 +120,33 @@ class SampleUpdateView(UpdateView):
         return get_object_or_404(Sample, pk=self.kwargs['sample_pk'])
 
     def get_success_url(self):
-        return reverse('waterquality:samples', kwargs={
+        return reverse('waterquality:detail-sample', kwargs={
             'user_id': self.kwargs['user_id'],
             'project_pk': self.kwargs['project_pk'],
-            'location_pk': self.kwargs['location_pk']
+            'location_pk': self.kwargs['location_pk'],
+            'sample_pk': self.kwargs['sample_pk'],
         })
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
         project_pk = self.kwargs.get('project_pk')
         location_pk = self.kwargs.get('location_pk')
 
-        # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['location_pk'] = location_pk
+        context['location'] = get_object_or_404(Location, pk=location_pk)
 
         return context
 
 
 # ================ Measurement views ========================
 
-class MeasurementCreateView(CreateView):
+class MeasurementCreateView(LoginRequiredMixin, CreateView):
     model = Measurement
     form_class = MeasurementForm
     template_name = 'waterquality/measurement_form.html'
 
     def get_success_url(self):
-        return reverse_lazy('waterquality:measurements', kwargs={
+        return reverse_lazy('waterquality:detail-sample', kwargs={
             'location_pk': self.kwargs['location_pk'],
             'project_pk': self.kwargs['project_pk'],
             'sample_pk': self.kwargs['sample_pk'],
@@ -189,27 +162,21 @@ class MeasurementCreateView(CreateView):
         context['project'] = get_object_or_404(Project, pk=project_pk)
         context['location'] = get_object_or_404(Location, pk=location_pk)
         context['sample'] = get_object_or_404(Sample, pk=sample_pk)
-        context['user_id'] = self.request.user.id
         return context
 
     def form_valid(self, form):
-        # Here you can add any additional processing before saving
-        measurement = form.save(commit=False)
 
-        # Assuming 'sample_id' is the field in your model where you want to store the ID from the URL
+        measurement = form.save(commit=False)
         sample_id = self.kwargs.get('sample_pk')
 
         if sample_id:
             measurement.sample_id = sample_id
 
-        # Now save the instance
         measurement.save()
-
-        # Proceed with the default form_valid behavior
         return super().form_valid(form)
 
 
-class MeasurementListView(ListView):
+class MeasurementListView(LoginRequiredMixin, ListView):
     model = Measurement
     template_name = 'waterquality/measurement_list.html'
 
@@ -221,25 +188,19 @@ class MeasurementListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id  # Get the user ID from the request
-        # Get the project_pk from the URL
+
         project_pk = self.kwargs.get('project_pk')
         location_pk = self.kwargs.get('location_pk')
         sample_pk = self.kwargs.get('sample_pk')
 
-        # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
         context['location'] = get_object_or_404(Location, pk=location_pk)
         context['sample'] = get_object_or_404(Sample, pk=sample_pk)
 
-        # Pass user_id, project_pk, and location_pk to the template
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-
         return context
 
 
-class MeasurementDetailView(DetailView):
+class MeasurementDetailView(LoginRequiredMixin, DetailView):
     model = Measurement
     template_name = 'waterquality/measurement_detail.html'
 
@@ -250,59 +211,22 @@ class MeasurementDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         measurement = self.get_object()
 
-        # Additional context
         context['project'] = measurement.sample.location.project
         context['sample'] = measurement.sample
         context['location'] = measurement.sample.location
-        context['user_id'] = self.request.user.id
-        context['project_pk'] = measurement.sample.location.project.pk
-        context['sample_pk'] = measurement.sample.pk
 
         return context
 
 
-class MeasurementDeleteView(DeleteView):
+class MeasurementDeleteView(LoginRequiredMixin, DeleteView):
     model = Measurement
+    template_name = 'confirm_delete.html'
 
     def get_object(self):
         return get_object_or_404(Measurement, pk=self.kwargs['measurement_pk'])
 
     def get_success_url(self):
-        return reverse('waterquality:samples', kwargs={
-            'user_id': self.kwargs['user_id'],
-            'project_pk': self.kwargs['project_pk'],
-            'location_pk': self.kwargs['location_pk'],
-            'sample_pk': self.kwargs['sample_pk']
-        })
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
-        project_pk = self.kwargs.get('project_pk')
-        location_pk = self.kwargs.get('location_pk')
-        sample_pk = self.kwargs.get('sample_pk')
-
-        # Optionally, you might want to fetch these objects to pass more details:
-        context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['location_pk'] = location_pk
-        context['sample_pk'] = sample_pk
-
-        return context
-
-
-class MeasurementUpdateView(UpdateView):
-    model = Measurement
-    form_class = MeasurementForm
-    template_name = 'waterquality/measurement_form.html'
-
-    def get_object(self):
-        return get_object_or_404(Measurement, pk=self.kwargs['measurement_pk'])
-
-    def get_success_url(self):
-        return reverse('waterquality:samples', kwargs={
+        return reverse('waterquality:detail-sample', kwargs={
             'user_id': self.kwargs['user_id'],
             'project_pk': self.kwargs['project_pk'],
             'location_pk': self.kwargs['location_pk'],
@@ -311,17 +235,45 @@ class MeasurementUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
+        measurement = self.get_object()
         project_pk = self.kwargs.get('project_pk')
         location_pk = self.kwargs.get('location_pk')
         sample_pk = self.kwargs.get('sample_pk')
 
-        # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
+        context['location'] = get_object_or_404(Location, pk=location_pk)
+        context['sample'] = get_object_or_404(Sample, pk=sample_pk)
+        context['measurement_pk'] = measurement
 
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['location_pk'] = location_pk
-        context['sample_pk'] = sample_pk
+        return context
 
+
+class MeasurementUpdateView(LoginRequiredMixin, UpdateView):
+    model = Measurement
+    form_class = MeasurementForm
+    template_name = 'waterquality/measurement_form.html'
+
+    def get_object(self):
+        return get_object_or_404(Measurement, pk=self.kwargs['measurement_pk'])
+
+    def get_success_url(self):
+        return reverse('waterquality:detail-measurement', kwargs={
+            'user_id': self.kwargs['user_id'],
+            'project_pk': self.kwargs['project_pk'],
+            'location_pk': self.kwargs['location_pk'],
+            'sample_pk': self.kwargs['sample_pk'],
+            'measurement_pk': self.kwargs['measurement_pk'],
+        })
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        measurement = self.get_object()
+        project_pk = self.kwargs.get('project_pk')
+        location_pk = self.kwargs.get('location_pk')
+        sample_pk = self.kwargs.get('sample_pk')
+
+        context['project'] = get_object_or_404(Project, pk=project_pk)
+        context['location'] = get_object_or_404(Location, pk=location_pk)
+        context['sample'] = get_object_or_404(Sample, pk=sample_pk)
+        context['measurement_pk'] = measurement
         return context

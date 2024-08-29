@@ -1,72 +1,108 @@
-{% extends 'base.html' %}
+{% extends 'project_dashboard.html' %}
+
+{% load static %}
+{% load leaflet_tags %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
+{% endblock breadcrumb %}
 
 {% block content %}
-{% load leaflet_tags %}
 {% leaflet_js %}
 {% leaflet_css %}
 <div class="container mt-4">
-    <a href="{% url 'core:locations' user.id project.pk %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Back
-    </a>
-    <h2>{{ object.name }}</h2>
-    <p class="text-muted">Location Details</p>
+    <h3 class="text-muted">Location Details</h3>
     
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Description</h5>
-            <p class="card-text">{{ object.description }}</p>
+            <h4 class="card-text">{{ location.name }}</h4>
+            <br>
+            <p class="card-text">{{ location.description }}</p>
         </div>
     </div>
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Location Information</h5>
+            <h5 class="card-title">Basic Information</h5>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item"><strong>Altitude:</strong> {{ object.altitude }}</li>
-                <li class="list-group-item"><strong>Created At:</strong> {{ object.created_at }}</li>
-                <li class="list-group-item"><strong>Updated At:</strong> {{ object.updated_at }}</li>
+                <li class="list-group-item"><strong>Type:</strong> {{ location.type }}</li>
+                <li class="list-group-item"><strong>Added by:</strong> {{ location.added_by }}</li>
+                <li class="list-group-item"><strong>Created At:</strong> {{ location.created_at }}</li>
+                <li class="list-group-item"><strong>Updated At:</strong> {{ location.updated_at }}</li>
             </ul>
         </div>
     </div>
 
-    <a href="{% url 'core:update-location' user.id project.pk object.pk %}" class="btn btn-warning">
+    {% include "shared/detail_list.html" %}
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <li class="list-group-item"><strong>Altitude:</strong> {{ location.altitude }}</li>
+            <h5 class="card-title">Location</h5>
+            {% if project.location %}
+                <div id="map"></div>
+            {% else %}
+                <p>No location data available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <a href="{% url 'core:update-location' user.id project.pk location.pk %}" class="btn btn-warning">
         <i class="fas fa-edit"></i> Edit
     </a>
-    <a href="{% url 'core:delete-location' user.id project.pk object.pk %}" class="btn btn-danger">
+    <a href="{% url 'core:delete-location' user.id project.pk location.pk %}" class="btn btn-danger">
         <i class="fas fa-trash"></i> Delete
     </a>
-    <div id="map" style="height: 500px;"></div>
     <br>
     <hr>
+    <h3 class="text-muted">Resources linked to location</h3>
+    <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location itself.</em></p>
     <div id="gwlmeasurements" class="container p-4">
-    <h2>Manual groundwater level measurements</h2>
+        <h4>
+            <a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}" class="text-decoration-none text-dark">
+                Manual groundwater level measurements
+            </a>
+        </h4>
         {% include 'groundwater/partial/gwl_list_partial.html' %}
     </div>
     <br>
     <hr>
     <div id="sensordeployments" class="container p-4">
-    <h2>Timeseries from deployed sensors</h2>
+        <h4>
+            <a href="{% url 'sensor:deployments' user.id project.pk %}" class="text-decoration-none text-dark">
+                Timeseries from deployed sensors
+            </a>
+        </h4>
         {% include 'sensor/partial/deployment_list.html' %}
     </div>
     <br>
     <hr>
     <div id="wqsamples" class="container p-4">
-    <h2>Water quality samples</h2>
-        {% include 'groundwater/partial/gwl_list_partial.html' %}
+        <h4>
+            <a href="{% url 'waterquality:samples' user.id project.pk location.pk %}" class="text-decoration-none text-dark">
+                Water quality samples
+            </a>
+        </h4>
+        {% include 'waterquality/partial/sample_list.html' %}
     </div>
 </div>
 
-{% if object.geom %}
+{% if location.geom %}
+<script src="{% static 'js/map.js' %}"></script>
 <script>
-    var map = L.map('map').setView([{{ object.geom.y }}, {{ object.geom.x }}], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    L.marker([{{ object.geom.y }}, {{ object.geom.x }}]).addTo(map)
-        .bindPopup('{{ object.name }}')
-        .openPopup();
-</script>
+    var locations = [
+          {
+              lat: {{ location.geom.y }},
+              lng: {{ location.geom.x }},
+              name: "{{ location.name }}",
+          }
+      ];
+  
+      var map = initializeMap('map');
+      plotLocations(map, locations);
+  </script>
 {% endif %}
 {% endblock %}

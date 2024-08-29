@@ -1,0 +1,17 @@
+# Structure
+
+## Sample
+
+Sample is always attached to a location. In the first version it only contains basic information:
+- sample location
+- timestamp
+- JSON-formatted details of the sample
+
+The list of samples will be a table with a Detail button. This template has to be reused in several places:
+- samples view accessible under location/<location_pk>/samples
+- detail-location 
+
+## Measurements
+Measurements are associated with a sample. A partial list template is also used here to be reused in:
+- measurements list view.
+- detail-sample detail view.

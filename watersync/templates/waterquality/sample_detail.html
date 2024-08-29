@@ -1,39 +1,40 @@
 {% extends 'project_dashboard.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'waterquality:samples' user.id project.pk location.pk %}">Samples</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ sample }}</li>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2>{{ sample.location }} at {{ sample.timestamp }} </h2>
+    <h3 class="text-muted">Sample Details</h3>    
     <br>
-    <p class="text-muted">Sample Details</p>
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Sample Information</h5>
+            <h5 class="card-title">Basic Information</h5>
             <ul class="list-group list-group-flush">
-                {% for key, value in sample.detail.items %}
-                    <li class="list-group-item">
-                        <strong>{{ key|capfirst }}:</strong> {{ value }}
-                    </li>
-                {% endfor %}
+                <li class="list-group-item"><strong>Location:</strong> {{ sample.location }}</li>
+                <li class="list-group-item"><strong>Taken at:</strong> {{ sample.timestamp }}</li>
             </ul>
         </div>
     </div>
+
+    {% include "shared/detail_list.html" %}
 
     <a href="{% url 'waterquality:update-sample' user.id project.pk location.pk sample.pk %}" class="btn btn-warning">
         <i class="fas fa-edit"></i> Edit
     </a>
 
-    <form action="{% url 'waterquality:delete-sample' user.id project.pk location.pk sample.pk %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">
-            <i class="fas fa-trash"></i> Delete
-        </button>
-    </form>
+    <a href="{% url 'waterquality:delete-sample' user.id project.pk location.pk sample.pk %}" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Delete
+    </a>
 
     <h2 class="py-4">Measurements</h2>
-
-    {% comment %} <!-- Include the Plotly graph -->
-    {% include "waterquality/partial/measurement_list_graph.html" %}
     
-    <!-- Include the records list -->
-    {% include "waterquality/partial/measurement_list.html" %} {% endcomment %}
+    {% include "waterquality/partial/measurement_list.html" %}
 </div>
 {% endblock %}

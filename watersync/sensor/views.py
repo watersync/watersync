@@ -1,4 +1,7 @@
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
+from decimal import Decimal
+from django.template.loader import render_to_string
 import plotly.io as pio
 import plotly.express as px
 from watersync.users.models import User
@@ -10,9 +13,10 @@ from .forms import SensorForm, DeploymentForm, SensorRecordForm
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, get_list_or_404
 import pandas as pd
 import csv
+import json
 from django.http import HttpResponse
 
 # Sensor views
@@ -23,28 +27,29 @@ class SensorCreateView(LoginRequiredMixin, CreateView):
     form_class = SensorForm
     template_name = 'sensor/sensor_form.html'
 
-    def form_valid(self, form):
-        # Set the current user as the owner of the sensor
-        form.instance.user = self.request.user
-
-        # Proceed with the standard form validation and save
-        return super().form_valid(form)
-
     def get_success_url(self):
         return reverse('sensor:sensors',
                        kwargs={'user_id': self.request.user.id})
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
 
-class SensorListView(ListView):
+        if not self.object.user.filter(id=self.request.user.id).exists():
+            self.object.user.add(self.request.user)
+
+        return response
+
+
+class SensorListView(LoginRequiredMixin, ListView):
     model = Sensor
     template_name = 'sensor/sensor_list.html'
 
     def get_queryset(self):
         user = get_object_or_404(User, pk=self.request.user.id)
-        return Sensor.objects.filter(user=user)
+        return user.sensors.all()
 
 
-class SensorDetailView(DetailView):
+class SensorDetailView(LoginRequiredMixin, DetailView):
     model = Sensor
     template_name = 'sensor/sensor_detail.html'
 
@@ -52,7 +57,7 @@ class SensorDetailView(DetailView):
         return get_object_or_404(Sensor, pk=self.kwargs['sensor_pk'])
 
 
-class SensorUpdateView(UpdateView):
+class SensorUpdateView(LoginRequiredMixin, UpdateView):
     model = Sensor
     form_class = SensorForm
     template_name = 'sensor/sensor_form.html'
@@ -61,11 +66,12 @@ class SensorUpdateView(UpdateView):
         return get_object_or_404(Sensor, pk=self.kwargs['sensor_pk'])
 
     def get_success_url(self):
-        return reverse('sensor:sensors',
-                       kwargs={'user_id': self.request.user.id})
+        return reverse('sensor:detail-sensor',
+                       kwargs={'user_id': self.request.user.id,
+                               "sensor_pk": self.kwargs["sensor_pk"]})
 
 
-class SensorDeleteView(DeleteView):
+class SensorDeleteView(LoginRequiredMixin, DeleteView):
     model = Sensor
     template_name = 'confirm_delete.html'
 
@@ -77,201 +83,90 @@ class SensorDeleteView(DeleteView):
                        kwargs={'user_id': self.request.user.id})
 
 
-# ================ Deployment views ========================
+# ================ Sensor Records views ========================
+# Placing the sensor records above deployments because they will be reused there
 
-class DeploymentCreateView(CreateView):
-    model = Deployment
-    form_class = DeploymentForm
-    template_name = 'sensor/deployment_form.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        # Pass the project_pk to the form
-        kwargs['project_pk'] = self.kwargs['project_pk']
-        return kwargs
-
-    def form_valid(self, form):
-        # Create the deployment object, but don't save it to the database yet
-        deployment = form.save(commit=False)
-
-        # Use the deploy method to set the sensor availability to False
-        deployment.deploy()  # This also saves the deployment and sets sensor availability
-
-        # Redirect to the success URL
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('sensor:deployments', kwargs={
-            'project_pk': self.kwargs['project_pk'],
-            'user_id': self.request.user.id
-        })
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        project_pk = self.kwargs.get('project_pk')
-        context['project'] = get_object_or_404(Project, pk=project_pk)
-        context['user_id'] = self.request.user.id
-        return context
-
-
-class DeploymentListView(ListView):
-    model = Deployment
-    template_name = 'sensor/deployment_list.html'
-
-    def get_queryset(self):
-        project_pk = self.kwargs.get('project_pk')
-        location_pk = self.kwargs.get('location_pk')
-
-        # if location_pk is present it means the request is made from the
-        # location view and I want to get deployments from only one station
-        if not location_pk:
-            location = Location.objects.filter(project__pk=project_pk)
-            # Filter deployments based on the stations linked to this project
-            deployments = Deployment.objects.filter(location__in=location)
-
-        else:
-            deployments = Deployment.objects.filter(location=location_pk)
-
-        return deployments
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id  # Get the user ID from the request
-        # Get the project_pk from the URL
-        project_pk = self.kwargs.get('project_pk')
-
-        # Optionally, you might want to fetch these objects to pass more details:
-        context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        # Pass user_id, project_pk, and location_pk to the template
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-
-        return context
-
-
-class DeploymentDecommissionView(View):
-    def post(self, request, *args, **kwargs):
-        deployment = get_object_or_404(Deployment, pk=kwargs['deployment_pk'])
-        deployment.decommission()
-        return redirect(request.META.get('HTTP_REFERER', 'sensor:deployments'))
-
-
-class DeploymentDetailView(DetailView):
-    model = Deployment
-    template_name = 'sensor/deployment_detail.html'
-
-    def get_object(self):
-        return get_object_or_404(Deployment, pk=self.kwargs['deployment_pk'])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        deployment = self.get_object()
-
-        # Fetch the sensor records for this deployment
-        records = SensorRecord.objects.filter(
-            deployment=deployment).order_by('timestamp')
-
-        # Prepare data for the Plotly graph
-        data = {
-            'Timestamp': [record.timestamp for record in records],
-            'Value': [record.value for record in records],
-            'Type': [record.type for record in records],
-            'Unit': [record.unit for record in records],
-        }
-
-        # Create a Plotly line chart (or any other type of chart)
-        fig = px.line(
-            data_frame=data,
-            x='Timestamp',
-            y='Value',
-            color='Type',
-            title=f'Sensor Data for {deployment.sensor.identifier}',
-            labels={'Value': 'Measurement Value', 'Timestamp': 'Timestamp'}
-        )
-
-        # Convert Plotly graph to JSON for rendering in the template
-        graph_json = pio.to_json(fig)
-
-        # Pass data to the template
-        context['graph_json'] = graph_json
-        context['deployment'] = deployment
-        context['sensorrecord_list'] = records
-
-        # Additional context
-        context['project'] = deployment.location.project
-        context['user_id'] = self.request.user.id
-        context['project_pk'] = deployment.location.project.pk
-        context['deployment_pk'] = deployment.pk
-
-        return context
-
-
-class DeploymentDeleteView(DeleteView):
-    model = Deployment
-
-    def get_object(self):
-        return get_object_or_404(Deployment, pk=self.kwargs['deployment_pk'])
-
-    def get_success_url(self):
-        return reverse('sensor:deployments', kwargs={
-            'user_id': self.kwargs['user_id'],
-            'project_pk': self.kwargs['project_pk']
-        })
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
-        project_pk = self.kwargs.get('project_pk')
-
-        # Optionally, you might want to fetch these objects to pass more details:
-        context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-
-        return context
-
-
-class DeploymentUpdateView(UpdateView):
-    model = Deployment
-    form_class = DeploymentForm
-    template_name = 'core/project_update_form.html'
-
-    def get_object(self):
-        return get_object_or_404(Sensor, pk=self.kwargs['sensor_pk'])
-
-    def get_success_url(self):
-        return reverse('sensor:projects', kwargs={'user_id': self.kwargs['user_id']})
-
-
-# Sensor records
-class SensorRecordListView(ListView):
+class SensorRecordListView(LoginRequiredMixin, ListView):
     model = SensorRecord
-    template_name = 'sensor/record_list.html'
+    template_name = 'sensor/partial/record_list.html'
     paginate_by = 100
 
     def get_queryset(self):
-        deployment_id = self.kwargs.get('deployment_pk')
-        deployment = get_object_or_404(Deployment, pk=deployment_id)
-        return SensorRecord.objects.filter(deployment=deployment)
+        deployment_pk = self.kwargs.get('deployment_pk')
+        deployment = get_object_or_404(Deployment, pk=deployment_pk)
+        queryset = deployment.records.all()
+
+        # Filter by type
+        sensor_type = self.request.GET.get('type')
+        if sensor_type:
+            queryset = queryset.filter(type=sensor_type)
+
+        # Filter by date range
+        date_start = self.request.GET.get('date_start')
+        date_end = self.request.GET.get('date_end')
+        if date_start:
+            try:
+                date_start = timezone.datetime.strptime(date_start, '%Y-%m-%d')
+                queryset = queryset.filter(timestamp__gte=date_start)
+            except ValueError:
+                pass  # Handle invalid date format or raise a validation error
+
+        if date_end:
+            try:
+                date_end = timezone.datetime.strptime(date_end, '%Y-%m-%d')
+                date_end = timezone.make_aware(timezone.datetime.combine(
+                    date_end, timezone.datetime.max.time()))
+                queryset = queryset.filter(timestamp__lte=date_end)
+            except ValueError:
+                pass  # Handle invalid date format or raise a validation error
+
+        return queryset.order_by('-timestamp')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
-        project_pk = self.kwargs.get('project_pk')
-        deployment_pk = self.kwargs.get('deployment_pk')
+        deployment = get_object_or_404(
+            Deployment, pk=self.kwargs['deployment_pk'])
+        records = self.get_queryset()
+        sensor_types = deployment.records.all().order_by(
+            'type').distinct('type')
+        data = [
+            {
+                'timestamp': record.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'value': float(record.value) if isinstance(record.value, Decimal) else record.value,
+                'type': record.type,
+                'unit': record.unit,
+            }
+            for record in records
+        ]
 
-        # Optionally, you might want to fetch these objects to pass more details:
-        context['project'] = get_object_or_404(Project, pk=project_pk)
+        # Prepare data for Plotly
+        plotly_data = {
+            'timestamp': [d['timestamp'] for d in data],
+            'value': [d['value'] for d in data],
+            'type': [d['type'] for d in data],
+            'unit': [d['unit'] for d in data],
+        }
 
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['deployment_pk'] = deployment_pk
+        fig = px.line(
+            data_frame=plotly_data,
+            x='timestamp',
+            y='value',
+            color='type',
+            title=f'Sensor Data for {deployment.sensor.identifier}',
+            labels={'value': 'Measurement value', 'timestamp': 'timestamp'}
+        )
+        graph_json = pio.to_json(fig)
+
+        # Add data to context
+        context['sensor_types'] = sensor_types.values_list('type', flat=True)
+        context['graph_json'] = graph_json
+        context['sensor_record_list'] = json.dumps(
+            data)  # JSON format for JavaScript
+        context['deployment'] = deployment
         return context
 
 
-class SensorRecordCreateView(FormView):
+class SensorRecordCreateView(LoginRequiredMixin, FormView):
     template_name = 'sensor/record_form.html'
     form_class = SensorRecordForm
 
@@ -322,10 +217,9 @@ class SensorRecordCreateView(FormView):
         context['project_pk'] = project_pk
 
         return context
-# Update View
 
 
-class SensorRecordUpdateView(UpdateView):
+class SensorRecordUpdateView(LoginRequiredMixin, UpdateView):
     model = SensorRecord
     form_class = SensorRecordForm
     template_name = 'sensor/sensorrecord_form.html'
@@ -333,10 +227,8 @@ class SensorRecordUpdateView(UpdateView):
     def get_success_url(self):
         return reverse_lazy('sensor:sensorrecord-list', kwargs={'deployment_pk': self.object.deployment.pk})
 
-# Delete View
 
-
-class SensorRecordDeleteView(DeleteView):
+class SensorRecordDeleteView(LoginRequiredMixin, DeleteView):
     model = SensorRecord
     template_name = 'sensor/sensorrecord_confirm_delete.html'
 
@@ -344,7 +236,7 @@ class SensorRecordDeleteView(DeleteView):
         return reverse_lazy('sensor:sensorrecord-list', kwargs={'deployment_pk': self.object.deployment.pk})
 
 
-class SensorRecordDownloadView(View):
+class SensorRecordDownloadView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         # Get the deployment based on the provided deployment_pk
         deployment = get_object_or_404(Deployment, pk=kwargs['deployment_pk'])
@@ -354,7 +246,7 @@ class SensorRecordDownloadView(View):
         response['Content-Disposition'] = f'attachment; filename="{deployment.sensor.identifier}_timeseries.csv"'
 
         writer = csv.writer(response)
-        writer.writerow(['Timestamp', 'Value', 'Type', 'Unit'])
+        writer.writerow(['timestamp', 'value', 'type', 'unit'])
 
         # Fetch the sensor records for the deployment
         records = SensorRecord.objects.filter(
@@ -368,52 +260,139 @@ class SensorRecordDownloadView(View):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
         project_pk = self.kwargs.get('project_pk')
         deployment_pk = self.kwargs.get('deployment_pk')
 
         # Optionally, you might want to fetch these objects to pass more details:
         context['project'] = get_object_or_404(Project, pk=project_pk)
-
-        context['user_id'] = user_id
-        context['project_pk'] = project_pk
-        context['deployment_pk'] = deployment_pk
+        context['deployment'] = get_object_or_404(Deployment, pk=deployment_pk)
         return context
 
 
-class SensorRecordGraphView(TemplateView):
-    template_name = 'sensor/partial/record_list_graph.html'
+# ================ Deployment views ========================
+
+class DeploymentCreateView(LoginRequiredMixin, CreateView):
+    model = Deployment
+    form_class = DeploymentForm
+    template_name = 'sensor/deployment_form.html'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        deployment = form.save(commit=False)
+
+        # This creates the deployment and
+        # sets the sensor availability to False
+        deployment.deploy()
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('sensor:deployments', kwargs={
+            'project_pk': self.kwargs['project_pk'],
+            'user_id': self.request.user.id
+        })
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        deployment_id = self.kwargs.get('deployment_pk')
-        deployment = get_object_or_404(Deployment, pk=deployment_id)
-
-        # Fetch the sensor records for this deployment
-        records = SensorRecord.objects.filter(
-            deployment=deployment).order_by('timestamp')
-
-        # Prepare data for the Plotly graph
-        data = {
-            'Timestamp': [record.timestamp for record in records],
-            'Value': [record.value for record in records],
-            'Type': [record.type for record in records],
-            'Unit': [record.unit for record in records],
-        }
-
-        # Create a Plotly line chart (or any other type of chart)
-        fig = px.line(
-            data_frame=data,
-            x='Timestamp',
-            y='Value',
-            color='Type',
-            title=f'Sensor Data for {deployment.sensor.identifier}',
-            labels={'Value': 'Measurement Value', 'Timestamp': 'Timestamp'}
-        )
-
-        # Convert Plotly graph to JSON for rendering in the template
-        graph_json = pio.to_json(fig)
-
-        context['graph_json'] = graph_json
-        context['deployment'] = deployment
+        project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        context['project'] = project
         return context
+
+
+class DeploymentListView(LoginRequiredMixin, ListView):
+    model = Deployment
+    template_name = 'sensor/deployment_list.html'
+
+    def get_queryset(self):
+        project = get_object_or_404(Project, pk=self.kwargs.get('project_pk'))
+        location_url = self.kwargs.get('location_pk', None)
+
+        # if location_pk is present it means the request is made from the
+        # location view and I want to get deployments from only one station
+        if not location_url:
+            locations = get_list_or_404(Location, project=project)
+            deployments = Deployment.objects.filter(location__in=locations)
+
+        else:
+            location = get_object_or_404(
+                Location, pk=location_url)
+            deployments = Deployment.objects.filter(location=location)
+
+        return deployments
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        project = get_object_or_404(Project,
+                                    pk=self.kwargs.get('project_pk'))
+        context['project'] = project
+
+        return context
+
+
+class DeploymentDetailView(LoginRequiredMixin, DetailView):
+    model = Deployment
+    template_name = 'sensor/deployment_detail.html'
+
+    def get_object(self):
+        return get_object_or_404(Deployment, pk=self.kwargs['deployment_pk'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        deployment = self.get_object()
+
+        # Include additional context from SensorRecordListView
+        record_view = SensorRecordListView.as_view()(
+            self.request, deployment_pk=deployment.pk).context_data
+        context.update(record_view)
+
+        # Additional context
+        context['deployment'] = deployment
+        context['project'] = deployment.location.project
+
+        return context
+
+
+class DeploymentUpdateView(LoginRequiredMixin, UpdateView):
+    model = Deployment
+    form_class = DeploymentForm
+    template_name = 'sensor/deployment_form.html'
+
+    def get_object(self):
+        return get_object_or_404(Deployment, pk=self.kwargs['deployment_pk'])
+
+    def get_success_url(self):
+        return reverse('sensor:detail-deployment',
+                       kwargs={'user_id': self.request.user.id,
+                               "project_pk": self.kwargs["project_pk"],
+                               "deployment_pk": [self.kwargs['deployment_pk']]})
+
+
+class DeploymentDeleteView(LoginRequiredMixin, DeleteView):
+    model = Deployment
+
+    def get_object(self):
+        return get_object_or_404(Deployment, pk=self.kwargs['deployment_pk'])
+
+    def get_success_url(self):
+        return reverse('sensor:deployments', kwargs={
+            'user_id': self.kwargs['user_id'],
+            'project_pk': self.kwargs['project_pk']
+        })
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project_pk = self.kwargs.get('project_pk')
+
+        context['project'] = get_object_or_404(Project, pk=project_pk)
+
+        return context
+
+# ================ Additionaly functional views ========================
+
+
+class DeploymentDecommissionView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        deployment = get_object_or_404(Deployment,
+                                       pk=kwargs['deployment_pk'])
+        deployment.decommission()
+        return redirect(request.META.get('HTTP_REFERER', 'sensor:deployments'))

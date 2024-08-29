@@ -23,7 +23,7 @@
         
         <div class="card mb-4">
             <div class="card-body">
-                <h5 class="card-title">Project Information</h5>
+                <h5 class="card-title">Basic Information</h5>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item"><strong>Start Date:</strong> {{ project.start_date }}</li>
                     <li class="list-group-item"><strong>End Date:</strong> {{ project.end_date }}</li>
@@ -45,16 +45,7 @@
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Users</h5>
-                <ul class="list-group list-group-flush">
-                    {% for user in project.user.all %}
-                        <li class="list-group-item">{{ user.email }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
+        {% include "shared/user_list.html" %}
 
         <a href="{% url 'core:update-project' user.id project.pk %}" class="btn btn-warning">
             <i class="fas fa-edit"></i> Edit
