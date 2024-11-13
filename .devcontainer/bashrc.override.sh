@@ -18,3 +18,4 @@ set +o nounset
 # start ssh-agent
 # https://code.visualstudio.com/docs/remote/troubleshooting
 eval "$(ssh-agent -s)"
+make migrate

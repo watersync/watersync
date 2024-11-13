@@ -1,0 +1,30 @@
+{% load crispy_forms_tags %}
+{% load static %}
+
+<button 
+    type="button" 
+    class="btn btn-success mb-3" 
+    hx-get="{% url 'core:add-locationstatus' user.id location.project.pk location.pk %}"
+    hx-target="#dialog"
+    hx-trigger="click">
+    Add status</button>
+
+<table class="table table-striped table-sm">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">created at</th>
+            <th scope="col">status</th>
+            <th scope="col">comment</th>
+        </tr>
+    </thead>
+    <tbody hx-get="{% url 'core:locationstatus' user.id location.project.pk location.pk %}" hx-trigger="revealed, configRequest from:body, locationStatusChanged from:body">
+        <tr id="loading-spinner-row" class="bg-white">
+            <td colspan="4" class="text-center">
+                <div class="spinner-grow" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>

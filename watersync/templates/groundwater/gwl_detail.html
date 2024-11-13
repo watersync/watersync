@@ -7,6 +7,7 @@
 <li class="breadcrumb-item"><a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}">GWL measurements</a></li>
 <li class="breadcrumb-item active" aria-current="page"></li>
 {% endblock breadcrumb %}
+
 {% block content %}
 <div class="container mt-4">
     <h2>Measurement Details</h2>
@@ -24,9 +25,10 @@
     <a href="{% url 'groundwater:update-gwlmeasurement' user.id project.pk location.pk object.pk %}" class="btn btn-warning">
         <i class="fas fa-edit"></i> Edit
     </a>
-    <a href="{% url 'groundwater:delete-gwlmeasurement' user.id project.pk location.pk object.pk %}" class="btn btn-danger">
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
         <i class="fas fa-trash"></i> Delete
-    </a>
+    </button>
+    {% include "confirm_delete.html" with delete_url=request.path %}
 </div>
 
 {% endblock %}

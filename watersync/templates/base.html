@@ -41,18 +41,28 @@
     <!-- JSONEditor -->
     <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
 
-    <script src="https://cdn.plot.ly/plotly-2.34.0.min.js" charset="utf-8">
+    <script src="https://cdn.plot.ly/plotly-2.34.0.min.js" charset="utf-8"></script>
+    <!-- JSONEditor -->
+    <script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
+
     <!-- Custom JS -->
     <script src="{% static 'js/map.js' %}"></script>
     <script src="{% static 'js/project.js' %}"></script>
+    <script src="{% static 'js/dialog.js' %}"></script>
     {% endblock javascript %}
   </head>
   <body class="{% block bodyclass %}{% endblock bodyclass %}">
+
+
     {% block body %}
     {% block content %}
     <!-- Main content will go here -->
     {% endblock content %}
     {% endblock body %}
-    {% block modal %} {% endblock modal %}
+    <div class="modal fade" id="modal" tabindex="-1">
+      <div class="modal-dialog" id="dialog" hx-target="this">
+        <!-- HTMX will load the content here -->
+      </div>
+    </div>
   </body>
 </html>

@@ -1,6 +1,10 @@
 // For format details, see https://containers.dev/implementors/json_reference/
 {
     "name": "watersync_dev",
+    "features": {
+        "ghcr.io/devcontainers-contrib/features/poetry:2": {},
+        "ghcr.io/jungaretti/features/make:1": {}
+    },
     "dockerComposeFile": [
         "../docker-compose.local.yml"
     ],
@@ -33,9 +37,6 @@
                     "analysis.autoImportCompletions": true,
                     "analysis.typeCheckingMode": "basic",
                     "defaultInterpreterPath": "/usr/local/bin/python",
-                    "editor.codeActionsOnSave": {
-                        "source.organizeImports": "always"
-                    },
                     "editor.defaultFormatter": "charliermarsh.ruff",
                     "languageServer": "Pylance",
                     "linting.enabled": true,
@@ -50,6 +51,8 @@
                 "mrmlnc.vscode-duplicate",
                 "visualstudioexptteam.vscodeintellicode",
                 "visualstudioexptteam.intellicode-api-usage-examples",
+                "ms-azuretools.vscode-docker",
+                "ms-vscode.makefile-tools",
                 // python
                 "ms-python.python",
                 "ms-python.vscode-pylance",

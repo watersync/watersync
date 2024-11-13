@@ -21,18 +21,5 @@
 
   <button type="submit" class="btn btn-success mt-4">Save Sample</button>
 </form>
-
-
-<script type="text/javascript" src="{% static 'js/project.js' %}"></script>
-<script type="text/javascript">
-    // Initialize the detail input
-    var elementId = 'detail_form';
-    var schemaUrl = "{% static 'schemas/sample_detail_schema.json' %}";
-    var hiddenFieldId = 'id_detail';
-    var initialData = {{ form.detail.value|default:"{}"|safe }};
-
-    initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
-
-  </script>
 {% endblock content %}
 

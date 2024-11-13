@@ -12,30 +12,34 @@ from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"),
-         name="home"),
-    path("about/",
-         TemplateView.as_view(template_name="pages/about.html"),
-         name="about"),
+    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
+    path(
+        "about/", TemplateView.as_view(template_name="pages/about.html"), name="about"
+    ),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("watersync.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
-
     # Your stuff: custom urls includes go here
-    path("users/<int:user_id>/",
-         include("watersync.core.urls", namespace="watersync-core")),
-    path("users/<int:user_id>/",
-         include("watersync.sensor.urls", namespace="watersync-sensor")),
-    path("users/<int:user_id>/",
-         include("watersync.groundwater.urls",
-                 namespace="watersync-groundwater")),
-    path("users/<int:user_id>/",
-         include("watersync.waterquality.urls",
-                 namespace="watersync-waterquality")),
+    path(
+        "users/<int:user_id>/",
+        include("watersync.core.urls", namespace="watersync-core"),
+    ),
+    path(
+        "users/<int:user_id>/",
+        include("watersync.sensor.urls", namespace="watersync-sensor"),
+    ),
+    path(
+        "users/<int:user_id>/",
+        include("watersync.groundwater.urls", namespace="watersync-groundwater"),
+    ),
+    path(
+        "users/<int:user_id>/",
+        include("watersync.waterquality.urls", namespace="watersync-waterquality"),
+    ),
     # Media files
-    * static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development
@@ -79,5 +83,4 @@ if settings.DEBUG:
     if "debug_toolbar" in settings.INSTALLED_APPS:
         import debug_toolbar
 
-        urlpatterns = [
-            path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+        urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns

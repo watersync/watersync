@@ -44,10 +44,9 @@ services:
   redis:
     image: docker.io/redis:6
     container_name: watersync_local_redis
-    
+
     volumes:
       - watersync_local_redis_data:/data
-    
 
   celeryworker:
     <<: *django

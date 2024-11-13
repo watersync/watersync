@@ -1,12 +1,11 @@
-<div class="float-right">
-    <a class="btn btn-success" href="{% url 'groundwater:add-gwlmeasurement' user.id project.pk location.pk %}">
-        <i class="fa fa-plus"></i> Add measurement 
-    </a>
-</div>
+{% load crispy_forms_tags %}
+{% load static %}
 
+<button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addGWLMeasurementModal">
+    <i class="fa fa-plus"></i> Add Measurement
+  </button>
 <br>
 {% if gwlmanualmeasurements_list %}
-<p>Measurements found:</p>
 <table class="table table-striped table-sm">
     <thead>
         <tr>
@@ -24,7 +23,11 @@
             <td>{{ gwlmeasurement.timestamp }}</td>
             <td>{{ gwlmeasurement.location.name }}</td>
             <td>{{ gwlmeasurement.depth }}</td>
-            <td>{{ gwlmeasurement.comment }}</td>
+            <td>
+                <a href="#" data-bs-toggle="tooltip" data-bs-title="{{ gwlmeasurement.comment }}">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                </a>
+            </td>            
             <td>
               <a class="btn btn-sm btn-info" 
                  href="{% url 'groundwater:detail-gwlmeasurement' user.id project.pk location.pk gwlmeasurement.pk %}">
@@ -38,3 +41,33 @@
 {% else %}
 <p>No measurements found for this location.</p>
 {% endif %}
+
+
+<div class="modal fade" id="addGWLMeasurementModal" tabindex="-1" aria-labelledby="addGWLMeasurementModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGWLMeasurementModalLabel">Add New Measurement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Form Content -->
+                <form method="post" action="{% url 'groundwater:add-gwlmeasurement' user.id project.pk location.pk %}">
+                  {% csrf_token %}
+                  {{ gwlmeasurement_form|crispy }}
+                  <button type="submit" class="btn btn-primary mt-4">Save Measurement</button>
+                </form>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>

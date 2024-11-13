@@ -17,9 +17,8 @@ class IsStaffMixin(UserPassesTestMixin):
 
 
 class HasProjectAccess(permissions.BasePermission):
-
     def has_permission(self, request, view):
-        project = request.query_params.get('project')
+        project = request.query_params.get("project")
         if not project:
             return False
 
@@ -27,7 +26,6 @@ class HasProjectAccess(permissions.BasePermission):
             raise NotFound("Project not found!")
 
         if not Project.objects.filter(name=project, user=request.user).exists():
-            raise PermissionDenied(
-                "You do not have permission to access this project.")
+            raise PermissionDenied("You do not have permission to access this project.")
 
         return True

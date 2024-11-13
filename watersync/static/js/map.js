@@ -16,7 +16,7 @@ function initializeMap(mapId, lat = 0, lng = 0, zoom = 2) {
 function plotLocations(map, locations) {
     var bounds = L.latLngBounds();
 
-    locations.forEach(function(location) {
+    locations.forEach(function (location) {
         var marker = L.marker([location.lat, location.lng]).addTo(map)
             .bindPopup('<b>' + location.name)
             .openPopup();
@@ -34,10 +34,10 @@ function customizeLeafletDjangoWidget(map) {
     const leafletMap = window.map_init_basic;
 
     if (leafletMap) {
-      leafletMap.setMaxBounds([[85, -180], [-85, 180]]);
-      leafletMap.options.noWrap = true;
+        leafletMap.setMaxBounds([[85, -180], [-85, 180]]);
+        leafletMap.options.noWrap = true;
     }
-  }
+}
 
 function customLeafletWidget(initialLat, initialLng, latFieldId, lngFieldId) {
     // Initialize the map
@@ -55,7 +55,7 @@ function customLeafletWidget(initialLat, initialLng, latFieldId, lngFieldId) {
     }).addTo(map);
 
     // Update the hidden latitude and longitude fields on drag end
-    marker.on('dragend', function(e) {
+    marker.on('dragend', function (e) {
         var latLng = marker.getLatLng();
         document.getElementById(latFieldId).value = latLng.lat.toFixed(6);
         document.getElementById(lngFieldId).value = latLng.lng.toFixed(6);
@@ -98,7 +98,7 @@ function customLeafletWidget(initialLat, initialLng, latFieldId, lngFieldId) {
     }).addTo(map);
 
     // Handle the creation of new markers
-    map.on(L.Draw.Event.CREATED, function(event) {
+    map.on(L.Draw.Event.CREATED, function (event) {
         var layer = event.layer;
 
         // If there's already a marker, remove it

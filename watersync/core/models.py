@@ -1,7 +1,8 @@
-from django.db import models
-from watersync.users.models import User
 from django.contrib.gis.db import models as geomodels
+from django.db import models
+
 from watersync.core.managers import LocationManager
+from watersync.users.models import User
 
 
 class Project(models.Model):
@@ -25,7 +26,7 @@ class Project(models.Model):
         is_active (BooleanField): The status of the project.
     """
 
-    user = models.ManyToManyField(User, related_name='projects')
+    user = models.ManyToManyField(User, related_name="projects")
     name = models.CharField(unique=True, max_length=50)
     description = models.TextField(null=True, blank=True)
     location = geomodels.PointField(srid=4326, null=True, blank=True)
@@ -36,7 +37,7 @@ class Project(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name_plural = 'Projects'
+        verbose_name_plural = "Projects"
 
     def __str__(self):
         return self.name
@@ -60,7 +61,7 @@ class Location(models.Model):
             created.
         updated_at (DateTimeField): The date and time when the location was
             updated.
-        detail (JSONField): JSON field with station detail to provide flexible 
+        detail (JSONField): JSON field with station detail to provide flexible
         schema and avoid related models.
 
 
@@ -69,23 +70,22 @@ class Location(models.Model):
     """
 
     LOCATION_TYPES = {
-        'well': 'Well',
-        'river': 'River',
-        'lake': 'Lake',
-        'wastewater': 'Wastewater',
-        'precipitation': 'Precipitation'
+        "well": "Well",
+        "river": "River",
+        "lake": "Lake",
+        "wastewater": "Wastewater",
+        "precipitation": "Precipitation",
     }
 
-    project = models.ForeignKey(Project, on_delete=models.PROTECT,
-                                related_name='locations')
+    project = models.ForeignKey(
+        Project, on_delete=models.PROTECT, related_name="locations"
+    )
     name = models.CharField(max_length=50)
     geom = geomodels.PointField(srid=4326)
-    altitude = models.DecimalField(
-        max_digits=8, decimal_places=2)
+    altitude = models.DecimalField(max_digits=8, decimal_places=2)
     type = models.CharField(choices=LOCATION_TYPES)
     description = models.TextField(blank=True, null=True)
-    added_by = models.ForeignKey(
-        User, on_delete=models.PROTECT, blank=True, null=True)
+    added_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     detail = models.JSONField(null=True, blank=True)
@@ -93,15 +93,15 @@ class Location(models.Model):
     objects = LocationManager()
 
     class Meta:
-        unique_together = ('project', 'name')
-        verbose_name_plural = 'Locations'
+        unique_together = ("project", "name")
+        verbose_name_plural = "Locations"
+
+    def __str__(self):
+        return f"{self.name}"
 
     @property
     def latest_status(self):
-        return self.statuses.latest('timestamp').status
-
-    def __str__(self):
-        return f'{self.name}'
+        return self.statuses.latest("timestamp").status
 
 
 class LocationStatus(models.Model):
@@ -116,21 +116,19 @@ class LocationStatus(models.Model):
     """
 
     STATUS_CHOICES = [
-        ('operational', 'Operational'),
-        ('needs-maintenance', 'Needs maintenance'),
-        ('decommissioned', 'Decommissioned'),
-        ('unknown', 'Unknown'),
+        ("operational", "Operational"),
+        ("needs-maintenance", "Needs maintenance"),
+        ("decommissioned", "Decommissioned"),
+        ("unknown", "Unknown"),
     ]
 
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default='unknown'
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name_plural = "Locations' statuses"
 
     def __str__(self) -> str:
-        return f'{self.location} - {self.timestamp:%Y-%m-%d} - {self.status}'
+        return f"{self.location} - {self.timestamp:%Y-%m-%d} - {self.status}"

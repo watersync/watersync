@@ -1,0 +1,29 @@
+{% for locationstatus in locationstatus_list %}
+    <tr>
+        <th scope="row">{{ forloop.counter }}</th>
+        <td>{{ location.name }}</td>
+        <td>{{ location.added_by }}</td>
+        <td>{{ location.created_at }}</td>
+        <td>
+            <a class="btn btn-sm btn-info" href="{% url 'core:detail-location' user.id project.pk location.pk %}">
+                Details...
+            </a>
+        </td>
+        <td>
+        <button type="button" class="btn btn-sm btn-warning" 
+            hx-get="{% url 'core:update-location' user.id project.pk location.pk %}"
+            hx-target="#dialog"
+            title="Edit">
+            <i class="fas fa-edit"></i>
+        </button>
+        </td>
+        <td>
+        <button type="button" class="btn btn-sm btn-danger" 
+            hx-get="{% url 'core:delete-location' user.id project.pk location.pk %}"
+            hx-target="#dialog"
+            title="Delete">
+            <i class="fas fa-trash"></i>
+        </button>
+        </td>
+    </tr>
+{% endfor %}

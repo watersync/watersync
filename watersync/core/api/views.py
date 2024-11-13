@@ -3,15 +3,14 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from .models import Project, Location, LocationStatus
-from .serializers import (
-    ProjectSerializer, LocationSerializer, StatusSerializer)
+from .serializers import ProjectSerializer, LocationSerializer, StatusSerializer
 from rest_framework.permissions import IsAuthenticated
 from watersync_auth.models import CustomUser
 
 
 class BaseListViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'delete']
+    http_method_names = ["get", "post", "delete"]
 
 
 class LocationViewSet(BaseListViewSet):
@@ -33,7 +32,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """Fetch project based on the name."""
 
         try:
-            project = Project.objects.get(name=kwargs['pk'])
+            project = Project.objects.get(name=kwargs["pk"])
         except Project.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -41,7 +40,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        user_emails = request.data.pop('user', [])
+        user_emails = request.data.pop("user", [])
 
         if not user_emails:
             user_emails = [request.user.email]
@@ -52,7 +51,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             users.append(user)
 
         project_data = request.data
-        project_data['user'] = [user.id for user in users]
+        project_data["user"] = [user.id for user in users]
 
         serializer = self.get_serializer(data=project_data)
         serializer.is_valid(raise_exception=True)
@@ -62,4 +61,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.user.set(users)
 
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )

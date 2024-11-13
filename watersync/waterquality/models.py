@@ -1,74 +1,94 @@
+"""The workflow of collecting data looks as follows:
+
+1. A sampling event is registered (SamplingEvent).
+2. A sample (Sample) of physicochemical parameters is registered as STN-YYYYMMDD-PARAMS
+3. Other samples (Sample) are defined, e.g., for nutrients (NUT), metals (MET), etc.
+4. Once the measurements (MEASUREMENT) are completed, they are created and linked to the previously created samples.
+"""
+
 from django.db import models
 from watersync.core.models import Location
-from django.utils import timezone
+from django.utils.text import slugify
+from ..core.models import Location
+from ..users.models import User
+from django_extensions.db.models import TimeStampedModel
+
+
+class Protocol(models.Model):
+    """Protocol describes the details of the sampling collection and analysis process,
+    starting form sample collection, preservation, storage, analysis and data postprocessing."""
+
+    method_name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True, editable=False)
+    sample_collection = models.TextField(blank=True, null=True)
+    sample_preservation = models.TextField(blank=True, null=True)
+    sample_storage = models.TextField(blank=True, null=True)
+    analytical_method = models.TextField(blank=True, null=True)
+    data_postprocessing = models.TextField(blank=True, null=True)
+    standard_reference = models.CharField(max_length=100, blank=True, null=True)
+    details = models.TextField(max_length=256, blank=True, null=True)
+    users = models.ManyToManyField(User, related_name="protocols")
+
+    def __str__(self):
+        return self.method_name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.method_name)
+        super().save(*args, **kwargs)
+
+
+class SamplingEvent(TimeStampedModel):
+    """Sampling event is linked to a particular location and date."""
+
+    slug = models.SlugField(max_length=100, unique=True, editable=False)
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, related_name="sampling_events"
+    )
+    executed_at = models.DateTimeField()
+    executed_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="sampling_events"
+    )
+    details = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Sampling at {self.location.name} on {self.executed_at.strftime('%Y-%m-%d')}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(
+                f"{self.location.name}-{self.executed_at.strftime('%Y-%m-%d')}"
+            )
+        super().save(*args, **kwargs)
 
 
 class Sample(models.Model):
-    """Represents the entire volume of water taken from a particular location 
-    for analysis.
-
-    !!! note:
-
-        This model represents the total volume of water taken at a specific time
-        from a well (or other location) for analysis. It does not differentiate 
-        between multiple containers filled at the same time. For not I keep the 
-        unique_together as timestamp, just to make sure that two identical
-        elements are not inserted, but surely it is possible (but unlikely) 
-        to have two samples from the same location on the same day. Which is 
-        why I am considering switching to unique_for_date=True there.
-
-    Attributes:
-        location: where the sample was taken
-        timestamp: when the sample was taken
-        detail: space for any additional information in key-value pair format.
-    """
-
-    location = models.ForeignKey(
-        Location, related_name='samples', on_delete=models.PROTECT)
-    timestamp = models.DateTimeField(
-        default=timezone.now, null=True, blank=True)
-    detail = models.JSONField(null=True, blank=True)
+    sampling_event = models.ForeignKey(
+        SamplingEvent, on_delete=models.CASCADE, related_name="samples"
+    )
+    protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
+    target_parameters = models.CharField(max_length=50, blank=True, null=True)
+    container_type = models.CharField(max_length=50, blank=True, null=True)
+    volume_collected = models.FloatField(blank=True, null=True)
+    replica_number = models.IntegerField(blank=True, null=True, default=0)
+    details = models.TextField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('location', 'timestamp')
-        verbose_name = "Water Sample"
-        verbose_name_plural = "Water Samples"
-        ordering = ['-timestamp']
+        unique_together = (("sampling_event", "target_parameters", "replica_number"),)
 
     def __str__(self):
-        return f"{self.location.name.lower()}-{self.timestamp:%Y-%m-%d}"
+        return f"{self.sampling_event.slug}-{self.target_parameters}-R{self.replica_number}"
 
 
-class Measurement(models.Model):
-    """Represents a specific measurement taken on a water sample.
-
-    I merged initially separated physicochemical parameters and analytical 
-    measurements results into Measurements class. This is to simplify storing
-    and retrieving of the data. I kept groupping by sample, to make it easier to
-    compute statistics per sample (like ionic balance or other QC params).
-
-    Attributes:
-        sample (ForeignKey): The water sample on which the measurement was 
-            performed.
-        property (CharField): The parameter that was measured
-            (e.g., pH, temperature, Cl, ).
-        value (FloatField): The value of the measurement.
-        unit (CharField): The unit of the measurement (e.g., °C, mg/L).
-        detail (JSONField): Additional details about the measurement.
-    """
-
+class Measurement(TimeStampedModel):
     sample = models.ForeignKey(
-        Sample, related_name='measurements', on_delete=models.CASCADE)
-    property = models.CharField(max_length=50)
+        Sample, on_delete=models.CASCADE, related_name="measurements"
+    )
+    parameter_name = models.CharField(max_length=100)
     value = models.FloatField()
     unit = models.CharField(max_length=50)
-    detail = models.JSONField(null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Water Measurement"
-        verbose_name_plural = "Water Measurements"
-        ordering = ['sample', 'property']
+    measured_on = models.DateTimeField(null=True, blank=True)
+    details = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.property} at {self.sample.location} on \
-        {self.sample.timestamp: % Y-%m-%d % H: % M} - {self.value} {self.unit}"
+        return f"{self.parameter_name}: {self.value} {self.unit} ({self.sample})"

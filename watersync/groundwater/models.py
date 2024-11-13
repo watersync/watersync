@@ -5,7 +5,7 @@ from watersync.core.models import Location
 class GWLManualMeasurements(models.Model):
     """Manual measurements of groundwater levels.
 
-    The depth is measured from the top of the casing to the water level. 
+    The depth is measured from the top of the casing to the water level.
     Should always be cprrected for the casing height before saving."""
 
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
@@ -14,5 +14,5 @@ class GWLManualMeasurements(models.Model):
     timestamp = models.DateTimeField()
 
     class Meta:
-        verbose_name_plural = 'Groundwater level - manual measurements'
-        unique_together = ('location', 'timestamp')
+        verbose_name_plural = "Groundwater level - manual measurements"
+        unique_together = ("location", "timestamp")
