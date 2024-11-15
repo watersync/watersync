@@ -24,7 +24,6 @@ from watersync.waterquality.forms import SamplingEventForm
 from watersync.groundwater.forms import GWLForm
 
 
-
 class ProjectCreateView(LoginRequiredMixin, CreateView):
     model = Project
     form_class = ProjectForm
@@ -110,14 +109,16 @@ class LocationStatusCreateView(LoginRequiredMixin, CreateView):
             Location, pk=self.kwargs["location_pk"]
         )
         response = super().form_valid(form)
-        
-        if self.request.headers.get('HX-Request'):
-            return HttpResponse(status=204, headers={"HX-Trigger": "locationStatusChanged"})
-        
+
+        if self.request.headers.get("HX-Request"):
+            return HttpResponse(
+                status=204, headers={"HX-Trigger": "locationStatusChanged"}
+            )
+
         return response
 
     def form_invalid(self, form):
-        if self.request.headers.get('HX-Request'):
+        if self.request.headers.get("HX-Request"):
             # Render the form again if it is invalid, as part of the modal content
             context = self.get_context_data(form=form)
             html = render_to_string(self.template_name, context, request=self.request)
@@ -154,11 +155,13 @@ class LocationStatusListView(LoginRequiredMixin, ListView):
     def render_to_response(self, context, **response_kwargs):
         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context['project'] = project
-        context['location'] = location
+        context["project"] = project
+        context["location"] = location
 
-        if self.request.headers.get('HX-Request'):
-            html = render_to_string("core/partial/locationstatus_table.html", context, request=self.request)
+        if self.request.headers.get("HX-Request"):
+            html = render_to_string(
+                "core/partial/locationstatus_table.html", context, request=self.request
+            )
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
 
@@ -167,28 +170,28 @@ class LocationStatusDeleteView(LoginRequiredMixin, DeleteView):
     model = LocationStatus
 
     def get_object(self):
-        return get_object_or_404(
-            LocationStatus,
-            pk=self.kwargs["locationstatus_pk"]
-        )
+        return get_object_or_404(LocationStatus, pk=self.kwargs["locationstatus_pk"])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-    
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.object.delete()
 
-        if request.headers.get('HX-Request'):
+        if request.headers.get("HX-Request"):
             return HttpResponse(status=204, headers={"HX-Trigger": "configRequest"})
         return super().delete(request, *args, **kwargs)
 
     def render_to_response(self, context, **response_kwargs):
-        if self.request.headers.get('HX-Request'):
-            html = render_to_string("confirm_delete.html", context, request=self.request)
+        if self.request.headers.get("HX-Request"):
+            html = render_to_string(
+                "confirm_delete.html", context, request=self.request
+            )
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
+
 
 class LocationStatusUpdateView(LoginRequiredMixin, UpdateView):
     model = LocationStatus
@@ -200,14 +203,16 @@ class LocationStatusUpdateView(LoginRequiredMixin, UpdateView):
             Location, pk=self.kwargs["location_pk"]
         )
         response = super().form_valid(form)
-        
-        if self.request.headers.get('HX-Request'):
-            return HttpResponse(status=204, headers={"HX-Trigger": "locationStatusChanged"})
-        
+
+        if self.request.headers.get("HX-Request"):
+            return HttpResponse(
+                status=204, headers={"HX-Trigger": "locationStatusChanged"}
+            )
+
         return response
 
     def form_invalid(self, form):
-        if self.request.headers.get('HX-Request'):
+        if self.request.headers.get("HX-Request"):
             # Render the form again if it is invalid, as part of the modal content
             context = self.get_context_data(form=form)
             html = render_to_string(self.template_name, context, request=self.request)
@@ -253,28 +258,32 @@ class LocationCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        project_pk = self.kwargs.get("project_pk")
+        if project_pk:
+            context["project"] = get_object_or_404(Project, pk=project_pk)
         return context
-    
+
     def form_valid(self, form):
-        form.instance.location = get_object_or_404(
-            Location, pk=self.kwargs["location_pk"]
-        )
-        response = super().form_valid(form)
-        
-        if self.request.headers.get('HX-Request'):
+        # Associate the location with the project
+        form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        form.save()
+
+        # If it's an HTMX request, send a 204 response with the trigger
+        if self.request.headers.get("HX-Request"):
             return HttpResponse(status=204, headers={"HX-Trigger": "locationChanged"})
-        
-        return response
+
+        # Optionally handle non-HTMX requests differently (e.g., a JSON response)
+        return JsonResponse({"message": "Location created successfully."}, status=201)
 
     def form_invalid(self, form):
-        if self.request.headers.get('HX-Request'):
+        if self.request.headers.get("HX-Request"):
             # Render the form again if it is invalid, as part of the modal content
             context = self.get_context_data(form=form)
             html = render_to_string(self.template_name, context, request=self.request)
             return HttpResponse(html, status=400)
 
         return super().form_invalid(form)
+
 
 class LocationDeleteView(LoginRequiredMixin, DeleteView):
     model = Location
@@ -344,16 +353,17 @@ class LocationListView(LoginRequiredMixin, ListView):
         context["created_at"] = timezone.now()
         context["project"] = get_object_or_404(Project, id=self.kwargs["project_pk"])
         return context
-    
+
     def render_to_response(self, context, **response_kwargs):
         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context['project'] = project
+        context["project"] = project
 
-        if self.request.headers.get('HX-Request'):
-            html = render_to_string("core/partial/location_table.html", context, request=self.request)
+        if self.request.headers.get("HX-Request"):
+            html = render_to_string(
+                "core/partial/location_table.html", context, request=self.request
+            )
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
-
 
 
 class LocationDetailView(LoginRequiredMixin, DetailView):
@@ -390,19 +400,20 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
 
         context["project"] = location.project
         context["deployment_list"] = deployment_view.get_queryset()
-        
+
         context["locationstatus_list"] = location_status_view.get_queryset()
         context["locationstatus_form"] = LocationStatusForm()
-        
+
         context["gwlmanualmeasurements_list"] = gwl_list_view.get_queryset()
         context["gwlmeasurement_form"] = GWLForm()
-        
+
         context["samplingevent_list"] = samplingevent_list_view.get_queryset()
         context["samplingevent_form"] = SamplingEventForm()
 
         context["sample_list"] = sample_view.get_queryset()
 
         return context
+
 
 # Exporting just the .as_view() elements
 location_create_view = LocationCreateView.as_view()

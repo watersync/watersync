@@ -16,7 +16,7 @@
 <br/>
 
 <div class="float-right">
-    <a class="btn btn-success" href="{% url 'core:add-location' user.id project.pk %}">
+    <a class="btn btn-success" hx-get="{% url 'core:add-location' user.id project.pk %}" hx-target="#dialog">
         <i class="fa fa-plus"></i> Add location
     </a>
 </div>

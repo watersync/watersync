@@ -1,9 +1,6 @@
 {% load crispy_forms_tags %}
-{% load leaflet_tags %}
 {% load static %}
 
-{% leaflet_js %}
-{% leaflet_css %}
 
 <div class="modal-content">
     <div class="modal-header">
@@ -17,7 +14,13 @@
     {% csrf_token %}
     {{ form|crispy }}
 
-    <div id="map" style="height: 400px;"></div>
+    <div id="map" 
+    style="height: 400px;" 
+    data-lat="{{ form.instance.geom.y|default:'51.505' }}" 
+    data-lng="{{ form.instance.geom.x|default:'-0.09' }}" 
+    data-lat-field-id="{{ form.latitude.id_for_label }}" 
+    data-lng-field-id="{{ form.longitude.id_for_label }}">
+</div>
 
     <div class="card p-2 mt-4" id="detail_form"></div>
 
@@ -30,10 +33,7 @@
 </div>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-
-<script>
+{% comment %} <script>
     var initialLat = {{ form.instance.geom.y|default:"51.505" }};
     var initialLng = {{ form.instance.geom.x|default:"-0.09" }};
     var latFieldId = '{{ form.latitude.id_for_label }}';
@@ -48,4 +48,4 @@
     var initialData = {{ form.detail.value|default:"{}"|safe }};
 
     initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
-</script>
+</script> {% endcomment %}
