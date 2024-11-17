@@ -1,27 +1,3 @@
-// document.addEventListener('htmx:afterSwap', function (e) {
-
-//     if (e.detail.target.id === "dialog") {
-
-//         var modalElement = document.getElementById('modal');
-//         var modal = new bootstrap.Modal(modalElement);
-
-//         modal.show();
-//     }
-// });
-
-
-// document.addEventListener('htmx:beforeSwap', function (e) {
-//     if (e.detail.target.id === "dialog" && !e.detail.xhr.response) {
-//         var modalElement = document.getElementById('modal');
-//         var modal = bootstrap.Modal.getInstance(modalElement);
-
-//         if (modal) {
-//             modal.hide();
-//         }
-//     }
-// });
-
-
 document.addEventListener('htmx:afterSwap', function (e) {
     if (e.detail.target.id === "dialog") {
         var modalElement = document.getElementById('modal');
@@ -37,12 +13,12 @@ document.addEventListener('htmx:afterSwap', function (e) {
             const latFieldId = mapContainer.dataset.latFieldId;
             const lngFieldId = mapContainer.dataset.lngFieldId;
 
-            // Initialize or reinitialize the map
             if (!window.modalMap) {
                 window.modalMap = customLeafletWidget(initialLat, initialLng, latFieldId, lngFieldId);
             }
 
-            // Adjust map size after modal is fully rendered
+            // Adjust map size after modal is fully rendered,
+            // fixes the console error with the invalide size.
             setTimeout(() => {
                 if (window.modalMap) {
                     window.modalMap.invalidateSize();
