@@ -264,15 +264,12 @@ class LocationCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        # Associate the location with the project
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         form.save()
 
-        # If it's an HTMX request, send a 204 response with the trigger
         if self.request.headers.get("HX-Request"):
             return HttpResponse(status=204, headers={"HX-Trigger": "locationChanged"})
 
-        # Optionally handle non-HTMX requests differently (e.g., a JSON response)
         return JsonResponse({"message": "Location created successfully."}, status=201)
 
     def form_invalid(self, form):
@@ -318,15 +315,14 @@ class LocationUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self):
         return get_object_or_404(Location, pk=self.kwargs["location_pk"])
 
-    def get_success_url(self):
-        return reverse(
-            "core:detail-location",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-                "location_pk": self.kwargs["location_pk"],
-            },
-        )
+    def form_valid(self, form):
+        form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        form.save()
+
+        if self.request.headers.get("HX-Request"):
+            return HttpResponse(status=204, headers={"HX-Trigger": "locationChanged"})
+
+        return JsonResponse({"message": "Location created successfully."}, status=201)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

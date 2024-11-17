@@ -1,7 +1,7 @@
 {% extends 'project_dashboard.html' %}
 
 {% load static %}
-{% load leaflet_tags %}
+{% comment %} {% load leaflet_tags %} {% endcomment %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
@@ -11,8 +11,8 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-{% leaflet_js %}
-{% leaflet_css %}
+{% comment %} {% leaflet_js %} {% endcomment %}
+{% comment %} {% leaflet_css %} {% endcomment %}
 <h3 class="text-muted">{{ location.name }}</h3>
 <div class="container mt-4">
 

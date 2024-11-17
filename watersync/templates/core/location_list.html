@@ -1,5 +1,5 @@
 {% extends 'project_dashboard.html' %}
-{% load leaflet_tags %}
+{% comment %} {% load leaflet_tags %} {% endcomment %}
 {% load static %}
 
 {% block breadcrumb %}
@@ -9,8 +9,8 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-{% leaflet_js %}
-{% leaflet_css %}
+{% comment %} {% leaflet_js %} {% endcomment %}
+{% comment %} {% leaflet_css %} {% endcomment %}
 
 <h2>Locations within the project</h2>
 <br/>

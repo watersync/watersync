@@ -4,13 +4,11 @@ from crispy_forms.layout import Field
 from crispy_forms.layout import Layout
 from crispy_forms.layout import Row
 from crispy_forms.layout import Submit
-from django.contrib.gis import forms
 from django.contrib.gis.geos import Point
 from django.forms import DateInput
 from django.forms import FloatField
 from django.forms import HiddenInput
 from django.forms import ModelForm
-from leaflet.forms.widgets import LeafletWidget
 
 from watersync.core.models import Location
 from watersync.core.models import LocationStatus
@@ -22,7 +20,6 @@ class ProjectForm(ModelForm):
         model = Project
         fields = "__all__"
         widgets = {
-            "location": LeafletWidget(),
             "start_date": DateInput(attrs={"type": "date"}),
             "end_date": DateInput(attrs={"type": "date"}),
         }
@@ -49,7 +46,7 @@ class ProjectForm(ModelForm):
         self.helper.add_input(Submit("submit", "Save project"))
 
 
-class LocationStatusForm(forms.ModelForm):
+class LocationStatusForm(ModelForm):
     class Meta:
         model = LocationStatus
         fields = ["status", "comment"]
@@ -58,7 +55,6 @@ class LocationStatusForm(forms.ModelForm):
 class LocationForm(ModelForm):
     latitude = FloatField(required=False, label="Latitude")
     longitude = FloatField(required=False, label="Longitude")
-    geom = forms.PointField(required=False)
 
     class Meta:
         model = Location
@@ -69,28 +65,21 @@ class LocationForm(ModelForm):
             "altitude",
             "latitude",
             "longitude",
-            "geom",
             "detail",
         )
         widgets = {
-            "geom": HiddenInput(),  # Hide the geom field in the form
             "detail": HiddenInput(),
+            "geom": HiddenInput(),
         }
 
     def save(self, commit=True):
-        # Get the instance of the location but do not save it yet
         instance = super(LocationForm, self).save(commit=False)
 
-        # If latitude and longitude are provided, create a Point and assign it to the geom field
-        if (
-            self.cleaned_data["latitude"] is not None
-            and self.cleaned_data["longitude"] is not None
-        ):
-            instance.geom = Point(
-                self.cleaned_data["longitude"], self.cleaned_data["latitude"], srid=4326
-            )
+        latitude = self.cleaned_data.get("latitude")
+        longitude = self.cleaned_data.get("longitude")
+        if latitude is not None and longitude is not None:
+            instance.geom = Point(longitude, latitude, srid=4326)
 
         if commit:
             instance.save()
-
         return instance

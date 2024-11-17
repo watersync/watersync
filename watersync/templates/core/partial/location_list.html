@@ -1,5 +1,4 @@
 {% extends 'project_dashboard.html' %}
-{% load leaflet_tags %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -10,8 +9,6 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-{% leaflet_js %}
-{% leaflet_css %}
 
 <button 
     type="button" 
@@ -31,7 +28,7 @@
             <th scope="col">Details</th>
         </tr>
     </thead>
-    <tbody hx-get="{% url 'core:locations' user.id project.pk %}" hx-trigger="revealed, configRequest from:body, locationStatusChanged from:body">
+    <tbody hx-get="{% url 'core:locations' user.id project.pk %}" hx-trigger="revealed, configRequest from:body, locationChanged from:body">
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">
                 <div class="spinner-grow" role="status">

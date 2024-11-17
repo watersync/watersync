@@ -4,11 +4,11 @@ There is no `else` block in the template, because the assumptions is that There
 is no scenario where this form is elswhere than add or update views.
 {% endcomment %}
 {% load crispy_forms_tags %}
-{% load leaflet_tags %}
+{% comment %} {% load leaflet_tags %} {% endcomment %}
 
 {% block content %}
-{% leaflet_js plugins="forms" %}
-{% leaflet_css plugins="forms" %}
+{% comment %} {% leaflet_js plugins="forms" %} {% endcomment %}
+{% comment %} {% leaflet_css plugins="forms" %} {% endcomment %}
   <h2>{{ form.instance.pk|yesno:"Edit Project,Add New Project" }}</h2>
     {% csrf_token %}
     {% crispy form %}
