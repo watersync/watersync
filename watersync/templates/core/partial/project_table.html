@@ -1,0 +1,30 @@
+{% for project in project_list %}
+    <div class="col">
+        <div class="card h-100" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">{{ project.name }}</h5>
+                <p class="card-text">{{project.description|truncatechars:150}}</p>
+            </div>
+            <div class="card-footer">
+                <a class="btn btn-sm btn-info" 
+                    href="{% url 'core:detail-project' user.id project.pk %}">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </a>
+                
+                <button type="button" class="btn btn-sm btn-warning" 
+                    hx-get="{% url 'core:update-project' user.id project.pk %}"
+                    hx-target="#dialog"
+                    title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                
+                <button type="button" class="btn btn-sm btn-danger" 
+                    hx-get="{% url 'core:delete-project' user.id project.pk %}"
+                    hx-target="#dialog"
+                    title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+{% endfor %}

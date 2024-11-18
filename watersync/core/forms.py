@@ -5,45 +5,61 @@ from crispy_forms.layout import Layout
 from crispy_forms.layout import Row
 from crispy_forms.layout import Submit
 from django.contrib.gis.geos import Point
-from django.forms import DateInput
-from django.forms import FloatField
-from django.forms import HiddenInput
-from django.forms import ModelForm
+from django.forms import (
+    DateInput,
+    ModelMultipleChoiceField,
+    FloatField,
+    HiddenInput,
+    ModelForm,
+    CheckboxSelectMultiple,
+)
+
 
 from watersync.core.models import Location
 from watersync.core.models import LocationStatus
 from watersync.core.models import Project
+from watersync.users.models import User
 
 
 class ProjectForm(ModelForm):
+    latitude = FloatField(required=False, label="Latitude")
+    longitude = FloatField(required=False, label="Longitude")
+    user = ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        widget=CheckboxSelectMultiple,
+        required=True,
+    )
+
     class Meta:
         model = Project
-        fields = "__all__"
+        fields = [
+            "name",
+            "is_active",
+            "description",
+            "start_date",
+            "end_date",
+            "user",
+            "latitude",
+            "longitude",
+        ]
         widgets = {
-            "start_date": DateInput(attrs={"type": "date"}),
-            "end_date": DateInput(attrs={"type": "date"}),
+            "start_date": DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+            "end_date": DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+            "geom": HiddenInput(),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("is_active", css_class="form-group col-md-6 mb-0"),
-                Field("description", css_class="form-group col-md-12"),
-                css_class="card mb-3 p-2",
-            ),
-            Row(
-                Column("start_date", css_class="col-md-6 mb-0"),
-                Column("end_date", css_class="col-md-6 mb-0"),
-                css_class="card mb-3 p-2",
-            ),
-            Field("user", css_class="card mb-3 p-2"),
-            Field("location", css_class="card mb-3 p-2"),
-        )
-        self.helper.add_input(Submit("submit", "Save project"))
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        latitude = self.cleaned_data.get("latitude")
+        longitude = self.cleaned_data.get("longitude")
+        if latitude is not None and longitude is not None:
+            instance.geom = Point(longitude, latitude, srid=4326)
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class LocationStatusForm(ModelForm):

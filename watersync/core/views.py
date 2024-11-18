@@ -1,54 +1,58 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.gis.geos import Point
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
-from django.views.generic import CreateView
-from django.views.generic import DeleteView
-from django.views.generic import DetailView
-from django.views.generic import ListView
-from django.views.generic import UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
+
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from watersync.groundwater.views import GWLListView
 from watersync.sensor.views import DeploymentListView
 from watersync.waterquality.views import SampleListView, SamplingEventListView
 from django.http import JsonResponse, HttpResponse
-from .forms import LocationForm
-from .forms import LocationStatusForm
-from .forms import ProjectForm
-from .models import Location
-from .models import LocationStatus
-from .models import Project
+from .forms import LocationForm, LocationStatusForm, ProjectForm
+from .models import Location, LocationStatus, Project
+
 from watersync.waterquality.forms import SamplingEventForm
 from watersync.groundwater.forms import GWLForm
+from .mixins import RenderToResponseMixin, RenderToResponseMixin, HTMXFormMixin
+from watersync.users.models import User
 
 
-class ProjectCreateView(LoginRequiredMixin, CreateView):
+class ProjectCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = "core/project_form.html"
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
+    htmx_trigger_header = "locationChanged"
+    htmx_render_template = "core/location_form.html"
 
-        if not self.object.user.filter(pk=self.request.user.pk).exists():
-            self.object.user.add(self.request.user)
+    def update_form_instance(self, form):
+        instance = form.instance
 
-        return response
+        selected_users = form.cleaned_data.get("user", [])
 
-    def get_success_url(self):
-        return reverse("core:projects", kwargs={"user_id": self.request.user.id})
+        requesting_user = self.request.user
+        if requesting_user not in selected_users:
+            selected_users.append(requesting_user)
+
+        instance.user.set(selected_users)
+
+        return instance
 
 
-class ProjectListView(LoginRequiredMixin, ListView):
+class ProjectListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     model = Project
-    paginate_by = 6
-    template_name = "core/project_list.html"
+    template_name = "core/partial/project_list.html"
+    htmx_template = "core/partial/project_table.html"
 
     def get_queryset(self):
-        user = self.request.user
-        return Project.objects.filter(user=user)
+        return self.request.user.projects.all()
 
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):
@@ -59,35 +63,57 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         return get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
 
-class ProjectUpdateView(LoginRequiredMixin, UpdateView):
+class ProjectUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = "core/project_form.html"
 
+    htmx_trigger_header = "locationChanged"
+    htmx_render_template = "core/location_form.html"
+
     def get_object(self):
         return get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
-    def get_success_url(self):
-        return reverse(
-            "core:detail-project",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-            },
-        )
+    def update_form_instance(self, form):
+        instance = form.instance
+
+        selected_users = form.cleaned_data.get("users", [])
+
+        requesting_user = self.request.user
+        if requesting_user not in selected_users:
+            selected_users.append(requesting_user)
+
+        instance.user.set(selected_users)
+
+        return instance
 
 
-class ProjectDeleteView(LoginRequiredMixin, DeleteView):
+class ProjectDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
     model = Project
     template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(
             Project, pk=self.kwargs["project_pk"], user=self.request.user
         )
 
-    def get_success_url(self):
-        return reverse("core:projects", kwargs={"user_id": self.request.user.pk})
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("HX-Request"):
+            projects_url = reverse(
+                "core:projects", kwargs={"user_id": self.kwargs["user_id"]}
+            )
+            return HttpResponse(
+                status=204,
+                headers={
+                    "HX-Trigger": "configRequest",
+                    "HX-Redirect": projects_url,
+                },
+            )
+        return super().delete(request, *args, **kwargs)
 
 
 # Exporting just the .as_view() elements
@@ -99,75 +125,42 @@ project_list_view = ProjectListView.as_view()
 
 
 # ========================= Location status views ============================ #
-class LocationStatusCreateView(LoginRequiredMixin, CreateView):
+class LocationStatusCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     model = LocationStatus
     form_class = LocationStatusForm
     template_name = "core/location_status_form.html"
 
-    def form_valid(self, form):
+    htmx_trigger_header = "locationStatusChanged"
+    htmx_render_template = "core/location_status_form.html"
+
+    def update_form_instance(self, form):
         form.instance.location = get_object_or_404(
             Location, pk=self.kwargs["location_pk"]
         )
-        response = super().form_valid(form)
-
-        if self.request.headers.get("HX-Request"):
-            return HttpResponse(
-                status=204, headers={"HX-Trigger": "locationStatusChanged"}
-            )
-
-        return response
-
-    def form_invalid(self, form):
-        if self.request.headers.get("HX-Request"):
-            # Render the form again if it is invalid, as part of the modal content
-            context = self.get_context_data(form=form)
-            html = render_to_string(self.template_name, context, request=self.request)
-            return HttpResponse(html, status=400)
-
-        return super().form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-
-        return context
-
-    def get_success_url(self):
-        return reverse(
-            "core:detail-location",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-                "location_pk": self.kwargs["location_pk"],
-            },
-        )
 
 
-class LocationStatusListView(LoginRequiredMixin, ListView):
+class LocationStatusListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     model = LocationStatus
     template_name = "core/location_status_list.html"
+    htmx_template = "core/partial/locationstatus_table.html"
 
     def get_queryset(self):
         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        return LocationStatus.objects.filter(location=location).order_by("-created_at")
+        return location.statuses.order_by("-created_at")
 
-    def render_to_response(self, context, **response_kwargs):
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["project"] = project
-        context["location"] = location
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-        if self.request.headers.get("HX-Request"):
-            html = render_to_string(
-                "core/partial/locationstatus_table.html", context, request=self.request
-            )
-            return HttpResponse(html)
-        return super().render_to_response(context, **response_kwargs)
+        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+
+        return context
 
 
-class LocationStatusDeleteView(LoginRequiredMixin, DeleteView):
+class LocationStatusDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
     model = LocationStatus
+    template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(LocationStatus, pk=self.kwargs["locationstatus_pk"])
@@ -184,62 +177,22 @@ class LocationStatusDeleteView(LoginRequiredMixin, DeleteView):
             return HttpResponse(status=204, headers={"HX-Trigger": "configRequest"})
         return super().delete(request, *args, **kwargs)
 
-    def render_to_response(self, context, **response_kwargs):
-        if self.request.headers.get("HX-Request"):
-            html = render_to_string(
-                "confirm_delete.html", context, request=self.request
-            )
-            return HttpResponse(html)
-        return super().render_to_response(context, **response_kwargs)
 
-
-class LocationStatusUpdateView(LoginRequiredMixin, UpdateView):
+class LocationStatusUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
     model = LocationStatus
     form_class = LocationStatusForm
     template_name = "core/location_status_form.html"
 
-    def form_valid(self, form):
+    htmx_trigger_header = "locationStatusChanged"
+    htmx_render_template = "core/location_status_form.html"
+
+    def update_form_instance(self, form):
         form.instance.location = get_object_or_404(
             Location, pk=self.kwargs["location_pk"]
         )
-        response = super().form_valid(form)
-
-        if self.request.headers.get("HX-Request"):
-            return HttpResponse(
-                status=204, headers={"HX-Trigger": "locationStatusChanged"}
-            )
-
-        return response
-
-    def form_invalid(self, form):
-        if self.request.headers.get("HX-Request"):
-            # Render the form again if it is invalid, as part of the modal content
-            context = self.get_context_data(form=form)
-            html = render_to_string(self.template_name, context, request=self.request)
-            return HttpResponse(html, status=400)
-
-        return super().form_invalid(form)
 
     def get_object(self):
         return get_object_or_404(LocationStatus, pk=self.kwargs["locationstatus_pk"])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-        return context
-
-    def get_success_url(self):
-        return reverse(
-            "core:detail-location",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-                "location_pk": self.kwargs["location_pk"],
-            },
-        )
 
 
 location_status_create_view = LocationStatusCreateView.as_view()
@@ -251,63 +204,49 @@ location_status_update_view = LocationStatusUpdateView.as_view()
 # ========================= Location views ============================ #
 
 
-class LocationCreateView(LoginRequiredMixin, CreateView):
+class LocationCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     model = Location
     form_class = LocationForm
-    template_name = "core/location_form.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        project_pk = self.kwargs.get("project_pk")
-        if project_pk:
-            context["project"] = get_object_or_404(Project, pk=project_pk)
-        return context
+    htmx_trigger_header = "locationChanged"
+    htmx_render_template = "core/location_form.html"
 
-    def form_valid(self, form):
+    def update_form_instance(self, form):
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        form.save()
-
-        if self.request.headers.get("HX-Request"):
-            return HttpResponse(status=204, headers={"HX-Trigger": "locationChanged"})
-
-        return JsonResponse({"message": "Location created successfully."}, status=201)
-
-    def form_invalid(self, form):
-        if self.request.headers.get("HX-Request"):
-            # Render the form again if it is invalid, as part of the modal content
-            context = self.get_context_data(form=form)
-            html = render_to_string(self.template_name, context, request=self.request)
-            return HttpResponse(html, status=400)
-
-        return super().form_invalid(form)
 
 
-class LocationDeleteView(LoginRequiredMixin, DeleteView):
+class LocationDeleteView(LoginRequiredMixin, DeleteView, RenderToResponseMixin):
     model = Location
     template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
 
     def get_object(self):
-        return get_object_or_404(
-            Location,
-            pk=self.kwargs["location_pk"],
-            project__pk=self.kwargs["project_pk"],
-        )
+        return get_object_or_404(Location, pk=self.kwargs["location_pk"])
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("HX-Request"):
+            locations_url = reverse(
+                "core:locations",
+                kwargs={
+                    "user_id": self.kwargs["user_id"],
+                    "project_pk": self.kwargs["project_pk"],
+                },
+            )
+            return HttpResponse(
+                status=204,
+                headers={"HX-Redirect": locations_url},
+            )
+        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
-    def get_success_url(self):
-        return reverse(
-            "core:locations",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-            },
-        )
 
-
-class LocationUpdateView(LoginRequiredMixin, UpdateView):
+class LocationUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
     model = Location
     form_class = LocationForm
     template_name = "core/location_form.html"
@@ -315,26 +254,14 @@ class LocationUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self):
         return get_object_or_404(Location, pk=self.kwargs["location_pk"])
 
-    def form_valid(self, form):
+    def update_form_instance(self, form):
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        form.save()
-
-        if self.request.headers.get("HX-Request"):
-            return HttpResponse(status=204, headers={"HX-Trigger": "locationChanged"})
-
-        return JsonResponse({"message": "Location created successfully."}, status=201)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-
-        return context
 
 
-class LocationListView(LoginRequiredMixin, ListView):
+class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     model = Location
     template_name = "core/partial/location_list.html"
+    htmx_template = "core/partial/location_table.html"
 
     def get_queryset(self):
         project_id = self.kwargs.get("project_pk")
@@ -346,20 +273,8 @@ class LocationListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["created_at"] = timezone.now()
         context["project"] = get_object_or_404(Project, id=self.kwargs["project_pk"])
         return context
-
-    def render_to_response(self, context, **response_kwargs):
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["project"] = project
-
-        if self.request.headers.get("HX-Request"):
-            html = render_to_string(
-                "core/partial/location_table.html", context, request=self.request
-            )
-            return HttpResponse(html)
-        return super().render_to_response(context, **response_kwargs)
 
 
 class LocationDetailView(LoginRequiredMixin, DetailView):
@@ -367,12 +282,20 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
     template_name = "core/location_detail.html"
 
     def get_object(self):
-        # Retrieve the location object based on the project and location primary keys
-        return get_object_or_404(
-            Location,
-            pk=self.kwargs["location_pk"],
-            project__pk=self.kwargs["project_pk"],
-        )
+        return get_object_or_404(Location, pk=self.kwargs["location_pk"])
+
+    def render_to_response(self, context, **response_kwargs):
+        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        context["project"] = project
+        context["location"] = location
+
+        if self.request.headers.get("HX-Request"):
+            html = render_to_string(
+                "core/partial/location_detail.html", context, request=self.request
+            )
+            return HttpResponse(html)
+        return super().render_to_response(context, **response_kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -396,7 +319,7 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
 
         context["project"] = location.project
         context["deployment_list"] = deployment_view.get_queryset()
-
+        context["statuscount"] = location_status_view.get_queryset().count()
         context["locationstatus_list"] = location_status_view.get_queryset()
         context["locationstatus_form"] = LocationStatusForm()
 

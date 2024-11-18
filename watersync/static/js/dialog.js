@@ -55,3 +55,23 @@ document.addEventListener('htmx:responseError', function (e) {
     console.error("HTMX request failed with response:", e.detail);
     alert("An error occurred while processing your request. Please try again.");
 });
+
+// offcanvas for details of some objects
+document.addEventListener('htmx:afterSwap', function (e) {
+    if (e.detail.target.id === "ofc-dialog") {
+        const offcanvasElement = document.getElementById('offcanvasRight');
+        const offcanvasRight = new bootstrap.Offcanvas(offcanvasElement);
+        offcanvasRight.show();
+    }
+});
+
+document.addEventListener('htmx:beforeSwap', function (e) {
+    const offcanvasElement = document.getElementById('offcanvasRight');
+    const offcanvasRight = bootstrap.Offcanvas.getInstance(offcanvasElement);
+
+    if (e.detail.target.id === "ofc-dialog" && !e.detail.xhr.response) {
+        if (offcanvasRight) {
+            offcanvasRight.hide();
+        }
+    }
+});

@@ -1,5 +1,4 @@
 {% extends 'project_dashboard.html' %}
-{% load crispy_forms_tags %}
 {% load static %}
 
 {% block breadcrumb %}
@@ -18,26 +17,12 @@
     hx-trigger="click">
     Add location</button>
 
-<table class="table table-striped table-sm">
-    <thead>
-        <tr>
-            <th scope="col">#</th>
-            <th scope="col">Name</th>
-            <th scope="col">Added by</th>
-            <th scope="col">Created at</th>
-            <th scope="col">Details</th>
-        </tr>
-    </thead>
-    <tbody hx-get="{% url 'core:locations' user.id project.pk %}" hx-trigger="revealed, configRequest from:body, locationChanged from:body">
-        <tr id="loading-spinner-row" class="bg-white">
-            <td colspan="4" class="text-center">
-                <div class="spinner-grow" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td>
-        </tr>
-    </tbody>
-</table>
-</div>
+    <div id="locations-container" hx-get="{% url 'core:locations' user.id project.pk %}" hx-trigger="revealed, configRequest from:body, locationChanged from:body">
+        <div id="loading-spinner" class="text-center">
+            <div class="spinner-grow" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
 
 {% endblock content %}

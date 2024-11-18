@@ -7,19 +7,35 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-{% comment %} {% load leaflet_tags %} {% endcomment %}
-{% comment %} {% leaflet_js %} {% endcomment %}
-{% comment %} {% leaflet_css %} {% endcomment %}
     <div class="container mt-4">
-        <h3 class="text-muted">Project Details</h3>
-        
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-text">{{ project.name }}</h4>
-                <br>
-                <p class="card-text">{{ project.description }}</p>
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="text-muted mb-0">{{ project.name }}</h3>
+            <div class="dropdown">
+              <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-cog"></i>
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <li>
+                    <a class="dropdown-item"
+                    style="cursor: pointer;" 
+                    hx-get="{% url 'core:delete-project' user.id project.pk %}"
+                    hx-target="#dialog"
+                    title="Delete">
+                    Delete project
+                </a>
+                </li>
+                <li>
+                    <a class="dropdown-item"
+                    style="cursor: pointer;" 
+                    hx-get="{% url 'core:update-project' user.id project.pk %}"
+                    hx-target="#dialog"
+                    title="Edit">
+                    Edit project
+                </a>
+              </ul>
             </div>
-        </div>
+          </div>
+        <div class="container mt-4">
         
         <div class="card mb-4">
             <div class="card-body">
@@ -37,8 +53,8 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Location</h5>
-                {% if project.location %}
-                    <div id="map"></div>
+                {% if project.geom %}
+                    <div id="project_map" style="height: 400px;"></div>
                 {% else %}
                     <p>No location data available.</p>
                 {% endif %}
@@ -46,29 +62,19 @@
         </div>
 
         {% include "shared/user_list.html" %}
-
-        <a href="{% url 'core:update-project' user.id project.pk %}" class="btn btn-warning">
-            <i class="fas fa-edit"></i> Edit
-        </a>
-        <a href="{% url 'core:delete-project' user.id project.pk %}" class="btn btn-danger">
-            <i class="fas fa-trash"></i> Delete
-        </a>
     </div>
 
-    {% if project.location %}
-    <script src="{% static 'js/map.js' %}"></script>
-    <script>
+<script>
 
-        var locations = [
-              {
-                  lat: {{ project.location.y }},
-                  lng: {{ project.location.x }},
-                  name: "{{ project.name }}",
-              }
-          ];
-      
-          var map = initializeMap('map');
-          plotLocations(map, locations);
-      </script>
-    {% endif %}
+    var locations = [
+            {
+                lat: {{ project.geom.y }},
+                lng: {{ project.geom.x }},
+                name: "{{ project.name }}"
+            }
+        ];
+    
+        var map = initializeMap('project_map');
+        plotLocations(map, locations);
+    </script>
 {% endblock %}

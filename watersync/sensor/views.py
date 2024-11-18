@@ -25,71 +25,100 @@ import pandas as pd
 import csv
 import json
 from django.http import HttpResponse
+from watersync.core.mixins import (
+    RenderToResponseMixin,
+    RenderToResponseMixin,
+    HTMXFormMixin,
+)
+from .plotting import create_sensor_graph
 
-# Sensor views
 
-
-class SensorCreateView(LoginRequiredMixin, CreateView):
+class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     model = Sensor
     form_class = SensorForm
-    template_name = "sensor/sensor_form.html"
 
-    def get_success_url(self):
-        return reverse("sensor:sensors", kwargs={"user_id": self.request.user.id})
+    htmx_trigger_header = "sensorChanged"
+    htmx_render_template = "sensor/sensor_form.html"
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
+    def update_form_instance(self, form):
+        if not form.instance.pk:
+            form.instance.save()
 
-        if not self.object.user.filter(id=self.request.user.id).exists():
-            self.object.user.add(self.request.user)
+        selected_users = form.cleaned_data.get("user", [])
+        requesting_user = self.request.user
+        if requesting_user not in selected_users:
+            selected_users.append(requesting_user)
 
-        return response
+        form.instance.user.set(selected_users)
 
 
-class SensorListView(LoginRequiredMixin, ListView):
+class SensorListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     model = Sensor
     template_name = "sensor/sensor_list.html"
+    htmx_template = "sensor/partial/sensor_table.html"
 
     def get_queryset(self):
-        user = get_object_or_404(User, pk=self.request.user.id)
-        return user.sensors.all()
+        return self.request.user.sensors.all()
 
 
-class SensorDetailView(LoginRequiredMixin, DetailView):
+class SensorDetailView(LoginRequiredMixin, RenderToResponseMixin, DetailView):
     model = Sensor
     template_name = "sensor/sensor_detail.html"
+    htmx_template = "sensor/sensor_detail.html"
 
     def get_object(self):
         return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
 
 
-class SensorUpdateView(LoginRequiredMixin, UpdateView):
+class SensorUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
     model = Sensor
     form_class = SensorForm
     template_name = "sensor/sensor_form.html"
 
+    htmx_trigger_header = "sensorChanged"
+    htmx_render_template = "sensor/sensor_form.html"
+
     def get_object(self):
         return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
 
-    def get_success_url(self):
-        return reverse(
-            "sensor:detail-sensor",
-            kwargs={
-                "user_id": self.request.user.id,
-                "sensor_pk": self.kwargs["sensor_pk"],
-            },
-        )
+    def update_form_instance(self, form):
+        instance = form.instance
+
+        selected_users = form.cleaned_data.get("users", [])
+
+        requesting_user = self.request.user
+        if requesting_user not in selected_users:
+            selected_users.append(requesting_user)
+
+        instance.user.set(selected_users)
+
+        return instance
 
 
-class SensorDeleteView(LoginRequiredMixin, DeleteView):
+class SensorDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
     model = Sensor
     template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
 
-    def get_success_url(self):
-        return reverse("sensor:sensors", kwargs={"user_id": self.request.user.id})
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("HX-Request"):
+            sensors_url = reverse(
+                "sensor:sensors", kwargs={"user_id": self.kwargs["user_id"]}
+            )
+            return HttpResponse(
+                status=204,
+                headers={
+                    "HX-Trigger": "configRequest",
+                    "HX-Redirect": sensors_url,
+                },
+            )
+        return super().delete(request, *args, **kwargs)
 
 
 # ================ Sensor Records views ========================
@@ -150,23 +179,8 @@ class SensorRecordListView(LoginRequiredMixin, ListView):
             for record in records
         ]
 
-        # Prepare data for Plotly
-        plotly_data = {
-            "timestamp": [d["timestamp"] for d in data],
-            "value": [d["value"] for d in data],
-            "type": [d["type"] for d in data],
-            "unit": [d["unit"] for d in data],
-        }
-
-        fig = px.line(
-            data_frame=plotly_data,
-            x="timestamp",
-            y="value",
-            color="type",
-            title=f"Sensor Data for {deployment.sensor.identifier}",
-            labels={"value": "Measurement value", "timestamp": "timestamp"},
-        )
-        graph_json = pio.to_json(fig)
+        # Create graph using the extracted function
+        graph_json = create_sensor_graph(data, deployment)
 
         # Add data to context
         context["sensor_types"] = sensor_types.values_list("type", flat=True)

@@ -1,18 +1,17 @@
 from watersync.core.models import Location
 from django import forms
-from django.forms import Textarea, HiddenInput
+from django.forms import Textarea, HiddenInput, CheckboxSelectMultiple
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Fieldset, Field, Div
 from .models import Sensor, Deployment, SensorRecord
 import pandas as pd
-import zoneinfo
 
 
 class SensorForm(forms.ModelForm):
     class Meta:
         model = Sensor
         fields = ("identifier", "user", "detail")
-        widgets = {"detail": HiddenInput()}
+        widgets = {"detail": HiddenInput(), "user": CheckboxSelectMultiple()}
 
 
 class DeploymentForm(forms.ModelForm):

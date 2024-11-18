@@ -1,8 +1,8 @@
 /* Project specific Javascript goes here. */
-function initializeJSONEditor(elementId, schemaUrl, 
+function initializeJSONEditor(elementId, schemaUrl,
     hiddenFieldId, initialData) {
     // Fetch the JSON schema from the specified URL
-    $.getJSON(schemaUrl, function(schema) {
+    $.getJSON(schemaUrl, function (schema) {
         var options = {
             "theme": "bootstrap5",
             "template": "handlebars",
@@ -19,7 +19,7 @@ function initializeJSONEditor(elementId, schemaUrl,
         var editor = new JSONEditor(element, options);
 
         // On form submission, update the hidden textarea with the JSON string
-        document.querySelector('form').addEventListener('submit', function() {
+        document.getElementById(hiddenFieldId).closest('form').addEventListener('submit', function () {
             document.getElementById(hiddenFieldId).value = JSON.stringify(editor.getValue());
         });
     });
@@ -28,7 +28,7 @@ function initializeJSONEditor(elementId, schemaUrl,
 function downloadCSV(elementId, data, fileName) {
     // Get the button element by ID
     const button = document.getElementById(elementId);
-    
+
     // Set up the click event listener
     button.addEventListener('click', function () {
         // Prepare CSV content
@@ -39,7 +39,7 @@ function downloadCSV(elementId, data, fileName) {
         csvContent += headers.join(",") + "\n";
 
         // Add data rows
-        data.forEach(function(row) {
+        data.forEach(function (row) {
             let rowData = [
                 row.timestamp,
                 row.value,

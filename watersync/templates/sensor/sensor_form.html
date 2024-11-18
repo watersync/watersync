@@ -1,33 +1,38 @@
-{% extends 'base_dashboard.html' %}
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'sensor:sensors' user.id %}">Sensors</a></li>
-<li class="breadcrumb-item active" aria-current="page">Add sensor</li>
-{% endblock breadcrumb %}
-
 {% block content %}
-<h2>{{ form.instance.pk|yesno:"Edit Sensor,Add New Sensor" }}</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form|crispy }}
-  
-  <div class="card p-2 mt-4" id="detail_form"></div>
-
-  <button type="submit" class="btn btn-primary mt-4">Save Sensor</button>
-</form>
-
-
-<script type="text/javascript" src="{% static 'js/project.js' %}"></script>
-<script type="text/javascript">
-    // Initialize the detail input
-    var elementId = 'detail_form';
-    var schemaUrl = "{% static 'schemas/sensor_detail_schema.json' %}";
-    var hiddenFieldId = 'id_detail';
-    var initialData = {{ form.detail.value|default:"{}"|safe }};
-
-    initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
-
-  </script>
+<div class="modal-content">
+  <div class="modal-header">
+      <h5 class="modal-title" id="{{ modal_id }}Label">Add new sensor</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  </div>
+  <form hx-post="{{ request.path }}" 
+        hx-target="#dialog"
+        hx-indicator="#loading">
+    {% csrf_token %}
+    <div class="modal-body">
+      {{ form|crispy }}
+      <div class="card p-2 mt-4" id="detail_form"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <div id="loading" class="htmx-indicator">Loading...</div>
+    </div>
+  </form>
+</div>
 {% endblock content %}
+<script>
+  document.body.addEventListener('htmx:configRequest', (event) => {
+    event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+});
+// Initialize the detail input
+var elementId = 'detail_form';
+var schemaUrl = "{% static 'schemas/sensor_detail_schema.json' %}";
+var hiddenFieldId = 'id_detail';
+var initialData = {{ form.detail.value|default:"{}"|safe }};
+
+initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
+</script>
+

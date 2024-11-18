@@ -1,0 +1,29 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+{% endblock breadcrumb %}
+
+{% block content %}
+
+<button 
+    type="button" 
+    class="btn btn-success mb-3" 
+    hx-get="{% url 'core:add-project' user.id %}"
+    hx-target="#dialog"
+    hx-trigger="click">
+    Add project</button>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4"
+    hx-get="{% url 'core:projects' user.id %}" 
+        hx-trigger="revealed, configRequest from:body, locationChanged from:body">
+        <div id="loading-spinner-row" class="bg-white">
+                <div class="spinner-grow" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

@@ -29,7 +29,7 @@ class Project(models.Model):
     user = models.ManyToManyField(User, related_name="projects")
     name = models.CharField(unique=True, max_length=50)
     description = models.TextField(null=True, blank=True)
-    location = geomodels.PointField(srid=4326, null=True, blank=True)
+    geom = geomodels.PointField(srid=4326, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -122,7 +122,9 @@ class LocationStatus(models.Model):
         ("unknown", "Unknown"),
     ]
 
-    location = models.ForeignKey(Location, on_delete=models.CASCADE)
+    location = models.ForeignKey(
+        Location, related_name="statuses", on_delete=models.CASCADE
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
