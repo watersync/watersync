@@ -3,15 +3,12 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DetailView
-from django.views.generic import RedirectView
-from django.views.generic import UpdateView
+from django.views.generic import DetailView, RedirectView, TemplateView, UpdateView
 
-from django.views.generic import TemplateView
-from watersync.waterquality.models import Protocol
 from watersync.users.models import User
 from watersync.waterquality.forms import ProtocolForm
-from watersync.waterquality.views import ProtocolListView
+from watersync.waterquality.views.protocol import protocol_list_view
+
 
 class UserDetailView(LoginRequiredMixin, DetailView):
     model = User
@@ -48,13 +45,15 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 user_redirect_view = UserRedirectView.as_view()
 
+
 class SettingsView(LoginRequiredMixin, TemplateView):
     template_name = "users/settings/settings.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['protocol_list'] = ProtocolListView().get_queryset()
-        context["form"] = ProtocolForm() 
+        context["protocol_list"] = protocol_list_view.get_queryset()
+        context["form"] = ProtocolForm()
         return context
+
 
 settings_view = SettingsView.as_view()

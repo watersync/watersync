@@ -1,9 +1,12 @@
+import json
+
 from django import template
-from django.urls import reverse
+from django.db.models.query import QuerySet
 
 register = template.Library()
 
-@register.inclusion_tag('shared/table.html')
+
+@register.inclusion_tag("shared/table.html")
 def render_table(queryset, columns, url_name, url_params=None):
     """
     Renders a dynamic table.
@@ -14,14 +17,25 @@ def render_table(queryset, columns, url_name, url_params=None):
     - url_params: Additional parameters to include in the URL, if necessary.
     """
     return {
-        'queryset': queryset,
-        'columns': columns,
-        'url_name': url_name,
-        'url_params': url_params or [],
+        "queryset": queryset,
+        "columns": columns,
+        "url_name": url_name,
+        "url_params": url_params or [],
     }
-    
+
 
 @register.filter
 def getattr(value, arg):
     """Gets an attribute of an object dynamically from a string name."""
     return getattr(value, arg, None)
+
+
+@register.filter(is_safe=True)
+def get_coordinates(obj):
+    if isinstance(obj, QuerySet):
+        coordinates = [
+            {"name": obj.name, "lat": obj.geom.y, "lng": obj.geom.x} for obj in obj
+        ]
+    else:
+        coordinates = [{"name": obj.name, "lat": obj.geom.y, "lng": obj.geom.x}]
+    return json.dumps(coordinates)

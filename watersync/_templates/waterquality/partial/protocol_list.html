@@ -1,0 +1,27 @@
+{% load crispy_forms_tags %}
+{% load static %}
+
+<button type="button" class="btn btn-success mb-3" hx-get="{% url 'waterquality:add-protocol' user.id %}"
+  hx-target="#dialog" hx-trigger="click">
+  Add protocol</button>
+
+<table class="table table-striped table-sm">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">method name</th>
+      <th scope="col">details</th>
+
+    </tr>
+  </thead>
+  <tbody hx-get="{% url 'waterquality:protocols' user.id %}"
+    hx-trigger="revealed, configRequest from:body, protocolChanged from:body">
+    <tr id="loading-spinner-row" class="bg-white">
+      <td colspan="4" class="text-center">
+        <div class="spinner-grow" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>

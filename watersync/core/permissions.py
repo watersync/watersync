@@ -1,9 +1,9 @@
-from rest_framework import permissions
-from .models import Project
-from rest_framework.exceptions import NotFound, PermissionDenied
-
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from rest_framework import permissions
+from rest_framework.exceptions import NotFound, PermissionDenied
+
+from .models import Project
 
 
 class IsStaffMixin(UserPassesTestMixin):

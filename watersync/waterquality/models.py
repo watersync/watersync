@@ -7,11 +7,11 @@
 """
 
 from django.db import models
-from watersync.core.models import Location
 from django.utils.text import slugify
-from ..core.models import Location
-from ..users.models import User
 from django_extensions.db.models import TimeStampedModel
+
+from watersync.core.models import Location
+from watersync.users.models import User
 
 
 class Protocol(models.Model):
@@ -43,11 +43,11 @@ class SamplingEvent(TimeStampedModel):
 
     slug = models.SlugField(max_length=100, unique=True, editable=False)
     location = models.ForeignKey(
-        Location, on_delete=models.CASCADE, related_name="sampling_events"
+        Location, on_delete=models.CASCADE, related_name="samplingevents"
     )
     executed_at = models.DateTimeField()
     executed_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="sampling_events"
+        User, on_delete=models.CASCADE, related_name="samplingevents"
     )
     details = models.TextField(blank=True, null=True)
 
@@ -67,10 +67,10 @@ class Sample(models.Model):
         SamplingEvent, on_delete=models.CASCADE, related_name="samples"
     )
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
-    target_parameters = models.CharField(max_length=50, blank=True, null=True)
+    target_parameters = models.CharField(max_length=50)
     container_type = models.CharField(max_length=50, blank=True, null=True)
     volume_collected = models.FloatField(blank=True, null=True)
-    replica_number = models.IntegerField(blank=True, null=True, default=0)
+    replica_number = models.IntegerField(default=0)
     details = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -84,11 +84,11 @@ class Measurement(TimeStampedModel):
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="measurements"
     )
-    parameter_name = models.CharField(max_length=100)
+    parameter = models.CharField(max_length=100)
     value = models.FloatField()
     unit = models.CharField(max_length=50)
-    measured_on = models.DateTimeField(null=True, blank=True)
+    measured_on = models.DateField(null=True, blank=True)
     details = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.parameter_name}: {self.value} {self.unit} ({self.sample})"
+        return f"{self.parameter}: {self.value} {self.unit} ({self.sample})"

@@ -16,7 +16,7 @@ class Sensor(models.Model):
     """
 
     identifier = models.CharField(max_length=55, unique=True)
-    user = models.ManyToManyField(User, related_name="sensors")
+    user = models.ManyToManyField(User, null=True, blank=True, related_name="sensors")
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 

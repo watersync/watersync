@@ -1,20 +1,25 @@
-from django.urls import include
-from django.urls import path
+from django.urls import include, path
 
-from .views import location_create_view
-from .views import location_delete_view
-from .views import location_detail_view
-from .views import location_list_view
-from .views import location_status_create_view
-from .views import location_status_delete_view
-from .views import location_status_list_view
-from .views import location_status_update_view
-from .views import location_update_view
-from .views import project_create_view
-from .views import project_delete_view
-from .views import project_detail_view
-from .views import project_list_view
-from .views import project_update_view
+from watersync.core.views.location import (
+    location_create_view,
+    location_delete_view,
+    location_detail_view,
+    location_list_view,
+    location_update_view,
+)
+from watersync.core.views.locationstatus import (
+    location_status_create_view,
+    location_status_delete_view,
+    location_status_list_view,
+    location_status_update_view,
+)
+from watersync.core.views.project import (
+    project_create_view,
+    project_delete_view,
+    project_detail_view,
+    project_list_view,
+    project_update_view,
+)
 
 app_name = "core"
 

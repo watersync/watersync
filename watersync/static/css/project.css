@@ -14,21 +14,25 @@
 
 /* Custom styles for nav-links */
 .custom-nav-link {
-  color: white !important; /* Default color */
+  color: white !important;
+  /* Default color */
   text-decoration: none;
   transition: color 0.5s ease-in-out;
 }
 
 .custom-nav-link:hover {
-  color: gray !important; /* Color on hover */
+  color: gray !important;
+  /* Color on hover */
 }
 
 .custom-nav-link i {
-  color: white !important; /* Icon color */
+  color: white !important;
+  /* Icon color */
 }
 
 .custom-nav-link:hover i {
-  color: gray !important; /* Icon color on hover */
+  color: gray !important;
+  /* Icon color on hover */
 }
 
 .hero-bg {
@@ -78,22 +82,42 @@
 
 /* CSS for the map container */
 #map {
-  width: 100%; /* Full width of the container */
-  height: 500px; /* Set a specific height */
-  max-width: 1200px; /* Optional: Limit the maximum width of the map */
-  margin: 0 auto; /* Center the map horizontally if max-width is used */
-  border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+  width: 100%;
+  /* Full width of the container */
+  height: 500px;
+  /* Set a specific height */
+  max-width: 1200px;
+  /* Optional: Limit the maximum width of the map */
+  margin: 0 auto;
+  /* Center the map horizontally if max-width is used */
+  border: 1px solid #ccc;
+  /* Optional: Add a border for better visibility */
 }
 
 /* Responsive adjustments for the map */
 @media (max-width: 768px) {
   #map {
-      height: 300px; /* Smaller height on small screens */
+    height: 300px;
+    /* Smaller height on small screens */
   }
 }
 
 @media (min-width: 769px) {
   #map {
-      height: 500px; /* Larger height on larger screens */
+    height: 500px;
+    /* Larger height on larger screens */
   }
+}
+
+.button-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* Create three equal columns */
+  gap: 10px;
+  /* Space between buttons */
+}
+
+.button-container .btn {
+  width: 100%;
+  /* Ensure buttons fill their grid cells */
 }

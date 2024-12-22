@@ -1,5 +1,5 @@
-from django.template.loader import render_to_string
 from django.http import HttpResponse, JsonResponse
+from django.template.loader import render_to_string
 
 
 def is_htmx_request(request):
@@ -23,11 +23,11 @@ class HTMXFormMixin:
 
     def update_form_instance(self, form):
         """Hook for updating form.instance in subclasses."""
-        pass
 
     def form_valid(self, form):
         self.update_form_instance(form)
-        form.save()
+        if hasattr(form, "save"):
+            form.save()
 
         if is_htmx_request(self.request):
             headers = (
@@ -39,10 +39,9 @@ class HTMXFormMixin:
         return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
 
     def form_invalid(self, form):
+        print(f"Form errors: {form.errors}")
         if is_htmx_request(self.request):
             self.update_form_instance(form)
-
-            # Render the invalid form with error messages
             context = self.get_context_data(form=form)
             html = render_to_string(
                 self.htmx_render_template, context, request=self.request
@@ -50,5 +49,18 @@ class HTMXFormMixin:
             return HttpResponse(
                 html, status=self.htmx_invalid_status, content_type="text/html"
             )
-
         return super().form_invalid(form)
+
+
+class DeleteHTMX:
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("HX-Request"):
+            headers = {"HX-Trigger": "configRequest"}
+            if hasattr(self, "htmx_redirect"):
+                headers["HX-Redirect"] = self.htmx_redirect
+
+            return HttpResponse(status=204, headers=headers)
+        return super().delete(request, *args, **kwargs)

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from ..models import Project, LocationStatus, Location
+
+from ..models import Location, LocationStatus, Project
 
 
 class ProjectSerializer(serializers.ModelSerializer):

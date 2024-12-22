@@ -1,9 +1,6 @@
 from django.urls import path
 
-from .views import user_detail_view
-from .views import user_redirect_view
-from .views import user_update_view
-from .views import SettingsView
+from .views import SettingsView, user_detail_view, user_redirect_view, user_update_view
 
 app_name = "users"
 urlpatterns = [
@@ -13,5 +10,9 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path("<int:user_id>/settings/", SettingsView.as_view(template_name="users/settings/settings.html"), name="settings")
+    path(
+        "<int:user_id>/settings/",
+        SettingsView.as_view(template_name="users/settings/settings.html"),
+        name="settings",
+    )
 ]

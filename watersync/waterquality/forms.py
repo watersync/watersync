@@ -1,8 +1,7 @@
-from watersync.waterquality.models import Protocol, SamplingEvent, Sample, Measurement
 from django import forms
-from django.forms import HiddenInput, DateTimeInput
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Fieldset, Div
+from django.forms import DateInput, DateTimeInput, HiddenInput, Textarea
+
+from watersync.waterquality.models import Measurement, Protocol, Sample, SamplingEvent
 
 
 class ProtocolForm(forms.ModelForm):
@@ -19,54 +18,20 @@ class ProtocolForm(forms.ModelForm):
             "details",
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Fieldset(
-                "Protocol Details",
-                "method_name",
-                Div("sample_collection", css_class="form-group"),
-                Div("sample_preservation", css_class="form-group"),
-                Div("sample_storage", css_class="form-group"),
-                Div("analytical_method", css_class="form-group"),
-                Div("data_postprocessing", css_class="form-group"),
-                Div("standard_reference", css_class="form-group"),
-                Div("details", css_class="form-group"),
-            ),
-            Submit("submit", "Save Protocol", css_class="btn btn-primary"),
-        )
-
 
 class SamplingEventForm(forms.ModelForm):
     class Meta:
         model = SamplingEvent
-        fields = ("location", "executed_at", "executed_by")
+        fields = ("executed_at", "executed_by", "details")
         widgets = {
             "executed_at": DateTimeInput(attrs={"type": "datetime-local"}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Fieldset(
-                "Sampling Event Details",
-                "location",
-                "executed_at",
-                "executed_by",
-            ),
-            Submit("submit", "Save Sampling Event", css_class="btn btn-primary"),
-        )
 
 
 class SampleForm(forms.ModelForm):
     class Meta:
         model = Sample
         fields = (
-            "sampling_event",
             "protocol",
             "target_parameters",
             "container_type",
@@ -74,51 +39,56 @@ class SampleForm(forms.ModelForm):
             "details",
             "replica_number",
         )
-        widgets = {
-            "details": HiddenInput(),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Fieldset(
-                "Sample Details",
-                "sampling_event",
-                "protocol",
-                "target_parameters",
-                "container_type",
-                "volume_collected",
-                "replica_number",
-                Div("details", css_class="form-group"),
-            ),
-            Submit("submit", "Save Sample", css_class="btn btn-primary"),
-        )
 
 
 class MeasurementForm(forms.ModelForm):
     class Meta:
         model = Measurement
-        fields = ("sample", "parameter_name", "value", "unit", "measured_on", "details")
+        fields = ("parameter", "value", "unit", "measured_on", "details")
         widgets = {
             "details": HiddenInput(),
-            "measured_on": DateTimeInput(attrs={"type": "datetime-local"}),
+            "measured_on": DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Fieldset(
-                "Measurement Details",
-                "sample",
-                "parameter_name",
-                "value",
-                "unit",
-                "measured_on",
-                Div("details", css_class="form-group"),
-            ),
-            Submit("submit", "Save Measurement", css_class="btn btn-primary"),
-        )
+
+class MeasurementBulkForm(forms.Form):
+    data = forms.CharField(
+        label="Data",
+        help_text="Paste tab-separated or comma-separated data with the following columns: "
+        "parameter, value, unit, measured_on",
+        widget=Textarea(attrs={"rows": 5}),
+    )
+
+    def clean_data(self):
+        data = self.cleaned_data["data"]
+        if not isinstance(data, str):
+            return data
+
+        cleaned_data = []
+        lines = data.splitlines()
+        for line in lines:
+            if not line.strip():
+                continue
+
+            fields = line.split("\t") if "\t" in line else line.split(",")
+            if len(fields) != 4:
+                msg = "Each line must contain exactly 4 fields."
+                raise forms.ValidationError(msg)
+
+            parameter, value, unit, measured_on = fields
+            try:
+                value = float(value)
+            except ValueError:
+                msg = f"Value '{value}' is not a valid number."
+                raise forms.ValidationError(msg)
+
+            cleaned_data.append(
+                {
+                    "parameter": parameter.strip(),
+                    "value": value,
+                    "unit": unit.strip(),
+                    "measured_on": measured_on.strip(),
+                }
+            )
+
+        return cleaned_data  # Return after processing all lines

@@ -1,60 +1,49 @@
-from django.shortcuts import render, get_object_or_404
-from django.views.generic import TemplateView
-from decimal import Decimal
-from django.template.loader import render_to_string
-import plotly.io as pio
-import plotly.express as px
-from watersync.users.models import User
-from django.views.generic import (
-    CreateView,
-    UpdateView,
-    ListView,
-    DeleteView,
-    DetailView,
-    View,
-    FormView,
-)
-from watersync.sensor.models import Sensor, Deployment, SensorRecord
-from watersync.core.models import Location, Project
-from .forms import SensorForm, DeploymentForm, SensorRecordForm
-from django.utils import timezone
-from django.urls import reverse_lazy, reverse
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, get_object_or_404, get_list_or_404
-import pandas as pd
 import csv
 import json
+from decimal import Decimal
+
+import pandas as pd
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
-from watersync.core.mixins import (
-    RenderToResponseMixin,
-    RenderToResponseMixin,
-    HTMXFormMixin,
+from django.shortcuts import get_list_or_404, get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    UpdateView,
+    View,
 )
+
+from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.models import Location, Project
+from watersync.sensor.models import Deployment, Sensor, SensorRecord
+
+from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
 
 
 class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     model = Sensor
     form_class = SensorForm
+    template_name = "shared/simple_form.html"
 
     htmx_trigger_header = "sensorChanged"
-    htmx_render_template = "sensor/sensor_form.html"
+    htmx_render_template = "shared/simple_form.html"
 
-    def update_form_instance(self, form):
-        if not form.instance.pk:
-            form.instance.save()
-
-        selected_users = form.cleaned_data.get("user", [])
-        requesting_user = self.request.user
-        if requesting_user not in selected_users:
-            selected_users.append(requesting_user)
-
-        form.instance.user.set(selected_users)
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.user not in form.instance.user.all():
+            form.instance.user.add(self.request.user)
+        return response
 
 
 class SensorListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     model = Sensor
-    template_name = "sensor/sensor_list.html"
+    template_name = "sensor/partial/sensor_list.html"
     htmx_template = "sensor/partial/sensor_table.html"
 
     def get_queryset(self):
@@ -80,19 +69,6 @@ class SensorUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
 
     def get_object(self):
         return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
-
-    def update_form_instance(self, form):
-        instance = form.instance
-
-        selected_users = form.cleaned_data.get("users", [])
-
-        requesting_user = self.request.user
-        if requesting_user not in selected_users:
-            selected_users.append(requesting_user)
-
-        instance.user.set(selected_users)
-
-        return instance
 
 
 class SensorDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):

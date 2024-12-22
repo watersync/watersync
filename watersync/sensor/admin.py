@@ -1,8 +1,6 @@
 from django.contrib import admin
 
-from .models import Deployment
-from .models import Sensor
-from .models import SensorRecord
+from .models import Deployment, Sensor, SensorRecord
 
 
 @admin.register(Sensor)

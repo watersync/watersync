@@ -1,27 +1,20 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column
-from crispy_forms.layout import Field
-from crispy_forms.layout import Layout
-from crispy_forms.layout import Row
-from crispy_forms.layout import Submit
 from django.contrib.gis.geos import Point
 from django.forms import (
+    CharField,
+    CheckboxSelectMultiple,
     DateInput,
-    ModelMultipleChoiceField,
     FloatField,
     HiddenInput,
     ModelForm,
-    CheckboxSelectMultiple,
+    ModelMultipleChoiceField,
 )
 
-
-from watersync.core.models import Location
-from watersync.core.models import LocationStatus
-from watersync.core.models import Project
+from watersync.core.models import Location, LocationStatus, Project
 from watersync.users.models import User
 
 
 class ProjectForm(ModelForm):
+    title = "Add Project"
     latitude = FloatField(required=False, label="Latitude")
     longitude = FloatField(required=False, label="Longitude")
     user = ModelMultipleChoiceField(
@@ -41,6 +34,7 @@ class ProjectForm(ModelForm):
             "user",
             "latitude",
             "longitude",
+            "geom",
         ]
         widgets = {
             "start_date": DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
@@ -63,14 +57,22 @@ class ProjectForm(ModelForm):
 
 
 class LocationStatusForm(ModelForm):
+    title = "Add Location Status"
+
     class Meta:
         model = LocationStatus
         fields = ["status", "comment"]
 
 
 class LocationForm(ModelForm):
+    """Temporary solution to the geometry not being properly created is to make the gemo field a CharField
+    and not required. The latitude and longitude fields are used to create the geometry field in update_form_instance method."""
+
+    title = "Add Location"
+    detail_schema = "piezometer_detail_schema.json"
     latitude = FloatField(required=False, label="Latitude")
     longitude = FloatField(required=False, label="Longitude")
+    geom = CharField(required=False)
 
     class Meta:
         model = Location
@@ -82,20 +84,9 @@ class LocationForm(ModelForm):
             "latitude",
             "longitude",
             "detail",
+            "geom",
         )
         widgets = {
             "detail": HiddenInput(),
             "geom": HiddenInput(),
         }
-
-    def save(self, commit=True):
-        instance = super(LocationForm, self).save(commit=False)
-
-        latitude = self.cleaned_data.get("latitude")
-        longitude = self.cleaned_data.get("longitude")
-        if latitude is not None and longitude is not None:
-            instance.geom = Point(longitude, latitude, srid=4326)
-
-        if commit:
-            instance.save()
-        return instance

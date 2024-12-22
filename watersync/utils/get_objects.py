@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
-from watersync.core.models import Location
-from watersync.core.models import Project
+
+from watersync.core.models import Location, Project
+
 
 def get_project_location(request, kwargs):
     project = get_object_or_404(

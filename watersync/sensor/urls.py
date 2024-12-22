@@ -14,27 +14,24 @@ View for now.
 """
 
 from django.urls import path
-from watersync.sensor.views import (
-    SensorCreateView,
-    SensorListView,
-    SensorDeleteView,
-    SensorUpdateView,
-    SensorDetailView,
-)
+
 from watersync.sensor.views import (
     DeploymentCreateView,
-    DeploymentListView,
-    DeploymentDeleteView,
-    DeploymentUpdateView,
-    DeploymentDetailView,
     DeploymentDecommissionView,
-)
-from watersync.sensor.views import (
-    SensorRecordListView,
+    DeploymentDeleteView,
+    DeploymentDetailView,
+    DeploymentListView,
+    DeploymentUpdateView,
+    SensorCreateView,
+    SensorDeleteView,
+    SensorDetailView,
+    SensorListView,
     SensorRecordCreateView,
-    SensorRecordUpdateView,
     SensorRecordDeleteView,
     SensorRecordDownloadView,
+    SensorRecordListView,
+    SensorRecordUpdateView,
+    SensorUpdateView,
 )
 
 app_name = "sensor"

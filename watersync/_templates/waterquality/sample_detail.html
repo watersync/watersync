@@ -1,0 +1,53 @@
+{% extends 'project_dashboard.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'core:projects' user.id %}">Projects</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'core:locations' user.id project.pk %}">Locations</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a>
+</li>
+<li class="breadcrumb-item"><a
+        href="{% url 'waterquality:detail-samplingevent' user.id project.pk location.pk samplingevent.pk %}">Sampling
+        Event</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ sample }}</li>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card-body">
+        <pre id="gridData"></pre>
+    </div>
+
+    <h3 class="text-muted">{{ sample|upper }}</h3>
+    <br>
+    <div class="container mt-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Protocol:</strong> {{ sample.protocol }}</li>
+                    <li class="list-group-item"><strong>Container:</strong> {{ sample.container }}</li>
+                    <li class="list-group-item"><strong>Volume:</strong> {{ sample.volume }}</li>
+                    <li class="list-group-item"><strong>Detail:</strong>
+                        <div class="card-body">
+                            {% if sample.details %}
+                            <p class="card-text">{{ sample.details }}</p>
+                            {% else %}
+                            <p class="card-text"><em>No details provided</em></p>
+                            {% endif %}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% include "waterquality/partial/measurement_list.html" %}
+</div>
+{% endblock %}

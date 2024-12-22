@@ -1,0 +1,173 @@
+{% extends 'project_dashboard.html' %}
+{% load custom_tags %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h3 class="text-muted mb-0">{{ location.name }}</h3>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-cog"></i>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li>
+                <a class="dropdown-item" style="cursor: pointer;"
+                    hx-get="{% url 'core:delete-location' user.id project.pk location.pk %}" hx-target="#dialog"
+                    title="Delete">
+                    Delete location
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" style="cursor: pointer;"
+                    hx-get="{% url 'core:update-location' user.id project.pk location.pk %}" hx-target="#dialog"
+                    title="Edit">
+                    Edit location
+                </a>
+        </ul>
+    </div>
+</div>
+<div class="container mt-4">
+
+    <div class="row">
+        <div class="col-md-6">
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Basic Information</h5>
+                    <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
+                        hx-trigger="revealed, configRequest from:body, locationChanged from:body"
+                        hx-target="#location-detail">
+                        <div class="spinner-grow" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if location.geom %}
+                    <div id="basic_map" style="height: 400px;"></div>
+                    {% else %}
+                    <p>No location data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <hr>
+    <h3 class="text-muted">Resources linked to location</h3>
+    <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
+            itself.</em></p>
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane"
+                type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">
+                Status
+                <span class="badge rounded-pill bg-primary">{{ statuscount }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane"
+                type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">
+                GWL
+                <span class="badge rounded-pill bg-primary">{{ gwlmeasurementcount }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane"
+                type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">
+                Timeseries
+                <span class="badge rounded-pill bg-primary">{{ deploymentcount }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="disabled-tab" data-bs-toggle="tab" data-bs-target="#disabled-tab-pane"
+                type="button" role="tab" aria-controls="disabled-tab-pane" aria-selected="false">
+                Water Quality
+                <span class="badge rounded-pill bg-primary">{{ samplingeventcount }}</span>
+            </button>
+        </li>
+    </ul>
+    <div id="resource-counts" hx-swap-oob="true">
+        <span id="status-count" hx-swap-oob="true"></span>
+        <span id="gwl-count" hx-swap-oob="true"></span>
+        <span id="deployment-count" hx-swap-oob="true"></span>
+        <span id="samplingevent-count" hx-swap-oob="true"></span>
+    </div>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab"
+            tabindex="0">
+            <div id="locationstatus" class="container p-4">
+                <p>
+                    <em class="text-decoration-none text-muted">
+                        Location status updates
+                    </em>
+                </p>
+                {% include 'core/partial/locationstatus_list.html' %}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+            <div id="gwlmeasurements" class="container p-4">
+                <h4>
+                    <a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}"
+                        class="text-decoration-none text-dark">
+                        Manual groundwater level measurements
+                    </a>
+                </h4>
+                {% include 'groundwater/partial/gwl_list.html' %}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
+            <div id="sensordeployments" class="container p-4">
+                <h4>
+                    <a href="{% url 'sensor:deployments' user.id project.pk %}" class="text-decoration-none text-dark">
+                        Timeseries from deployed sensors
+                    </a>
+                </h4>
+                {% include 'sensor/partial/deployment_list.html' %}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="disabled-tab-pane" role="tabpanel" aria-labelledby="disabled-tab" tabindex="0">
+            <div id="wqsamples" class="container p-4">
+                <h4>
+                    <a href="{% url 'waterquality:samplingevents' user.id project.pk location.pk %}"
+                        class="text-decoration-none text-dark">
+                        Water quality sampling
+                    </a>
+                </h4>
+                {% include 'waterquality/partial/samplingevent_list.html' %}
+
+            </div>
+        </div>
+    </div>
+
+</div>
+{% if location.geom %}
+
+<script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+
+    document.body.addEventListener('htmx:locationChanged', (event) => {
+        window.location.reload();
+    });
+
+    var locations = JSON.parse('{{ location|get_coordinates|escapejs }}');
+    var map = initializeMap('basic_map');
+    plotLocations(map, locations);
+</script>
+{% endif %}
+{% endblock %}

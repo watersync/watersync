@@ -1,17 +1,20 @@
-from watersync.core.models import Location
-from django import forms
-from django.forms import Textarea, HiddenInput, CheckboxSelectMultiple
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Fieldset, Field, Div
-from .models import Sensor, Deployment, SensorRecord
 import pandas as pd
+from django import forms
+from django.forms import HiddenInput
+
+from watersync.core.models import Location
+
+from .models import Deployment, Sensor
 
 
 class SensorForm(forms.ModelForm):
+    title = "Add Sensor"
+    detail_schema = "sensor_detail_schema.json"
+
     class Meta:
         model = Sensor
         fields = ("identifier", "user", "detail")
-        widgets = {"detail": HiddenInput(), "user": CheckboxSelectMultiple()}
+        widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
 
 
 class DeploymentForm(forms.ModelForm):
@@ -53,7 +56,7 @@ class SensorRecordForm(forms.Form):
         try:
             df = pd.read_csv(csv_file)
         except Exception as e:
-            raise forms.ValidationError(f"Error parsing CSV file: {str(e)}")
+            raise forms.ValidationError(f"Error parsing CSV file: {e!s}")
 
         required_columns = ["timestamp", "value", "unit", "type"]
         for col in required_columns:
@@ -65,6 +68,6 @@ class SensorRecordForm(forms.Form):
 
             df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
         except Exception as e:
-            raise forms.ValidationError(f"Error processing timestamps: {str(e)}")
+            raise forms.ValidationError(f"Error processing timestamps: {e!s}")
 
         return df

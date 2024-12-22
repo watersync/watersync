@@ -1,0 +1,35 @@
+{% for locationstatus in locationstatus_list %}
+<tr>
+    <th scope="row">{{ forloop.counter }}</th>
+    <td>{{ locationstatus.created_at }}</td>
+    <td>{{ locationstatus.status }}</td>
+    <td>
+        <div class="button-container">
+            <button type="button" class="btn btn-sm btn-info" data-toggle="popover" data-bs-trigger="focus"
+                data-bs-placement="top" title="Comment" data-bs-content="{{ locationstatus.comment }}">
+                <i class="fas fa-info"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-warning"
+                hx-get="{% url 'core:update-locationstatus' user.id project.pk location.pk locationstatus.pk %}"
+                hx-target="#dialog" title="Edit">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-danger"
+                hx-get="{% url 'core:delete-locationstatus' user.id project.pk location.pk locationstatus.pk %}"
+                hx-target="#dialog" title="Delete">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+
+<script>
+    $(function () {
+        $('[data-toggle="popover"]').popover()
+    })
+
+    $('.popover-dismiss').popover({
+        trigger: 'focus'
+    })
+</script>

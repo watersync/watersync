@@ -1,0 +1,43 @@
+<div class="container mt-4">
+    <h3 class="text-muted">{{ protocol.method_name }}</h3>
+    
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-cog"></i>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+          <li>
+              <a class="dropdown-item"
+              style="cursor: pointer;" 
+              hx-get="{% url 'waterquality:delete-protocol' user.id protocol.pk %}"
+              hx-target="#dialog"
+              title="Delete">
+              Delete protocol
+          </a>
+          </li>
+          <li>
+              <a class="dropdown-item"
+              style="cursor: pointer;" 
+              hx-get="{% url 'waterquality:update-protocol' user.id protocol.pk %}"
+              hx-target="#dialog"
+              title="Edit">
+              Edit protocol
+          </a>
+        </ul>
+      </div>
+    </div>
+    <br>
+    <div class="card mb-4">
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Sample Collection:</strong> {{ protocol.sample_collection }}</li>
+                <li class="list-group-item"><strong>Sample Preservation:</strong> {{ protocol.sample_preservation }}</li>
+                <li class="list-group-item"><strong>Sample Storage:</strong> {{ protocol.sample_storage }}</li>
+                <li class="list-group-item"><strong>Analytical Method:</strong> {{ protocol.analytical_method }}</li>
+                <li class="list-group-item"><strong>Data Postprocessing:</strong> {{ protocol.data_postprocessing }}</li>
+                <li class="list-group-item"><strong>Standard Reference:</strong> {{ protocol.standard_reference }}</li>
+                <li class="list-group-item"><strong>Details:</strong> {{ protocol.details }}</li>
+            </ul>
+        </div>
+    </div>
+</div>

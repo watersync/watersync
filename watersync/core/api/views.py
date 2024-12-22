@@ -1,11 +1,10 @@
-from rest_framework import viewsets
-from rest_framework import permissions
-from rest_framework import status
-from rest_framework.response import Response
-from .models import Project, Location, LocationStatus
-from .serializers import ProjectSerializer, LocationSerializer, StatusSerializer
+from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from watersync_auth.models import CustomUser
+
+from .models import Location, LocationStatus, Project
+from .serializers import LocationSerializer, ProjectSerializer, StatusSerializer
 
 
 class BaseListViewSet(viewsets.ModelViewSet):

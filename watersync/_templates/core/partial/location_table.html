@@ -1,0 +1,35 @@
+{% load custom_tags %}
+{% load static %}
+
+<div id="map_locations" style="height: 400px; position: relative; overflow: hidden;"></div>
+
+<table id="table_locations" class="table table-striped table-sm">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for location in location_list %}
+        <tr>
+            <th scope="row">{{ forloop.counter }}</th>
+            <td>{{ location.name }}</td>
+            <td>
+                <a class="btn btn-sm btn-info" href="{% url 'core:detail-location' user.id project.pk location.pk %}">
+                    Open<i class="fa-solid fa-arrow-right mx-2"></i>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+
+    var locations = JSON.parse('{{ location_list|get_coordinates|escapejs }}');
+    var map = initializeMap('map_locations');
+    plotLocations(map, locations);
+
+</script>

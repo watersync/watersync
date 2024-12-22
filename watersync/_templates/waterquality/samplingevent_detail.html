@@ -1,0 +1,56 @@
+{% extends 'project_dashboard.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item">
+    <a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">Sampling event</li>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h3 class="text-muted">Sampling {{ samplingevent.location }} on {{ samplingevent.executed_at|date:"l, F j, Y" }}
+    </h3>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-cog"></i>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li>
+                <a class="dropdown-item" style="cursor: pointer;"
+                    hx-get="{% url 'waterquality:delete-samplingevent' user.id project.pk location.pk samplingevent.pk %}"
+                    hx-target="#dialog" title="Delete">
+                    Delete event
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" style="cursor: pointer;"
+                    hx-get="{% url 'waterquality:update-samplingevent' user.id project.pk location.pk samplingevent.pk %}"
+                    hx-target="#dialog" title="Edit">
+                    Edit event
+                </a>
+        </ul>
+    </div>
+</div>
+<br>
+<div class="card mb-4">
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Executed by</strong> {{ samplingevent.executed_by }}</li>
+            <li class="list-group-item"><strong>Details</strong> {{ samplingevent.details }}</li>
+        </ul>
+    </div>
+</div>
+
+<br>
+<hr>
+<h3 class="text-muted">List of samples</h3>
+<p><em>These are samples taken from a particular location on a particular day.</em></p>
+
+{% include "waterquality/partial/sample_list.html" %}
+</div>
+{% endblock content %}
