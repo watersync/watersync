@@ -69,6 +69,7 @@ class FieldworkForm(ModelForm):
 
     class Meta:
         model = Fieldwork
+        fields = "__all__"
 
 
 class LocationForm(ModelForm):
