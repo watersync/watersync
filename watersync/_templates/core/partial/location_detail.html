@@ -1,21 +1,22 @@
 <ul class="list-group list-group-flush">
     <li class="list-group-item"><strong>Type:</strong> {{ location.type }}</li>
-    <li class="list-group-item"><strong>Added by:</strong> {{ location.added_by }}</li>
     <li class="list-group-item"><strong>Created At:</strong> {{ location.created_at }}</li>
     <li class="list-group-item"><strong>Updated At:</strong> {{ location.updated_at }}</li>
     <li class="list-group-item"><strong>Altitude:</strong> {{ location.altitude }}</li>
-    <li class="list-group-item"><strong>Description:</strong> 
+    <li class="list-group-item"><strong>Added by:</strong> {{ location.latest_status }}</li>
+    <li class="list-group-item"><strong>Added by:</strong> {{ location.added_by }}</li>
+    <li class="list-group-item"><strong>Description:</strong>
         <div class="card-body">
             <p class="card-text">{{ location.description }}</p>
         </div>
     </li>
 </ul>
 <p>
-    <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#detail-panel" aria-expanded="false" aria-controls="collapseExample">
+    <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="collapse"
+        data-bs-target="#detail-panel" aria-expanded="false" aria-controls="collapseExample">
         Details
     </button>
 </p>
 <div class="collapse" id="detail-panel">
-    {% include "shared/detail_list.html" with object=location %}    
-  </div>
-        
+    {% include "shared/detail_list.html" with object=location %}
+</div>

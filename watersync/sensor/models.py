@@ -16,7 +16,7 @@ class Sensor(models.Model):
     """
 
     identifier = models.CharField(max_length=55, unique=True)
-    user = models.ManyToManyField(User, null=True, blank=True, related_name="sensors")
+    user = models.ManyToManyField(User, blank=True, related_name="sensors")
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
@@ -84,7 +84,7 @@ class Deployment(models.Model):
             self.save()
 
     @classmethod
-    def find_deployment(cls, station, sensor, timestamp=None):
+    def find_deployment(cls, location, sensor, timestamp=None):
         """
         Finds the deployment based on the station, sensor, and the time between
         deployed_at and decommissioned_at.
@@ -102,7 +102,7 @@ class Deployment(models.Model):
 
         try:
             deployment = cls.objects.get(
-                station=station,
+                location=location,
                 sensor=sensor,
                 deployed_at__lte=timestamp,
                 decommissioned_at__gte=timestamp if timestamp else None,

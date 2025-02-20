@@ -33,6 +33,11 @@
         "vscode": {
             "settings": {
                 "editor.formatOnSave": true,
+                // This below is a bugfix related to the new "native" Python locator issue in VSCode
+                // see https://stackoverflow.com/questions/78886125/vscode-python-extension-loading-forever-saying-reactivating-terminals
+                "python.locator": "js",
+                "files.eol": "\n",
+                "editor.rulers": [80],
                 "[python]": {
                     "analysis.autoImportCompletions": true,
                     "analysis.typeCheckingMode": "basic",
@@ -41,7 +46,7 @@
                     "languageServer": "Pylance",
                     "linting.enabled": true,
                     "linting.mypyEnabled": true,
-                    "linting.mypyPath": "/usr/local/bin/mypy",
+                    "linting.mypyPath": "/usr/local/bin/mypy"
                 }
             },
             // https://code.visualstudio.com/docs/remote/devcontainerjson-reference#_vs-code-specific-properties

@@ -26,6 +26,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{% url 'core:fieldworks' user.id project.pk  %}"
+                                class="custom-nav-link align-middle px-0">
+                                <i class="fa-solid fa-display p-2"></i> <span
+                                    class="ms-1 d-none d-sm-inline">Fieldwork</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{% url 'core:locations' user.id project.pk %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-location-dot p-2"></i> <span

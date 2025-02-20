@@ -1,10 +1,15 @@
 from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from watersync_auth.models import CustomUser
+from watersync.users.models import User
 
-from .models import Location, LocationStatus, Project
-from .serializers import LocationSerializer, ProjectSerializer, StatusSerializer
+from watersync.core.models import Location, LocationVisit, Project, Fieldwork
+from watersync.core.api.serializers import (
+    LocationSerializer,
+    ProjectSerializer,
+    VisitSerializer,
+    FieldworkSerializer,
+)
 
 
 class BaseListViewSet(viewsets.ModelViewSet):
@@ -17,9 +22,14 @@ class LocationViewSet(BaseListViewSet):
     serializer_class = LocationSerializer
 
 
-class StatusViewSet(BaseListViewSet):
-    queryset = LocationStatus.objects.all()
-    serializer_class = StatusSerializer
+class FieldworkViewSet(BaseListViewSet):
+    queryset = Fieldwork.objects.all()
+    serializer_class = FieldworkSerializer
+
+
+class VisitViewSet(BaseListViewSet):
+    queryset = LocationVisit.objects.all()
+    serializer_class = VisitSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -46,7 +56,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         users = []
         for email in user_emails:
-            user, created = CustomUser.objects.get_or_create(email=email)
+            user, created = User.objects.get_or_create(email=email)
             users.append(user)
 
         project_data = request.data

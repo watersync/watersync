@@ -9,7 +9,7 @@ from django.forms import (
     ModelMultipleChoiceField,
 )
 
-from watersync.core.models import Location, LocationStatus, Project
+from watersync.core.models import Location, LocationVisit, Project, Fieldwork
 from watersync.users.models import User
 
 
@@ -56,12 +56,19 @@ class ProjectForm(ModelForm):
         return instance
 
 
-class LocationStatusForm(ModelForm):
+class LocationVisitForm(ModelForm):
     title = "Add Location Status"
 
     class Meta:
-        model = LocationStatus
+        model = LocationVisit
         fields = ["status", "comment"]
+
+
+class FieldworkForm(ModelForm):
+    title = "Fieldwork"
+
+    class Meta:
+        model = Fieldwork
 
 
 class LocationForm(ModelForm):

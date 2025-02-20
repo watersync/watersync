@@ -7,11 +7,11 @@ from watersync.core.views.location import (
     location_list_view,
     location_update_view,
 )
-from watersync.core.views.locationstatus import (
-    location_status_create_view,
-    location_status_delete_view,
-    location_status_list_view,
-    location_status_update_view,
+from watersync.core.views.locationvisit import (
+    location_visit_create_view,
+    location_visit_delete_view,
+    location_visit_list_view,
+    location_visit_update_view,
 )
 from watersync.core.views.project import (
     project_create_view,
@@ -39,18 +39,18 @@ location_urlpatterns = [
     path("<int:location_pk>/delete/", location_delete_view, name="delete-location"),
 ]
 
-location_status_urlpatterns = [
-    path("", location_status_list_view, name="locationstatus"),
-    path("add/", location_status_create_view, name="add-locationstatus"),
+location_visit_urlpatterns = [
+    path("", location_visit_list_view, name="locationvisit"),
+    path("add/", location_visit_create_view, name="add-locationvisit"),
     path(
-        "<int:locationstatus_pk>/update/",
-        location_status_update_view,
-        name="update-locationstatus",
+        "<int:locationvisit_pk>/update/",
+        location_visit_update_view,
+        name="update-locationvisit",
     ),
     path(
         "<int:locationstatus_pk>/delete/",
-        location_status_delete_view,
-        name="delete-locationstatus",
+        location_visit_delete_view,
+        name="delete-locationvisit",
     ),
 ]
 
@@ -62,6 +62,6 @@ urlpatterns = [
     ),
     path(
         "projects/<int:project_pk>/locations/<int:location_pk>/statuses/",
-        include(location_status_urlpatterns),
+        include(location_visit_urlpatterns),
     ),
 ]

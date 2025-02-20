@@ -1,5 +1,5 @@
 <button type="button" class="btn btn-success mb-3"
-    hx-get="{% url 'core:add-locationstatus' user.id location.project.pk location.pk %}" hx-target="#dialog"
+    hx-get="{% url 'core:add-locationvisit' user.id location.project.pk location.pk %}" hx-target="#dialog"
     hx-trigger="click">
     Add status</button>
 
@@ -12,12 +12,12 @@
         <tr>
             <th scope="col">#</th>
             <th scope="col">created at</th>
-            <th scope="col">status</th>
+            <th scope="col">Visit</th>
             <th scope="col"></th>
         </tr>
     </thead>
-    <tbody id="locationstatus-table" hx-get="{% url 'core:locationstatus' user.id location.project.pk location.pk %}"
-        hx-trigger="revealed, configRequest from:body, locationStatusChanged from:body">
+    <tbody id="locationvisit-table" hx-get="{% url 'core:locationvisit' user.id location.project.pk location.pk %}"
+        hx-trigger="revealed, configRequest from:body, locationVisitChanged from:body">
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">
                 <div class="spinner-grow" role="status">
@@ -62,6 +62,6 @@
             csvContent += rowData.join(',') + "\n";
         });
 
-        downloadCSV('location_status.csv', csvContent);
+        downloadCSV('location_visits.csv', csvContent);
     });
 </script>

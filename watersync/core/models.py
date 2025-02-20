@@ -1,4 +1,5 @@
 from django.contrib.gis.db import models as geomodels
+from django_extensions.db.models import TimeStampedModel
 from django.db import models
 
 from watersync.core.managers import LocationManager
@@ -43,7 +44,7 @@ class Project(models.Model):
         return self.name
 
 
-class Location(models.Model):
+class Location(TimeStampedModel):
     """List of locations.
 
     Locations are attached to projects and each measurement or analysis
@@ -86,8 +87,6 @@ class Location(models.Model):
     type = models.CharField(choices=LOCATION_TYPES)
     description = models.TextField(blank=True, null=True)
     added_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
@@ -101,10 +100,10 @@ class Location(models.Model):
 
     @property
     def latest_status(self):
-        return self.statuses.latest("timestamp").status
+        return self.visits.latest("created").status
 
 
-class LocationStatus(models.Model):
+class LocationVisit(TimeStampedModel):
     """Status of the location at the given time.
 
     Attributes:
@@ -123,14 +122,44 @@ class LocationStatus(models.Model):
     ]
 
     location = models.ForeignKey(
-        Location, related_name="statuses", on_delete=models.CASCADE
+        Location, related_name="visits", on_delete=models.CASCADE
+    )
+    fieldwork = models.ForeignKey(
+        "Fieldwork", related_name="visits", on_delete=models.CASCADE
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name_plural = "Locations' statuses"
 
     def __str__(self) -> str:
-        return f"{self.location} - {self.timestamp:%Y-%m-%d} - {self.status}"
+        return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
+
+
+class Fieldwork(models.Model):
+    """Register fieldwork day done in a project.
+
+    This model aggregates data from a fieldwork event. During one fieldwork event,
+    user can take multiple measurements at different locations. The fieldwork is related to a
+    project and a user. Should also contain information on weather conditions and other
+    relevant information about what happened during the fieldwork.
+    """
+
+    project = models.ForeignKey(
+        Project, on_delete=models.PROTECT, related_name="fieldwork"
+    )
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="fieldwork")
+    date = models.DateField()
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    weather = models.JSONField(null=True, blank=True)
+    comment = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Fieldwork"
+
+    def __str__(self):
+        return f"{self.project} - {self.date}"

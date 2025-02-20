@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.forms import ModelForm
 from django.contrib.gis.geos import Point
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -15,7 +16,7 @@ from django.views.generic import (
 from watersync.core.forms import LocationForm
 from watersync.core.mixins import DeleteHTMX, HTMXFormMixin, RenderToResponseMixin
 from watersync.core.models import Location, Project
-from watersync.core.views.locationstatus import LocationStatusListView
+from watersync.core.views.locationvisit import LocationVisitListView
 from watersync.groundwater.views.groundwaterlevel import GWLListView
 from watersync.sensor.views import DeploymentListView
 from watersync.waterquality.views.samplingevent import SamplingEventListView
@@ -29,7 +30,7 @@ class LocationCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
     htmx_trigger_header = "locationChanged"
     htmx_render_template = "shared/simple_form.html"
 
-    def update_form_instance(self, form):
+    def update_form_instance(self, form: ModelForm):
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         lat = form.cleaned_data.get("latitude")
         lon = form.cleaned_data.get("longitude")
@@ -71,7 +72,7 @@ class LocationUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
     def get_object(self):
         return get_object_or_404(Location, pk=self.kwargs["location_pk"])
 
-    def update_form_instance(self, form):
+    def update_form_instance(self, form: ModelForm):
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         lat = form.cleaned_data.get("latitude")
         lon = form.cleaned_data.get("longitude")
@@ -126,7 +127,7 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
         location = self.get_object()
 
         views = {
-            "statuscount": LocationStatusListView,
+            "statuscount": LocationVisitListView,
             "gwlmeasurementcount": GWLListView,
             "deploymentcount": DeploymentListView,
             "samplingeventcount": SamplingEventListView,
