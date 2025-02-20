@@ -21,6 +21,14 @@ from watersync.core.views.project import (
     project_update_view,
 )
 
+from watersync.core.views.fieldwork import (
+    fieldwork_create_view,
+    fieldwork_delete_view,
+    fieldwork_detail_view,
+    fieldwork_list_view,
+    fieldwork_update_view,
+)
+
 app_name = "core"
 
 project_urlpatterns = [
