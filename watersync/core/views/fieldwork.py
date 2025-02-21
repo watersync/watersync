@@ -68,14 +68,13 @@ class FieldworkListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     htmx_template = "core/partial/locationvisit_table.html"
 
     def get_queryset(self):
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        return location.visits.order_by("-created")
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        return project.fieldworks.order_by("-created")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
 
         return context
 

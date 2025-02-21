@@ -1,5 +1,6 @@
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
+from dataclasses import dataclass
 
 
 def is_htmx_request(request):
@@ -16,6 +17,8 @@ class RenderToResponseMixin:
 
 
 class HTMXFormMixin:
+    """Mixin for handling HTMX forms."""
+
     htmx_trigger_header: str | None = None
     htmx_response_status: int | None = 204
     htmx_invalid_status: int | None = 400
@@ -64,3 +67,13 @@ class DeleteHTMX:
 
             return HttpResponse(status=204, headers=headers)
         return super().delete(request, *args, **kwargs)
+
+
+@dataclass
+class ListContext:
+    """Custom object helping to provide the right information in the context objects of ListViews."""
+
+    add_url: str
+    list_url: str
+    columns: list
+    action: str

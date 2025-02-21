@@ -13,111 +13,91 @@ and location. They can be listed added, deleted and updated under the project
 View for now.
 """
 
-from django.urls import path
+from django.urls import include, path
 
 from watersync.sensor.views import (
-    DeploymentCreateView,
-    DeploymentDecommissionView,
-    DeploymentDeleteView,
-    DeploymentDetailView,
-    DeploymentListView,
-    DeploymentUpdateView,
-    SensorCreateView,
-    SensorDeleteView,
-    SensorDetailView,
-    SensorListView,
-    SensorRecordCreateView,
-    SensorRecordDeleteView,
-    SensorRecordDownloadView,
-    SensorRecordListView,
-    SensorRecordUpdateView,
-    SensorUpdateView,
+    sensor_create_view,
+    sensor_delete_view,
+    sensor_update_view,
+    sensor_detail_view,
+    sensor_list_view,
+    deployment_create_view,
+    deployment_decommission_view,
+    deployment_delete_view,
+    deployment_detail_view,
+    deployment_list_view,
+    deployment_update_view,
+    sensorrecord_create_view,
+    sensorrecord_delete_view,
+    sensorrecord_update_view,
+    sensorrecord_download_view,
+    sensorrecord_list_view,
 )
 
 app_name = "sensor"
 
+sensor_urlpatterns = [
+    path("", sensor_list_view, name="sensors"),
+    path("add/", sensor_create_view, name="add-sensor"),
+    path("<int:sensor_pk>/", sensor_detail_view, name="detail-sensor"),
+    path("<int:sensor_pk>/update/", sensor_update_view, name="update-sensor"),
+    path("<int:sensor_pk>/delete/", sensor_delete_view, name="delete-sensor"),
+]
 
-urlpatterns = [
-    # Sensor list view with user_id
-    path("sensors/", SensorListView.as_view(), name="sensors"),
-    # Add a new sensor for a specific user
-    path("sensor/add/", SensorCreateView.as_view(), name="add-sensor"),
-    # Sensor detail view with user_id
-    path("sensor/<int:sensor_pk>/", SensorDetailView.as_view(), name="detail-sensor"),
-    # Update sensor with user_id
+deployment_urlpatterns = [
+    path("", deployment_list_view, name="deployments"),
+    path("add/", deployment_create_view, name="add-deployment"),
+    path("<int:deployment_pk>/", deployment_detail_view, name="detail-deployment"),
     path(
-        "sensor/<int:sensor_pk>/update/",
-        SensorUpdateView.as_view(),
-        name="update-sensor",
+        "<int:deployment_pk>/update/", deployment_update_view, name="update-deployment"
     ),
-    # Delete sensor with user_id
     path(
-        "sensor/<int:sensor_pk>/delete/",
-        SensorDeleteView.as_view(),
-        name="delete-sensor",
+        "<int:deployment_pk>/delete/", deployment_delete_view, name="delete-deployment"
     ),
-    # ============== Sensor deployments ====================
-    # Deplying the sensor to a location linked to a project
+    # Additional view to decommission the sensor from the deployment
     path(
-        "project/<int:project_pk>/deployment/add/",
-        DeploymentCreateView.as_view(),
-        name="add-deployment",
-    ),
-    # Decommissioning of the sensor (releasing it back to the pool)
-    path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/decommission/",
-        DeploymentDecommissionView.as_view(),
+        "<int:deployment_pk>/decommission/",
+        deployment_decommission_view,
         name="decommission-deployment",
     ),
-    # List all sensor deployments linked to a project.
+]
+
+sensorrecord_urlpatterns = [
+    path("", sensorrecord_list_view, name="sensorrecords"),
+    path("add/", sensorrecord_create_view, name="add-sensorrecord"),
+    # I am not sure the user should be able to update the sensor records. it's the whole
+    # point of automatically recorded data. Also the delete method should probably be a
+    # bulk delete method. Or maybe instead I should just let the user to delete the
+    # deployment and all the records will be deleted (CASCADE). Then the default would
+    # be to just reupload corrected data.
     path(
-        "project/<int:project_pk>/deployments",
-        DeploymentListView.as_view(),
-        name="deployments",
+        "<int:sensorrecords_pk>/update/",
+        sensorrecord_update_view,
+        name="update-sensorrecord",
     ),
-    # Deployment detail view
     path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/",
-        DeploymentDetailView.as_view(),
-        name="detail-deployment",
+        "<int:sensorrecords_pk>/delete/",
+        sensorrecord_delete_view,
+        name="delete-sensorrecord",
     ),
-    # Update deployment
     path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/update",
-        DeploymentUpdateView.as_view(),
-        name="update-deployment",
+        "<int:sensorrecords_pk>/download/",
+        sensorrecord_download_view,
+        name="download-sensorrecord",
     ),
-    # Delete deployment
+]
+
+
+urlpatterns = [
+    path("sensors/", include(sensor_urlpatterns)),
     path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/delete",
-        DeploymentDeleteView.as_view(),
-        name="delete-deployment",
+        "projects/<int:project_pk>/locations/<int:location_pk>/deployments/",
+        include(deployment_urlpatterns),
     ),
-    # ============== Sensor record ====================
-    # list records
+    # This one should probably be just a downloadable or viewable as a graph only.
+    # There is no sense in displaying the records as a list.
     path(
         "project/<int:project_pk>/deployment/<int:deployment_pk>/records/",
-        SensorRecordListView.as_view(),
-        name="records",
-    ),
-    path(
-        "project/<int:project_pk>/sensor/record/add/",
-        SensorRecordCreateView.as_view(),
-        name="add-record",
-    ),
-    path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/record/<int:pk>/update/",
-        SensorRecordUpdateView.as_view(),
-        name="update-record",
-    ),
-    path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/record/<int:pk>/delete/",
-        SensorRecordDeleteView.as_view(),
-        name="delete-record",
-    ),
-    path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/download-timeseries/",
-        SensorRecordDownloadView.as_view(),
-        name="download-timeseries",
+        include(sensorrecord_urlpatterns),
     ),
 ]

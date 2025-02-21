@@ -95,6 +95,7 @@ THIRD_PARTY_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "drf_spectacular",
+    "dynamic_breadcrumbs",
     # "leaflet",
 ]
 
@@ -208,6 +209,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "watersync.users.context_processors.allauth_settings",
+                "dynamic_breadcrumbs.context_processors.breadcrumbs",
             ],
         },
     },

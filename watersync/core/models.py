@@ -137,26 +137,24 @@ class LocationVisit(TimeStampedModel):
         return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
 
 
-class Fieldwork(models.Model):
+class Fieldwork(TimeStampedModel):
     """Register fieldwork day done in a project.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
     user can take multiple measurements at different locations. The fieldwork is related to a
-    project and a user. Should also contain information on weather conditions and other
+    project and users. Should also contain information on weather conditions and other
     relevant information about what happened during the fieldwork.
     """
 
     project = models.ForeignKey(
-        Project, on_delete=models.PROTECT, related_name="fieldwork"
+        Project, on_delete=models.PROTECT, related_name="fieldworks"
     )
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="fieldwork")
+    users = models.ManyToManyField(User, related_name="fieldworks")
     date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     weather = models.JSONField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Fieldwork"

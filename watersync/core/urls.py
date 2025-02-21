@@ -24,7 +24,6 @@ from watersync.core.views.project import (
 from watersync.core.views.fieldwork import (
     fieldwork_create_view,
     fieldwork_delete_view,
-    fieldwork_detail_view,
     fieldwork_list_view,
     fieldwork_update_view,
 )
@@ -37,6 +36,13 @@ project_urlpatterns = [
     path("<int:project_pk>/", project_detail_view, name="detail-project"),
     path("<int:project_pk>/update/", project_update_view, name="update-project"),
     path("<int:project_pk>/delete/", project_delete_view, name="delete-project"),
+]
+
+fieldwork_urlpatterns = [
+    path("", fieldwork_list_view, name="fieldworks"),
+    path("add/", fieldwork_create_view, name="add-fieldwork"),
+    path("<int:fieldwork_pk>/update/", fieldwork_update_view, name="update-fieldwork"),
+    path("<int:fieldwork_pk>/delete/", fieldwork_delete_view, name="delete-fieldwork"),
 ]
 
 location_urlpatterns = [
@@ -64,6 +70,10 @@ location_visit_urlpatterns = [
 
 urlpatterns = [
     path("projects/", include(project_urlpatterns)),
+    path(
+        "projects/<int:project_pk>/fieldworks/",
+        include(fieldwork_urlpatterns),
+    ),
     path(
         "projects/<int:project_pk>/locations/",
         include(location_urlpatterns),

@@ -17,8 +17,12 @@ from django.views.generic import (
     UpdateView,
     View,
 )
-
-from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.views.base import WatersyncListView
+from watersync.core.mixins import (
+    HTMXFormMixin,
+    RenderToResponseMixin,
+    ListContext,
+)
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
 
@@ -41,13 +45,31 @@ class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
         return response
 
 
-class SensorListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
+class SensorListView(WatersyncListView):
     model = Sensor
-    template_name = "sensor/partial/sensor_list.html"
+    template_name = "list.html"
     htmx_template = "sensor/partial/sensor_table.html"
 
     def get_queryset(self):
         return self.request.user.sensors.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        list_context = ListContext(
+            columns=["Identifier", "Available", "Action"],
+            add_url=reverse(
+                "sensor:add-sensor", kwargs={"user_id": self.request.user.id}
+            ),
+            list_url=reverse(
+                "sensor:sensors", kwargs={"user_id": self.request.user.id}
+            ),
+            action="sensorChanged",
+        )
+
+        context["list_context"] = list_context
+
+        return context
 
 
 class SensorDetailView(LoginRequiredMixin, RenderToResponseMixin, DetailView):
@@ -96,6 +118,12 @@ class SensorDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
             )
         return super().delete(request, *args, **kwargs)
 
+
+sensor_create_view = SensorCreateView.as_view()
+sensor_delete_view = SensorDeleteView.as_view()
+sensor_update_view = SensorUpdateView.as_view()
+sensor_detail_view = SensorDetailView.as_view()
+sensor_list_view = SensorListView.as_view()
 
 # ================ Sensor Records views ========================
 # Placing the sensor records above deployments because they will be reused there
@@ -282,6 +310,11 @@ class SensorRecordDownloadView(LoginRequiredMixin, View):
         return context
 
 
+sensorrecord_create_view = SensorRecordCreateView.as_view()
+sensorrecord_delete_view = SensorRecordDeleteView.as_view()
+sensorrecord_update_view = SensorRecordUpdateView.as_view()
+sensorrecord_download_view = SensorRecordDownloadView.as_view()
+sensorrecord_list_view = SensorRecordListView.as_view()
 # ================ Deployment views ========================
 
 
@@ -315,9 +348,10 @@ class DeploymentCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class DeploymentListView(LoginRequiredMixin, ListView):
+class DeploymentListView(WatersyncListView):
     model = Deployment
-    template_name = "sensor/deployment_list.html"
+    template_name = "list.html"
+    htmx_template = "sensor/partial/deployment_table.html"
 
     def get_queryset(self):
         project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
@@ -325,6 +359,7 @@ class DeploymentListView(LoginRequiredMixin, ListView):
 
         # if location_pk is present it means the request is made from the
         # location view and I want to get deployments from only one station
+        # otherwise get all deployments from the project
         if not location_url:
             locations = get_list_or_404(Location, project=project)
             deployments = Deployment.objects.filter(location__in=locations)
@@ -340,6 +375,17 @@ class DeploymentListView(LoginRequiredMixin, ListView):
 
         project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
         context["project"] = project
+
+        list_context = ListContext(
+            add_url=reverse(
+                "sensor:add-deployment",
+                kwargs={
+                    "user_id": self.request.user.id,
+                    "project_pk": project.pk,
+                    "location_pk": self.kwargs.get("location_pk"),
+                },
+            ),
+        )
 
         return context
 
@@ -411,6 +457,12 @@ class DeploymentDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
 
+deployment_create_view = DeploymentCreateView.as_view()
+deployment_delete_view = DeploymentDeleteView.as_view()
+deployment_detail_view = DeploymentDetailView.as_view()
+deployment_list_view = DeploymentListView.as_view()
+deployment_update_view = DeploymentUpdateView.as_view()
+
 # ================ Additionaly functional views ========================
 
 
@@ -419,3 +471,6 @@ class DeploymentDecommissionView(LoginRequiredMixin, View):
         deployment = get_object_or_404(Deployment, pk=kwargs["deployment_pk"])
         deployment.decommission()
         return redirect(request.META.get("HTTP_REFERER", "sensor:deployments"))
+
+
+deployment_decommission_view = DeploymentDecommissionView.as_view()
