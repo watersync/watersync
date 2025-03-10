@@ -20,11 +20,20 @@ class Sensor(models.Model):
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
-    class Meta:
-        verbose_name_plural = "Sensors"
-
     def __str__(self):
         return self.identifier
+
+    @classmethod
+    def table_view_fields(cls):
+        return {
+            "Identifier": "identifier",
+            "Available": "available",
+        }
+
+    def table_view(self):
+        return [
+            (field, getattr(self, field)) for field in self.table_view_fields().values()
+        ]
 
 
 class Deployment(models.Model):
@@ -56,11 +65,22 @@ class Deployment(models.Model):
     detail = models.JSONField(null=True, blank=True)
 
     class Meta:
-        verbose_name_plural = "Sensor deployments"
+        """Extra attribute in the Meta is the table_view_fields. It's used in the view to
+        automate the creation of tables and lists."""
+
         unique_together = ("sensor", "location", "variable", "unit", "deployed_at")
 
     def __str__(self) -> str:
         return f"{self.sensor.identifier} at {self.location.name}"
+
+    @classmethod
+    def table_view_fields(cls):
+        return {
+            "Location": "location",
+            "Sensor": "sensor",
+            "Start": "deployed_at",
+            "End": "decommissioned_at",
+        }
 
     def deploy(self):
         """
@@ -111,6 +131,11 @@ class Deployment(models.Model):
 
         except cls.DoesNotExist:
             return None
+
+    def table_view(self):
+        return [
+            (field, getattr(self, field)) for field in self.table_view_fields().values()
+        ]
 
 
 class SensorRecord(models.Model):

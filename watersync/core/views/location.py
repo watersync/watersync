@@ -143,6 +143,17 @@ class LocationDetailView(LoginRequiredMixin, DetailView):
         context.update(counts)
         context["project"] = location.project
 
+        # Update for DeploymentListView
+        deployments_view = DeploymentListView(
+            request=self.request,
+            kwargs=self.kwargs
+            )
+
+
+        context["deployments"] = deployments_view.get_context_data(
+            object_list=0
+        )
+
         return context
 
 

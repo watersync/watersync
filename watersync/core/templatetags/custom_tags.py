@@ -39,3 +39,9 @@ def get_coordinates(obj):
     else:
         coordinates = [{"name": obj.name, "lat": obj.geom.y, "lng": obj.geom.x}]
     return json.dumps(coordinates)
+
+
+@register.filter
+def replace_placeholder(url, pk):
+    """Replaces a placeholder in the URL with the actual primary key."""
+    return url.replace("__placeholder__", str(pk))

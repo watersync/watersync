@@ -37,9 +37,6 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
 
-    class Meta:
-        verbose_name_plural = "Projects"
-
     def __str__(self):
         return self.name
 
@@ -93,7 +90,6 @@ class Location(TimeStampedModel):
 
     class Meta:
         unique_together = ("project", "name")
-        verbose_name_plural = "Locations"
 
     def __str__(self):
         return f"{self.name}"
@@ -130,9 +126,6 @@ class LocationVisit(TimeStampedModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
 
-    class Meta:
-        verbose_name_plural = "Locations' statuses"
-
     def __str__(self) -> str:
         return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
 
@@ -156,8 +149,16 @@ class Fieldwork(TimeStampedModel):
     weather = models.JSONField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
 
-    class Meta:
-        verbose_name_plural = "Fieldwork"
-
     def __str__(self):
         return f"{self.project} - {self.date}"
+
+    @classmethod
+    def table_view_fields(cls):
+        return {
+            "Date": "date",
+        }
+
+    def table_view(self):
+        return [
+            (field, getattr(self, field)) for field in self.table_view_fields().values()
+        ]

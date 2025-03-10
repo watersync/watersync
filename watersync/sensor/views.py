@@ -21,7 +21,6 @@ from watersync.core.views.base import WatersyncListView
 from watersync.core.mixins import (
     HTMXFormMixin,
     RenderToResponseMixin,
-    ListContext,
 )
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
@@ -45,49 +44,30 @@ class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
         return response
 
 
+class SensorUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
+    model = Sensor
+    form_class = SensorForm
+    template_name = "shared/simple_form.html"
+
+    htmx_trigger_header = "sensorChanged"
+    htmx_render_template = "shared/simple_form.html"
+
+    def get_object(self):
+        return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
+
+
 class SensorListView(WatersyncListView):
     model = Sensor
-    template_name = "list.html"
-    htmx_template = "sensor/partial/sensor_table.html"
+    detail_type = "offcanvas"
 
     def get_queryset(self):
         return self.request.user.sensors.all()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        list_context = ListContext(
-            columns=["Identifier", "Available", "Action"],
-            add_url=reverse(
-                "sensor:add-sensor", kwargs={"user_id": self.request.user.id}
-            ),
-            list_url=reverse(
-                "sensor:sensors", kwargs={"user_id": self.request.user.id}
-            ),
-            action="sensorChanged",
-        )
-
-        context["list_context"] = list_context
-
-        return context
 
 
 class SensorDetailView(LoginRequiredMixin, RenderToResponseMixin, DetailView):
     model = Sensor
     template_name = "sensor/sensor_detail.html"
     htmx_template = "sensor/sensor_detail.html"
-
-    def get_object(self):
-        return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
-
-
-class SensorUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
-    model = Sensor
-    form_class = SensorForm
-    template_name = "sensor/sensor_form.html"
-
-    htmx_trigger_header = "sensorChanged"
-    htmx_render_template = "sensor/sensor_form.html"
 
     def get_object(self):
         return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
@@ -170,7 +150,7 @@ class SensorRecordListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         deployment = get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
         records = self.get_queryset()
-        sensor_types = deployment.records.all().order_by("type").distinct("type")
+        sensor_types = deployment.records.all()
         data = [
             {
                 "timestamp": record.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
@@ -187,7 +167,7 @@ class SensorRecordListView(LoginRequiredMixin, ListView):
         graph_json = create_sensor_graph(data, deployment)
 
         # Add data to context
-        context["sensor_types"] = sensor_types.values_list("type", flat=True)
+        # context["sensor_types"] = sensor_types.values_list("type", flat=True)
         context["graph_json"] = graph_json
         context["sensor_record_list"] = json.dumps(data)  # JSON format for JavaScript
         context["deployment"] = deployment
@@ -321,7 +301,7 @@ sensorrecord_list_view = SensorRecordListView.as_view()
 class DeploymentCreateView(LoginRequiredMixin, CreateView):
     model = Deployment
     form_class = DeploymentForm
-    template_name = "sensor/deployment_form.html"
+    template_name = "shared/simple_form.html"
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -350,44 +330,15 @@ class DeploymentCreateView(LoginRequiredMixin, CreateView):
 
 class DeploymentListView(WatersyncListView):
     model = Deployment
-    template_name = "list.html"
-    htmx_template = "sensor/partial/deployment_table.html"
+    detail_type = "page"
 
-    def get_queryset(self):
+    def get_queryset(self, **kwargs):
         project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
-        location_url = self.kwargs.get("location_pk", None)
 
-        # if location_pk is present it means the request is made from the
-        # location view and I want to get deployments from only one station
-        # otherwise get all deployments from the project
-        if not location_url:
-            locations = get_list_or_404(Location, project=project)
-            deployments = Deployment.objects.filter(location__in=locations)
-
-        else:
-            location = get_object_or_404(Location, pk=location_url)
-            deployments = Deployment.objects.filter(location=location)
+        locations = get_list_or_404(Location, project=project)
+        deployments = Deployment.objects.filter(location__in=locations)
 
         return deployments
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
-        context["project"] = project
-
-        list_context = ListContext(
-            add_url=reverse(
-                "sensor:add-deployment",
-                kwargs={
-                    "user_id": self.request.user.id,
-                    "project_pk": project.pk,
-                    "location_pk": self.kwargs.get("location_pk"),
-                },
-            ),
-        )
-
-        return context
 
 
 class DeploymentDetailView(LoginRequiredMixin, DetailView):
@@ -417,7 +368,7 @@ class DeploymentDetailView(LoginRequiredMixin, DetailView):
 class DeploymentUpdateView(LoginRequiredMixin, UpdateView):
     model = Deployment
     form_class = DeploymentForm
-    template_name = "sensor/deployment_form.html"
+    template_name = "shared/simple_form.html"
 
     def get_object(self):
         return get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
@@ -433,8 +384,10 @@ class DeploymentUpdateView(LoginRequiredMixin, UpdateView):
         )
 
 
-class DeploymentDeleteView(LoginRequiredMixin, DeleteView):
+class DeploymentDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
     model = Deployment
+    template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
@@ -447,6 +400,27 @@ class DeploymentDeleteView(LoginRequiredMixin, DeleteView):
                 "project_pk": self.kwargs["project_pk"],
             },
         )
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("HX-Request"):
+            deployments_url = reverse(
+                "sensor:deployments",
+                kwargs={
+                    "user_id": self.kwargs["user_id"],
+                    "project_pk": self.kwargs["project_pk"],
+                },
+            )
+            return HttpResponse(
+                status=204,
+                headers={
+                    "HX-Trigger": "configRequest",
+                    "HX-Redirect": deployments_url,
+                },
+            )
+        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

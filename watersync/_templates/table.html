@@ -1,0 +1,35 @@
+{% load custom_tags %}
+{% for obj in object_list %}
+<tr>
+    <th scope="row">{{ forloop.counter }}</th>
+    {% for fld, val in obj.table_view %}
+    <td>{{ val }}</td>
+    {% endfor %}
+    <td>
+        {% if list_context.detail_url %}
+        <button type="button" class="btn btn-sm btn-info m-1"
+            hx-get="{{ list_context.detail_url|replace_placeholder:obj.pk }}" hx-target="#ofc-dialog"
+            hx-trigger="click">
+            <i class="fa-solid fa-circle-info"></i>
+        </button>
+        {% endif %}
+        {% if list_context.detail_page_url %}
+        <a class="btn btn-sm btn-info m-1" href="{{ list_context.detail_page_url|replace_placeholder:obj.pk }}">
+            <i class="fa-solid fa-circle-info"></i>
+        </a>
+        {% endif %}
+        {% if list_context.update_url %}
+        <button type="button" class="btn btn-sm btn-warning m-1"
+            hx-get="{{ list_context.update_url|replace_placeholder:obj.pk }}" hx-target="#dialog" title="Edit">
+            <i class="fas fa-edit"></i>
+        </button>
+        {% endif %}
+        {% if list_context.delete_url %}
+        <button type="button" class="btn btn-sm btn-danger m-1"
+            hx-get="{{ list_context.delete_url|replace_placeholder:obj.pk }}" hx-target="#dialog" title="Delete">
+            <i class="fas fa-trash"></i>
+        </button>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}

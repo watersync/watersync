@@ -10,12 +10,14 @@
                 "type": "string",
                 "title": "Key",
                 "enum": [
-                    "filter-bottom",
-                    "filter-top",
-                    "total-length",
+                    "altitude",
+                    "toc_height",
+                    "filter_bottom",
+                    "filter_top",
+                    "total_length",
                     "diameter",
                     "material",
-                    "placement-technique"
+                    "placement_technique"
                 ]
             },
             "value": {

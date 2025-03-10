@@ -32,7 +32,7 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "editor.formatOnSave": true,
+                "editor.formatOnSave": false,
                 // This below is a bugfix related to the new "native" Python locator issue in VSCode
                 // see https://stackoverflow.com/questions/78886125/vscode-python-extension-loading-forever-saying-reactivating-terminals
                 "python.locator": "js",

@@ -39,24 +39,24 @@ app_name = "sensor"
 sensor_urlpatterns = [
     path("", sensor_list_view, name="sensors"),
     path("add/", sensor_create_view, name="add-sensor"),
-    path("<int:sensor_pk>/", sensor_detail_view, name="detail-sensor"),
-    path("<int:sensor_pk>/update/", sensor_update_view, name="update-sensor"),
-    path("<int:sensor_pk>/delete/", sensor_delete_view, name="delete-sensor"),
+    path("<str:sensor_pk>/", sensor_detail_view, name="detail-sensor"),
+    path("<str:sensor_pk>/update/", sensor_update_view, name="update-sensor"),
+    path("<str:sensor_pk>/delete/", sensor_delete_view, name="delete-sensor"),
 ]
 
 deployment_urlpatterns = [
     path("", deployment_list_view, name="deployments"),
     path("add/", deployment_create_view, name="add-deployment"),
-    path("<int:deployment_pk>/", deployment_detail_view, name="detail-deployment"),
+    path("<str:deployment_pk>/", deployment_detail_view, name="detail-deployment"),
     path(
-        "<int:deployment_pk>/update/", deployment_update_view, name="update-deployment"
+        "<str:deployment_pk>/update/", deployment_update_view, name="update-deployment"
     ),
     path(
-        "<int:deployment_pk>/delete/", deployment_delete_view, name="delete-deployment"
+        "<str:deployment_pk>/delete/", deployment_delete_view, name="delete-deployment"
     ),
     # Additional view to decommission the sensor from the deployment
     path(
-        "<int:deployment_pk>/decommission/",
+        "<str:deployment_pk>/decommission/",
         deployment_decommission_view,
         name="decommission-deployment",
     ),
@@ -91,13 +91,13 @@ sensorrecord_urlpatterns = [
 urlpatterns = [
     path("sensors/", include(sensor_urlpatterns)),
     path(
-        "projects/<int:project_pk>/locations/<int:location_pk>/deployments/",
+        "projects/<int:project_pk>/deployments/",
         include(deployment_urlpatterns),
     ),
     # This one should probably be just a downloadable or viewable as a graph only.
     # There is no sense in displaying the records as a list.
     path(
-        "project/<int:project_pk>/deployment/<int:deployment_pk>/records/",
+        "project/<int:project_pk>/deployments/<int:deployment_pk>/records/",
         include(sensorrecord_urlpatterns),
     ),
 ]

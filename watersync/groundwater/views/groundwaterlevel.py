@@ -62,7 +62,7 @@ class GWLListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
 
     def get_queryset(self):
         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        return location.gwlmeasurements.order_by("-timestamp")
+        return location.gwlmeasurements.order_by("-measured_at")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -8,8 +8,8 @@ class GWLForm(ModelForm):
 
     class Meta:
         model = GWLManualMeasurement
-        fields = ("depth", "timestamp", "comment")
+        fields = ("depth", "measured_at", "comment")
 
         widgets = {
-            "timestamp": DateTimeInput(attrs={"type": "datetime-local"}),
+            "measured_at": DateTimeInput(attrs={"type": "datetime-local"}),
         }

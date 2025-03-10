@@ -1,9 +1,10 @@
 from django.db import models
+from django_extensions.db.models import TimeStampedModel
 
 from watersync.core.models import Location
 
 
-class GWLManualMeasurement(models.Model):
+class GWLManualMeasurement(TimeStampedModel):
     """Manual measurements of groundwater levels.
 
     The depth is measured from the top of the casing to the water level.
@@ -13,9 +14,6 @@ class GWLManualMeasurement(models.Model):
         Location, on_delete=models.PROTECT, related_name="gwlmeasurements"
     )
     depth = models.DecimalField(max_digits=5, decimal_places=2)
-    comment = models.CharField(max_length=255, null=True, blank=True)
-    timestamp = models.DateTimeField()
-
-    class Meta:
-        verbose_name_plural = "Groundwater level - manual measurements"
-        unique_together = ("location", "timestamp")
+    comment = models.TextField(null=True, blank=True)
+    measured_at = models.DateTimeField(null=True, blank=True)
+    
