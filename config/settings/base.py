@@ -96,6 +96,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "drf_spectacular",
     "dynamic_breadcrumbs",
+    "simple_history",
     # "leaflet",
 ]
 
@@ -163,6 +164,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 # STATIC

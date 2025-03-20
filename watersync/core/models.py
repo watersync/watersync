@@ -1,6 +1,8 @@
 from django.contrib.gis.db import models as geomodels
 from django_extensions.db.models import TimeStampedModel
 from django.db import models
+from simple_history.models import HistoricalRecords
+
 
 from watersync.core.managers import LocationManager
 from watersync.users.models import User
@@ -86,6 +88,8 @@ class Location(TimeStampedModel):
     added_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     detail = models.JSONField(null=True, blank=True)
 
+    history = HistoricalRecords()
+    __history_date = None
     objects = LocationManager()
 
     class Meta:
@@ -93,6 +97,14 @@ class Location(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name}"
+
+    @property
+    def _history_date(self):
+        return self.__history_date
+
+    @_history_date.setter
+    def _history_date(self, value):
+        self.__history_date = value
 
     @property
     def latest_status(self):
