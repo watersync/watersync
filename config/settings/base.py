@@ -97,7 +97,7 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "dynamic_breadcrumbs",
     "simple_history",
-    # "leaflet",
+    "leaflet",
 ]
 
 LOCAL_APPS = [

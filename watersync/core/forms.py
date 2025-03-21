@@ -12,11 +12,9 @@ from django.forms import (
 from watersync.core.models import Location, LocationVisit, Project, Fieldwork
 from watersync.users.models import User
 
-
 class ProjectForm(ModelForm):
+    """Temporarily there will be no geometry field in the form."""
     title = "Add Project"
-    latitude = FloatField(required=False, label="Latitude")
-    longitude = FloatField(required=False, label="Longitude")
     user = ModelMultipleChoiceField(
         queryset=User.objects.all(),
         widget=CheckboxSelectMultiple,
@@ -32,23 +30,13 @@ class ProjectForm(ModelForm):
             "start_date",
             "end_date",
             "user",
-            "latitude",
-            "longitude",
-            "geom",
         ]
-        widgets = {
-            "start_date": DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
-            "end_date": DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
-            "geom": HiddenInput(),
-        }
+
 
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        latitude = self.cleaned_data.get("latitude")
-        longitude = self.cleaned_data.get("longitude")
-        if latitude is not None and longitude is not None:
-            instance.geom = Point(longitude, latitude, srid=4326)
+        # Here comes the logic to create geometry in non-standard way
 
         if commit:
             instance.save()

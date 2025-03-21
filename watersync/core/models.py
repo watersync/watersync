@@ -2,7 +2,7 @@ from django.contrib.gis.db import models as geomodels
 from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
-
+from django.utils.timezone import now
 
 from watersync.core.managers import LocationManager
 from watersync.users.models import User
@@ -32,7 +32,7 @@ class Project(models.Model):
     user = models.ManyToManyField(User, related_name="projects")
     name = models.CharField(unique=True, max_length=50)
     description = models.TextField(null=True, blank=True)
-    geom = geomodels.PointField(srid=4326, null=True, blank=True)
+    geom = geomodels.PolygonField(srid=4326, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -100,7 +100,7 @@ class Location(TimeStampedModel):
 
     @property
     def _history_date(self):
-        return self.__history_date
+        return self.__history_date or now()
 
     @_history_date.setter
     def _history_date(self, value):
