@@ -13,67 +13,32 @@ from django.views.generic import (
 )
 
 from watersync.core.forms import FieldworkForm
-from watersync.core.views.base import WatersyncListView
+from watersync.core.views.base import WatersyncListView, WatersyncCreateView, WatersyncDeleteView, WatersyncUpdateView
 from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin
 from watersync.core.models import Location, Fieldwork, Project
 
 
-class FieldworkCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
+class FieldworkCreateView(WatersyncCreateView):
     model = Fieldwork
     form_class = FieldworkForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "fieldworkChanged"
-    htmx_render_template = "shared/simple_form.html"
 
     def update_form_instance(self, form):
         form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
 
-class FieldworkUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
+class FieldworkUpdateView(WatersyncUpdateView):
     model = Fieldwork
     form_class = FieldworkForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "FieldworkChanged"
-    htmx_render_template = "shared/simple_form.html"
-
-    def update_form_instance(self, form: ModelForm):
-        form.instance.location = get_object_or_404(
-            Location, pk=self.kwargs["location_pk"]
-        )
-
-    def get_object(self):
-        return get_object_or_404(Fieldwork, pk=self.kwargs["fieldwork_pk"])
+    
+    def update_form_instance(self, form):
+        form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
 
-class FieldworkDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
+class FieldworkDeleteView(WatersyncDeleteView):
     model = Fieldwork
-    template_name = "confirm_delete.html"
-    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(Fieldwork, pk=self.kwargs["fieldwork_pk"])
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-
-        if request.headers.get("HX-Request"):
-            sensors_url = reverse(
-                "core:fieldworks",
-                kwargs={"user_id": self.kwargs["user_id"], "project_pk": project.pk},
-            )
-            return HttpResponse(
-                status=204,
-                headers={
-                    "HX-Trigger": "configRequest",
-                    "HX-Redirect": sensors_url,
-                },
-            )
-        return super().delete(request, *args, **kwargs)
 
 
 class FieldworkListView(WatersyncListView):

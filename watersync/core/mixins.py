@@ -19,7 +19,7 @@ class RenderToResponseMixin:
 class HTMXFormMixin:
     """Mixin for handling HTMX forms."""
 
-    htmx_trigger_header: str | None = None
+    htmx_trigger: str | None = None
     htmx_response_status: int | None = 204
     htmx_invalid_status: int | None = 400
     htmx_render_template: str | None = None
@@ -34,8 +34,8 @@ class HTMXFormMixin:
 
         if is_htmx_request(self.request):
             headers = (
-                {"HX-Trigger": self.htmx_trigger_header}
-                if self.htmx_trigger_header
+                {"HX-Trigger": self.htmx_trigger}
+                if self.htmx_trigger
                 else {}
             )
             return HttpResponse(status=self.htmx_response_status, headers=headers)

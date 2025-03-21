@@ -2,7 +2,10 @@ from django.contrib.gis.geos import Point
 from django.forms import (
     CharField,
     CheckboxSelectMultiple,
+    TimeInput,
+    TimeField,
     DateInput,
+    DateField,
     FloatField,
     HiddenInput,
     ModelForm,
@@ -54,6 +57,23 @@ class LocationVisitForm(ModelForm):
 
 class FieldworkForm(ModelForm):
     title = "Fieldwork"
+    user = ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        widget=CheckboxSelectMultiple,
+        required=True,
+    )
+    date = DateField(
+        widget=DateInput(attrs={"type": "date"}),
+        required=True,
+    )
+    start_time = TimeField(
+        widget=TimeInput(attrs={"type": "time"}),
+        required=False,
+    )
+    end_time = TimeField(
+        widget=TimeInput(attrs={"type": "time"}),
+        required=False,
+    )
 
     class Meta:
         model = Fieldwork

@@ -1,7 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect
+from django.http import HttpResponse
 
 from django.views.generic import (
+    View,
     CreateView,
     DeleteView,
     DetailView,
@@ -14,29 +16,7 @@ from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListCont
 from functools import partial
 from django.urls import reverse
 
-
-class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
-    """Base view for listing objects.
-
-    It contains the basic setup that is shared between all list views. The individual list view can override default
-    settings by setting the class attributes.
-
-    This view relies on use of generic names for items in the apps.
-
-    For now, it all works on the premise that all the views are under the project view.
-
-    I am not sure how to inject an additional url param to the reverse function kwargs. Now it automatically adds the
-    user_id, project and item_pk to the kwargs. The item pk is normally called by the model name + _pk. Here it's computed
-    from the generic model name. Then, a placeholder is added to the kwargs instead of the actual item pk. This is
-    replaced in the template by the actual item pk from objects.
-
-    action: The HTMX action name that is triggered when the list is updated. Computed from the model name.
-    urls: partial functions to generate the URLs for the views. Also rely on the generic names.
-    """
-
-    detail_type: str
-    template_name = "list.html"
-    htmx_template = "table.html"
+class WatersyncGenericViewProperties(View):
 
     class Meta:
         abstract = True
@@ -57,7 +37,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
         return self.model._meta.app_label
 
     @property
-    def action(self):
+    def htmx_trigger(self):
         """Get the HTMX action name of the view."""
         return f"{self.model_name}Changed"
 
@@ -100,7 +80,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     def item(self):
         """Get the item object from the URL."""
         return {f"{self.item_pk_name}": "__placeholder__"}
-
+    
     def get_list_url(self):
         return partial(reverse, self.list_url)
 
@@ -119,6 +99,45 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     def get_project(self):
         """Get the project object from the URL."""
         return get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
+
+class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ListView):
+    """Base view for listing objects.
+
+    It contains the basic setup that is shared between all list views. The individual list view can override default
+    settings by setting the class attributes.
+
+    This view relies on use of generic names for items in the apps.
+
+    For now, it all works on the premise that all the views are under the project view.
+
+    I am not sure how to inject an additional url param to the reverse function kwargs. Now it automatically adds the
+    user_id, project and item_pk to the kwargs. The item pk is normally called by the model name + _pk. Here it's computed
+    from the generic model name. Then, a placeholder is added to the kwargs instead of the actual item pk. This is
+    replaced in the template by the actual item pk from objects.
+
+    Attributes:
+        detail_type: The type of the detail view. It can be either "page" or "modal".
+        template_name: The name of the template used for the list view.
+        htmx_template: The name of the template used for the HTMX response. (it's normally the same as the template_name)
+
+    Properties:
+        model_name: The model name of the object.
+        model_name_plural: The plural model name of the object.
+        app_label: The app label of the object.
+        action: The HTMX action name of the view.
+        list_url: The URL name for the list view.
+        add_url: The URL name for the add view.
+        update_url: The URL name for the update view.
+        delete_url: The URL name for the delete view.
+        detail_url: The URL name for the detail view.
+        item_pk_name: The primary key of the item.
+        item_pk: The primary key of the item.
+        item: The item object from the URL.
+    """
+
+    detail_type: str
+    template_name = "list.html"
+    htmx_template = "table.html"
 
     def get_context_data(self, **kwargs):
         """Add common context data to the template.
@@ -144,7 +163,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
             list_url=self.get_list_url()(kwargs=base_url_kwargs),
             update_url=self.get_update_url()(kwargs={**base_url_kwargs, **self.item}),
             delete_url=self.get_delete_url()(kwargs={**base_url_kwargs, **self.item}),
-            action=self.action,
+            action=self.htmx_trigger,
             columns=self.model.table_view_fields().keys(),
         )
 
@@ -163,6 +182,38 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
         return context
 
 
-class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
-    class Meta:
-        abstract = True
+class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateView):
+
+    template_name = "shared/simple_form.html"
+    htmx_render_template = "shared/simple_form.html"
+
+
+class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
+
+    template_name = "confirm_delete.html"
+    htmx_template = "confirm_delete.html"
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+
+        if request.headers.get("HX-Request"):
+            return HttpResponse(
+                status=204,
+                headers={
+                    "HX-Trigger": "configRequest",
+                    "HX-Redirect": self.get_list_url()(kwargs={"user_id": self.request.user.id, "project_pk": project.pk}),
+                },
+            )
+        return super().delete(request, *args, **kwargs)
+    
+
+class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, UpdateView):
+    
+    template_name = "shared/simple_form.html"
+    htmx_render_template = "shared/simple_form.html"
+
+    def get_object(self):
+        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])

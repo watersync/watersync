@@ -154,7 +154,7 @@ class Fieldwork(TimeStampedModel):
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="fieldworks"
     )
-    users = models.ManyToManyField(User, related_name="fieldworks")
+    user = models.ManyToManyField(User, related_name="fieldworks")
     date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
