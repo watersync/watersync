@@ -1,12 +1,17 @@
+"""Module for the base views of the application.
+
+The idea is to abstract as much as possible the common logic between the views for the different models.
+
+    Notes:
+        - Consider implementing 
+"""
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_list_or_404, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 
 from django.views.generic import (
-    View,
     CreateView,
     DeleteView,
-    DetailView,
     ListView,
     UpdateView,
 )
@@ -16,7 +21,9 @@ from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListCont
 from functools import partial
 from django.urls import reverse
 
-class WatersyncGenericViewProperties(View):
+
+class WatersyncGenericViewProperties:
+    """Mixin to add shortcuts to the views."""
 
     class Meta:
         abstract = True
@@ -99,6 +106,7 @@ class WatersyncGenericViewProperties(View):
     def get_project(self):
         """Get the project object from the URL."""
         return get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
+
 
 class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ListView):
     """Base view for listing objects.
@@ -189,22 +197,30 @@ class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
 
 
 class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
-
+    """
+    """
     template_name = "confirm_delete.html"
     htmx_template = "confirm_delete.html"
+
+    def get_object(self):
+        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.object.delete()
 
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        list_kwargs = {"user_id": self.request.user.id}
+
+        if self.model_name != "project":
+            project = self.get_project()
+            list_kwargs["project_pk"] = project.pk
 
         if request.headers.get("HX-Request"):
             return HttpResponse(
                 status=204,
                 headers={
                     "HX-Trigger": "configRequest",
-                    "HX-Redirect": self.get_list_url()(kwargs={"user_id": self.request.user.id, "project_pk": project.pk}),
+                    "HX-Redirect": self.get_list_url()(kwargs=list_kwargs),
                 },
             )
         return super().delete(request, *args, **kwargs)

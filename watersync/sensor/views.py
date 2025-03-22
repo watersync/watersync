@@ -17,7 +17,7 @@ from django.views.generic import (
     UpdateView,
     View,
 )
-from watersync.core.views.base import WatersyncListView
+from watersync.core.generics.base import WatersyncListView
 from watersync.core.mixins import (
     HTMXFormMixin,
     RenderToResponseMixin,
