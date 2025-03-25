@@ -13,7 +13,7 @@ class SensorForm(forms.ModelForm):
 
     class Meta:
         model = Sensor
-        fields = ("identifier", "user", "detail")
+        fields = ("identifier", "user", "detail", "available")
         widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
 
 
@@ -32,7 +32,7 @@ class DeploymentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if project_pk:
             self.fields["location"].queryset = Location.objects.filter(
-                project__pk=project_pk
+                project__pk=int(project_pk)
             )
 
         self.fields["sensor"].queryset = Sensor.objects.filter(available=True)

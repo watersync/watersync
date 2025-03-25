@@ -16,7 +16,8 @@
         </tr>
     </thead>
     <tbody hx-get="{{ list_context.list_url }}"
-        hx-trigger="revealed, configRequest from:body, {{ list_context.action }} from:body">
+        hx-trigger="revealed, configRequest from:body, {{ list_context.action }} from:body"
+        hx-vals='{{ hx_vals }}'>
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">
                 <div class="spinner-grow" role="status">

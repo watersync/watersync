@@ -1,73 +1,24 @@
 {% extends 'project_dashboard.html' %}
-{% load custom_tags %}
+
 {% load static %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
-<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
-<li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
-{% endblock breadcrumb %}
+<div class="col-md-6">
 
-{% block content %}
-<div class="d-flex justify-content-between align-items-center">
-    <h3 class="text-muted mb-0">{{ location.name }}</h3>
-    <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
-            data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-cog"></i>
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-            <li>
-                <a class="dropdown-item" style="cursor: pointer;"
-                    hx-get="{% url 'core:delete-location' user.id project.pk location.pk %}" hx-target="#dialog"
-                    title="Delete">
-                    Delete location
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item" style="cursor: pointer;"
-                    hx-get="{% url 'core:update-location' user.id project.pk location.pk %}" hx-target="#dialog"
-                    title="Edit">
-                    Edit location
-                </a>
-        </ul>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Basic Information</h5>
+            <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
+                hx-trigger="revealed, configRequest from:body, locationChanged from:body"
+                hx-target="#location-detail">
+                <div class="spinner-grow" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<div class="container mt-4">
 
-    <div class="row">
-        <div class="col-md-6">
-
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Basic Information</h5>
-                    <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
-                        hx-trigger="revealed, configRequest from:body, locationChanged from:body"
-                        hx-target="#location-detail">
-                        <div class="spinner-grow" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-body">
-                    {% if location.geom %}
-                    <div id="basic_map" style="height: 400px;"></div>
-                    {% else %}
-                    <p>No location data available.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <br>
-    <hr>
-    <h3 class="text-muted">Resources linked to location</h3>
+<h3 class="text-muted">Resources linked to location</h3>
     <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
             itself.</em></p>
     <ul class="nav nav-tabs" id="myTab" role="tablist">
@@ -75,7 +26,6 @@
             <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane"
                 type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">
                 Location visits
-
                 <span class="badge rounded-pill bg-primary">{{ statuscount }}</span>
             </button>
         </li>
@@ -116,7 +66,9 @@
                         Location visits
                     </em>
                 </p>
-                {% comment %} {% include 'core/partial/locationvisit_list.html' %} {% endcomment %}
+                {% with list_context=locationvisits.list_context base_template="blank.html" %}
+                    {% include "list.html"%}
+                {% endwith %}
             </div>
         </div>
         <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
@@ -157,20 +109,3 @@
     </div>
 
 </div>
-{% if location.geom %}
-
-<script>
-    document.body.addEventListener('htmx:configRequest', (event) => {
-        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
-    });
-
-    document.body.addEventListener('htmx:locationChanged', (event) => {
-        window.location.reload();
-    });
-
-    var locations = JSON.parse('{{ location|get_coordinates|escapejs }}');
-    var map = initializeMap('basic_map');
-    plotLocations(map, locations);
-</script>
-{% endif %}
-{% endblock %}

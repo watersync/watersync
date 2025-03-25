@@ -81,4 +81,12 @@ class ListContext:
     columns: list | None = None
     action: str | None = None
     detail_url: str | None = None
+    detail_popover: bool | None = None
     detail_page_url: str | None = None
+
+
+@dataclass
+class DetailContext:
+    delete_url: str
+    update_url: str
+    

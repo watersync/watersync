@@ -335,10 +335,14 @@ class DeploymentListView(WatersyncListView):
     def get_queryset(self, **kwargs):
         project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
 
-        locations = get_list_or_404(Location, project=project)
-        deployments = Deployment.objects.filter(location__in=locations)
-
-        return deployments
+        if self.request.GET.get("location_pk"):
+            location = get_object_or_404(Location, pk=self.request.GET.get("location_pk"))
+            return Deployment.objects.filter(location=location)
+    
+        else:
+            locations = get_list_or_404(Location, project=project)
+            deployments = Deployment.objects.filter(location__in=locations)
+            return deployments
 
 
 class DeploymentDetailView(LoginRequiredMixin, DetailView):

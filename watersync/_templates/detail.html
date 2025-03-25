@@ -1,0 +1,88 @@
+{% extends base_template %}
+{% load custom_tags %}
+{% load static %}
+
+{% block content %}
+<!-- Title and action dropdown -->
+<div class="d-flex justify-content-between align-items-center">
+    <h3 class="text-muted mb-0">{{ object }}</h3>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-cog"></i>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li>
+                <a class="dropdown-item"
+                style="cursor: pointer;" 
+                hx-get="{{ detail_context.delete_url|replace_placeholder:object.pk }}"
+                hx-target="#dialog"
+                title="Delete">
+                Delete {{ object }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item"
+                style="cursor: pointer;" 
+                hx-get="{{ detail_context.update_url|replace_placeholder:object.pk }}"
+                hx-target="#dialog"
+                title="Edit">
+                Edit {{ object }}
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+<!-- Information block -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Basic Information</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for fld, val in object.detail_view %}
+                        <li class="list-group-item"><strong>{{ fld }}:</strong> {{ val }} </li>
+                        {% endfor %}
+                        {% if object.description %}
+                        <li class="list-group-item"><strong>Description:</strong>
+                            <div class="card-body">
+                                <p class="card-text">{{ object.description }}</p>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    {% if object.detail %}
+                    <p>
+                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#detail-panel" aria-expanded="false" aria-controls="collapseExample">
+                            Details
+                        </button>
+                    </p>
+                    <div class="collapse" id="detail-panel">
+                        {% include "shared/detail_list.html" with object=object %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if object.geom %}
+                        <div id="basic_map" style="height: 400px;"></div>
+                    {% else %}
+                    <p>No location data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+</div>
+
+{% if object.geom %}
+<script>
+    var locations = JSON.parse('{{ object|get_coordinates|escapejs }}');
+    var map = initializeMap('basic_map');
+    plotLocations(map, locations);
+</script>
+{% endif %}
+{% endblock content %}

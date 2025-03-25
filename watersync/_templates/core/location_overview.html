@@ -1,0 +1,19 @@
+{% extends 'project_dashboard.html' %}
+
+{% load static %}
+
+{% block content %}
+<div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
+    hx-trigger="revealed, configRequest from:body, locationChanged from:body"
+    hx-target="#location-detail"
+    hx-headers='{"HX-Context": "block"}'>
+    <div class="spinner-grow" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+<hr>
+<h3 class="text-muted">Resources linked to location</h3>
+    <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
+            itself.</em></p>
+
+{% endblock content %}

@@ -18,6 +18,12 @@
             <i class="fa-solid fa-circle-info"></i>
         </a>
         {% endif %}
+        {% if list_context.detail_popover %}
+        <button type="button" class="btn btn-sm btn-info" data-toggle="popover" data-bs-trigger="focus"
+            data-bs-placement="top" title="Comment" data-bs-content="{{ obj.comment }}">
+            <i class="fas fa-info"></i>
+        </button>
+        {% endif %}
         {% if list_context.update_url %}
         <button type="button" class="btn btn-sm btn-warning m-1"
             hx-get="{{ list_context.update_url|replace_placeholder:obj.pk }}" hx-target="#dialog" title="Edit">
@@ -33,3 +39,16 @@
     </td>
 </tr>
 {% endfor %}
+
+
+{% if list_context.detail_popover %}
+<script>
+    $(function () {
+        $('[data-toggle="popover"]').popover()
+    })
+
+    $('.popover-dismiss').popover({
+        trigger: 'focus'
+    })
+</script>
+{% endif %}

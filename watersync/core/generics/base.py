@@ -11,19 +11,24 @@ from django.http import HttpResponse
 
 from django.views.generic import (
     CreateView,
+    DetailView,
     DeleteView,
     ListView,
     UpdateView,
 )
 
 from watersync.core.models import Project
-from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListContext
+from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListContext, DetailContext
 from functools import partial
 from django.urls import reverse
 
 
 class WatersyncGenericViewProperties:
     """Mixin to add shortcuts to the views."""
+
+    blank_template = "blank.html"
+    base_template = "base_dashboard.html"
+    project_base_template = "project_dashboard.html"
 
     class Meta:
         abstract = True
@@ -36,7 +41,7 @@ class WatersyncGenericViewProperties:
     @property
     def model_name_plural(self):
         """Shortcut to get the plural model name."""
-        return self.model._meta.verbose_name_plural
+        return self.model._meta.verbose_name_plural.replace(" ", "")
 
     @property
     def app_label(self):
@@ -105,7 +110,10 @@ class WatersyncGenericViewProperties:
 
     def get_project(self):
         """Get the project object from the URL."""
-        return get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
+        if "projects" in self.request.path:
+            return get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
+        else:
+            return None
 
 
 class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ListView):
@@ -166,6 +174,9 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         else:
             base_template = "base_dashboard.html"
 
+        if "locationvisits" in self.request.path:
+            base_url_kwargs["location_pk"] = self.kwargs.get("location_pk")
+
         list_context = ListContext(
             add_url=self.get_add_url()(kwargs=base_url_kwargs),
             list_url=self.get_list_url()(kwargs=base_url_kwargs),
@@ -179,7 +190,11 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
             list_context.detail_page_url = self.get_detail_url()(
                 kwargs={**base_url_kwargs, **self.item}
             )
-        else:
+
+        elif self.detail_type == "popover":
+            list_context.detail_popover = True
+
+        elif self.detail_type == "modal":
             list_context.detail_url = self.get_detail_url()(
                 kwargs={**base_url_kwargs, **self.item}
             )
@@ -233,3 +248,60 @@ class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+    
+
+class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DetailView):
+    
+    template_name = "detail.html"
+    htmx_template = "detail.html"
+
+    def get_object(self):
+        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+    
+    def get_base_url_kwargs(self):
+        base_kwargs = {"user_id": self.request.user.id}
+        if project := self.get_project():
+            base_kwargs["project_pk"] = project.pk
+        return base_kwargs
+    
+    def get_base_template(self, htmx_context: str) -> str:
+        """Determine the appropriate base template based on context.
+        
+        For now we only check if htmx_context is "block". Then we return the blank template.
+        In other cases, we check if projects is present in the URL. If it is, we return the project_base_template.
+        Otherwise, we return the base_template.
+        """
+        if htmx_context == "block":
+            return self.blank_template
+        
+        if "projects" in self.request.path:
+            return self.project_base_template
+        
+        return self.base_template
+
+    def get_context_data(self, **kwargs):
+        """Add common context data to the template.
+
+        Resolves which base template is used for a given view and adds it to the context.
+        Here we also add the project object, which is necessary to many views of models linked to the project.
+
+        Base template is essentially the layout of the page.
+        """
+        context = super().get_context_data(**kwargs)
+
+        project = self.get_project()
+        
+        if project:
+            context["project"] = project
+
+        htmx_context = self.request.headers.get("HX-Context")
+
+        detail_context = DetailContext(
+            delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
+            update_url=self.get_update_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
+        )
+
+        context["base_template"] = self.get_base_template(htmx_context)
+        context["detail_context"] = detail_context
+        
+        return context

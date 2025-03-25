@@ -4,12 +4,13 @@ from django.forms import ModelForm
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, TemplateView
 from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
 from watersync.core.mixins import DeleteHTMX, HTMXFormMixin, RenderToResponseMixin
 from watersync.core.models import Fieldwork, Location, LocationVisit, Project
-from watersync.core.generics.base import WatersyncCreateView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
-
+from watersync.core.generics.base import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
+from django.utils.safestring import mark_safe
+import json
 
 from django.shortcuts import get_object_or_404
 
@@ -129,6 +130,7 @@ class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
 
 class LocationVisitListView(WatersyncListView):
     model = LocationVisit
+    detail_type = "popover"
 
     def get_queryset(self):
         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
@@ -141,69 +143,92 @@ class LocationVisitListView(WatersyncListView):
 
         return context
 
-
-class LocationDetailView(LoginRequiredMixin, DetailView):
-    """Optimization needed: should actually change the way the counts are requested
-    and use htmx instead of passing the counts in the context"""
-
+class LocationDetailView(WatersyncDetailView):
     model = Location
-    template_name = "core/location_detail.html"
 
-    def get_object(self):
-        return get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-    def render_to_response(self, context, **response_kwargs):
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["project"] = project
-        context["location"] = location
-
-        if self.request.headers.get("HX-Request"):
-            html = render_to_string(
-                "core/partial/location_detail.html", context, request=self.request
-            )
-            return HttpResponse(html)
-        return super().render_to_response(context, **response_kwargs)
+class LocationOverviewView(TemplateView):
+    template_name = "core/location_overview.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        location = self.get_object()
-
-        views = {
-            "statuscount": LocationVisitListView,
-            "gwlmeasurementcount": GWLListView,
-            "deploymentcount": DeploymentListView,
-            "samplingeventcount": SamplingEventListView,
-        }
-
-        counts = {}
-        for key, view_class in views.items():
-            view = view_class()
-            view.request = self.request
-            view.kwargs = self.kwargs
-            counts[key] = view.get_queryset().count()
-
-        context.update(counts)
-        context["project"] = location.project
-
-        # Update for DeploymentListView
-        deployments_view = DeploymentListView(
-            request=self.request,
-            kwargs=self.kwargs
-            )
-
-
-        context["deployments"] = deployments_view.get_context_data(
-            object_list=0
-        )
-
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+        context["location"] = location
+        context["project"] = project
         return context
+
+# class LocationDetailView(LoginRequiredMixin, DetailView):
+#     """Optimization needed: should actually change the way the counts are requested
+#     and use htmx instead of passing the counts in the context"""
+
+#     model = Location
+#     template_name = "core/location_detail.html"
+
+#     def get_object(self):
+#         return get_object_or_404(Location, pk=self.kwargs["location_pk"])
+
+#     def render_to_response(self, context, **response_kwargs):
+#         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+#         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+#         context["project"] = project
+#         context["location"] = location
+
+#         if self.request.headers.get("HX-Request"):
+#             html = render_to_string(
+#                 "core/partial/location_detail.html", context, request=self.request
+#             )
+#             return HttpResponse(html)
+#         return super().render_to_response(context, **response_kwargs)
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         location = self.get_object()
+
+#         views = {
+#             "statuscount": LocationVisitListView,
+#             "gwlmeasurementcount": GWLListView,
+#             "deploymentcount": DeploymentListView,
+#             "samplingeventcount": SamplingEventListView,
+#         }
+
+#         counts = {}
+#         for key, view_class in views.items():
+#             view = view_class()
+#             view.request = self.request
+#             view.kwargs = self.kwargs
+#             counts[key] = view.get_queryset().count()
+
+#         context.update(counts)
+#         context["project"] = location.project
+#         context["hx_vals"] = mark_safe(json.dumps({"location_pk": location.pk}))
+
+#         # Update for DeploymentListView
+#         deployments_view = DeploymentListView(
+#             request=self.request,
+#             kwargs=self.kwargs
+#             )
+        
+#         locationvisits_view = LocationVisitListView(
+#             request=self.request,
+#             kwargs=self.kwargs
+#         )
+
+
+#         context["deployments"] = deployments_view.get_context_data(
+#             object_list=0
+#         )
+#         context["locationvisits"] = locationvisits_view.get_context_data(
+#             object_list=0
+#         )
+
+#         return context
 
 
 location_create_view = LocationCreateView.as_view()
 location_delete_view = LocationDeleteView.as_view()
 location_update_view = LocationUpdateView.as_view()
 location_detail_view = LocationDetailView.as_view()
+location_overview_view = LocationOverviewView.as_view()
 location_list_view = LocationListView.as_view()
 
 
