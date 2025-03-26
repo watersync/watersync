@@ -109,12 +109,10 @@ class Location(TimeStampedModel):
     @property
     def latest_status(self):
         return self.visits.latest("created").status
-    
 
     def get_verbose_name(self, field_name):
         return self._meta.get_field(field_name).verbose_name
-    
-    
+
     @classmethod
     def detail_view_fields(cls):
         return {
@@ -127,11 +125,15 @@ class Location(TimeStampedModel):
             "Description": "description",
         }
 
-    def detail_view(self):
+    @property
+    def detail_view_items(self):
+        print("SOME PRINT")
+        print(getattr(self, "type"))
+        print(list(field for field in self.detail_view_fields().values()))
         return [
-            (field, getattr(self, field)) for field in self.detail_view_fields().values()
+            (field, getattr(self, field))
+            for field in self.detail_view_fields().values()
         ]
-
 
 
 class LocationVisit(TimeStampedModel):
@@ -156,15 +158,17 @@ class LocationVisit(TimeStampedModel):
         Location, related_name="visits", on_delete=models.CASCADE
     )
     fieldwork = models.ForeignKey(
-        "Fieldwork", related_name="visits", on_delete=models.CASCADE,
-        blank=True, null=True
+        "Fieldwork",
+        related_name="visits",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self) -> str:
         return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
-    
 
     @classmethod
     def table_view_fields(cls):
@@ -178,7 +182,6 @@ class LocationVisit(TimeStampedModel):
         return [
             (field, getattr(self, field)) for field in self.table_view_fields().values()
         ]
-
 
 
 class Fieldwork(TimeStampedModel):
