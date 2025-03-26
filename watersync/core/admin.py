@@ -18,4 +18,4 @@ class LocationAdmin(admin.ModelAdmin):
     # Columns to display in the list view
     list_display = ("name",)
     search_fields = ("name",)  # Fields to search by
-    list_filter = ("added_by",)
+    list_filter = ("user",)

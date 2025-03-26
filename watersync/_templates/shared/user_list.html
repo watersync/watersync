@@ -4,6 +4,10 @@
         <ul class="list-group list-group-flush">
             {% for user in object.user.all %}
                 <li class="list-group-item">{{ user.email }}</li>
+                {% empty %}
+                <li class="list-group-item">
+                    <em>No users involved</em>
+                </li>
             {% endfor %}
         </ul>
     </div>

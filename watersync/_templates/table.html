@@ -2,7 +2,7 @@
 {% for obj in object_list %}
 <tr>
     <th scope="row">{{ forloop.counter }}</th>
-    {% for fld, val in obj.table_view %}
+    {% for fld, val in obj.list_view_items %}
     <td>{{ val }}</td>
     {% endfor %}
     <td>

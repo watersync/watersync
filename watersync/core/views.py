@@ -41,21 +41,16 @@ class FieldworkDeleteView(WatersyncDeleteView):
 
 class FieldworkListView(WatersyncListView):
     model = Fieldwork
-    detail_type = "offcanvas"
+    detail_type = "modal"
 
     def get_queryset(self):
         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         return project.fieldworks.order_by("-created")
 
 
-class FieldworkDetailView(LoginRequiredMixin, RenderToResponseMixin, DetailView):
+class FieldworkDetailView(WatersyncDetailView):
     model = Fieldwork
-    template_name = "core/fieldwork_detail.html"
-    htmx_template = "core/fieldwork_detail.html"
-
-    def get_object(self):
-        return get_object_or_404(Fieldwork, pk=self.kwargs["fieldwork_pk"])
-
+    detail_type = "modal"
 
 
 fieldwork_create_view = FieldworkCreateView.as_view()
@@ -128,107 +123,14 @@ class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
         return context
 
 
-class LocationVisitListView(WatersyncListView):
-    model = LocationVisit
-    detail_type = "popover"
-
-    def get_queryset(self):
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        return location.visits.order_by("-created")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-        return context
-
 class LocationDetailView(WatersyncDetailView):
     model = Location
-
-class LocationOverviewView(TemplateView):
-    template_name = "core/location_overview.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        context["location"] = location
-        context["project"] = project
-        return context
-
-# class LocationDetailView(LoginRequiredMixin, DetailView):
-#     """Optimization needed: should actually change the way the counts are requested
-#     and use htmx instead of passing the counts in the context"""
-
-#     model = Location
-#     template_name = "core/location_detail.html"
-
-#     def get_object(self):
-#         return get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-#     def render_to_response(self, context, **response_kwargs):
-#         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-#         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-#         context["project"] = project
-#         context["location"] = location
-
-#         if self.request.headers.get("HX-Request"):
-#             html = render_to_string(
-#                 "core/partial/location_detail.html", context, request=self.request
-#             )
-#             return HttpResponse(html)
-#         return super().render_to_response(context, **response_kwargs)
-
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         location = self.get_object()
-
-#         views = {
-#             "statuscount": LocationVisitListView,
-#             "gwlmeasurementcount": GWLListView,
-#             "deploymentcount": DeploymentListView,
-#             "samplingeventcount": SamplingEventListView,
-#         }
-
-#         counts = {}
-#         for key, view_class in views.items():
-#             view = view_class()
-#             view.request = self.request
-#             view.kwargs = self.kwargs
-#             counts[key] = view.get_queryset().count()
-
-#         context.update(counts)
-#         context["project"] = location.project
-#         context["hx_vals"] = mark_safe(json.dumps({"location_pk": location.pk}))
-
-#         # Update for DeploymentListView
-#         deployments_view = DeploymentListView(
-#             request=self.request,
-#             kwargs=self.kwargs
-#             )
-        
-#         locationvisits_view = LocationVisitListView(
-#             request=self.request,
-#             kwargs=self.kwargs
-#         )
-
-
-#         context["deployments"] = deployments_view.get_context_data(
-#             object_list=0
-#         )
-#         context["locationvisits"] = locationvisits_view.get_context_data(
-#             object_list=0
-#         )
-
-#         return context
 
 
 location_create_view = LocationCreateView.as_view()
 location_delete_view = LocationDeleteView.as_view()
 location_update_view = LocationUpdateView.as_view()
 location_detail_view = LocationDetailView.as_view()
-location_overview_view = LocationOverviewView.as_view()
 location_list_view = LocationListView.as_view()
 
 
@@ -269,6 +171,7 @@ class ProjectDeleteView(WatersyncDeleteView):
 
 
 class ProjectListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
+    """For now this view has its own template."""
     model = Project
     template_name = "core/partial/project_list.html"
     htmx_template = "core/partial/project_table.html"
@@ -277,12 +180,8 @@ class ProjectListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
         return self.request.user.projects.all()
 
 
-class ProjectDetailView(LoginRequiredMixin, DetailView):
+class ProjectDetailView(WatersyncDetailView):
     model = Project
-    template_name = "core/project_detail.html"
-
-    def get_object(self):
-        return get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
 
 project_create_view = ProjectCreateView.as_view()
@@ -291,60 +190,90 @@ project_update_view = ProjectUpdateView.as_view()
 project_detail_view = ProjectDetailView.as_view()
 project_list_view = ProjectListView.as_view()
 
+class LocationVisitListView(WatersyncListView):
+    model = LocationVisit
+    detail_type = "popover"
 
-class LocationVisitCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
+    def get_queryset(self):
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        locations = project.locations.all()
+
+        queryset = LocationVisit.objects.filter(location__in=locations).order_by("-created")
+
+        if "location_pk" in self.request.GET:
+            queryset = queryset.filter(location__pk=self.request.GET.get("location_pk"))
+
+        return queryset
+
+
+class LocationVisitCreateView(WatersyncCreateView):
     model = LocationVisit
     form_class = LocationVisitForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "LocationVisitChanged"
-    htmx_render_template = "shared/simple_form.html"
 
     def update_form_instance(self, form):
-        form.instance.location = get_object_or_404(
-            Location, pk=self.kwargs["location_pk"]
-        )
+        if "location_pk" in self.kwargs and not form.instance.location:
+            form.instance.location = get_object_or_404(
+                Location, pk=self.kwargs["location_pk"]
+            )
 
 
-class LocationVisitUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
+class LocationVisitUpdateView(WatersyncUpdateView):
     model = LocationVisit
     form_class = LocationVisitForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "LocationVisitChanged"
-    htmx_render_template = "shared/simple_form.html"
 
     def update_form_instance(self, form: ModelForm):
         form.instance.location = get_object_or_404(
             Location, pk=self.kwargs["location_pk"]
         )
 
-    def get_object(self):
-        return get_object_or_404(LocationVisit, pk=self.kwargs["locationvisit_pk"])
 
-
-class LocationVisitDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
+class LocationVisitDeleteView(WatersyncDeleteView):
     model = LocationVisit
-    template_name = "confirm_delete.html"
-    htmx_template = "confirm_delete.html"
-
-    def get_object(self):
-        return get_object_or_404(LocationVisit, pk=self.kwargs["locationvisit_pk"])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["location"] = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        if request.headers.get("HX-Request"):
-            return HttpResponse(status=204, headers={"HX-Trigger": "configRequest"})
-        return super().delete(request, *args, **kwargs)
 
 
 location_visit_create_view = LocationVisitCreateView.as_view()
 location_visit_list_view = LocationVisitListView.as_view()
 location_visit_delete_view = LocationVisitDeleteView.as_view()
 location_visit_update_view = LocationVisitUpdateView.as_view()
+
+
+class LocationOverviewView(TemplateView):
+    template_name = "core/location_overview.html"
+
+    def get_resource_counts(self, location):
+        views = {
+            "statuscount": location.visits,
+            "gwlmeasurementcount": location.gwlmeasurements,
+            "deploymentcount": location.deployments,
+            "samplingeventcount": location.samplingevents,
+        }
+
+        return {key: view.count() for key, view in views.items()}
+    
+    def get_resource_list_context(self, location):
+        views = {
+            "locationvisits": LocationVisitListView,
+            # "gwlmeasurements": GWLListView,
+            # "deployments": DeploymentListView,
+            # "samplingevents": SamplingEventListView,
+        }
+
+        return {
+            key: view(request=self.request, kwargs=self.kwargs).get_context_data(object_list=0)
+            for key, view in views.items()
+        }
+        
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+        context["location"] = location
+        context["project"] = project
+        context.update(self.get_resource_counts(location))
+        context.update(self.get_resource_list_context(location))
+        context["hx_vals"] = mark_safe(json.dumps({"location_pk": location.pk}))
+
+        return context
+
+location_overview_view = LocationOverviewView.as_view()

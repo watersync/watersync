@@ -56,8 +56,8 @@ class Deployment(models.Model):
         find_deployment: retrieve a deployment by station, sensor and timesetamp.
     """
 
-    location = models.ForeignKey(Location, on_delete=models.PROTECT)
-    sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT)
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="deployments")
+    sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT, related_name="deployments")
     variable = models.CharField(max_length=20)
     unit = models.CharField(max_length=10)
     deployed_at = models.DateTimeField(auto_now_add=True)

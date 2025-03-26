@@ -2,13 +2,13 @@ from django.contrib.gis.db import models as geomodels
 from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
-from django.utils.timezone import now
 
 from watersync.core.managers import LocationManager
+from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
 from watersync.users.models import User
 
 
-class Project(models.Model):
+class Project(TimeStampedModel, ModelTemplateInterface):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -35,15 +35,21 @@ class Project(models.Model):
     geom = geomodels.PolygonField(srid=4326, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+
+    _detail_view_fields = {
+        "Started": "start_date",
+        "Ended": "end_date",
+        "Created at": "created",
+        "Modified at": "modified",
+        "Active": "is_active",
+    }
 
     def __str__(self):
         return self.name
 
 
-class Location(TimeStampedModel):
+class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     """List of locations.
 
     Locations are attached to projects and each measurement or analysis
@@ -85,12 +91,18 @@ class Location(TimeStampedModel):
     altitude = models.DecimalField(max_digits=8, decimal_places=2)
     type = models.CharField(choices=LOCATION_TYPES)
     description = models.TextField(blank=True, null=True)
-    added_by = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     detail = models.JSONField(null=True, blank=True)
 
-    history = HistoricalRecords()
-    __history_date = None
     objects = LocationManager()
+    history = HistoricalRecords()
+
+    _detail_view_fields = {
+        "Type": "type",
+        "Altitude": "altitude",
+        "Created at": "created",
+        "Modified at": "modified",
+    }
 
     class Meta:
         unique_together = ("project", "name")
@@ -99,44 +111,11 @@ class Location(TimeStampedModel):
         return f"{self.name}"
 
     @property
-    def _history_date(self):
-        return self.__history_date or now()
-
-    @_history_date.setter
-    def _history_date(self, value):
-        self.__history_date = value
-
-    @property
     def latest_status(self):
         return self.visits.latest("created").status
 
-    def get_verbose_name(self, field_name):
-        return self._meta.get_field(field_name).verbose_name
 
-    @classmethod
-    def detail_view_fields(cls):
-        return {
-            "Type": "type",
-            "Latest status": "latest_status",
-            "Altitude": "altitude",
-            "Created at": "created",
-            "Modified at": "modified",
-            "Added by": "added_by",
-            "Description": "description",
-        }
-
-    @property
-    def detail_view_items(self):
-        print("SOME PRINT")
-        print(getattr(self, "type"))
-        print(list(field for field in self.detail_view_fields().values()))
-        return [
-            (field, getattr(self, field))
-            for field in self.detail_view_fields().values()
-        ]
-
-
-class LocationVisit(TimeStampedModel):
+class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     """Status of the location at the given time.
 
     Attributes:
@@ -167,24 +146,17 @@ class LocationVisit(TimeStampedModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     comment = models.CharField(max_length=255, blank=True, null=True)
 
+    _list_view_fields = {
+        "Location": "location",
+        "Status": "status",
+        "Date": "created",
+    }
+
     def __str__(self) -> str:
         return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
 
-    @classmethod
-    def table_view_fields(cls):
-        return {
-            "Location": "location",
-            "Status": "status",
-            "Date": "created",
-        }
 
-    def table_view(self):
-        return [
-            (field, getattr(self, field)) for field in self.table_view_fields().values()
-        ]
-
-
-class Fieldwork(TimeStampedModel):
+class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     """Register fieldwork day done in a project.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
@@ -203,16 +175,18 @@ class Fieldwork(TimeStampedModel):
     weather = models.JSONField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
 
+    _list_view_fields = {
+        "Date": "date",
+    }
+
+    _detail_view_fields = {
+        "Project": "project",
+        "Date": "date",
+        "Start time": "start_time",
+        "End time": "end_time",
+        "Created at": "created",
+        "Modified at": "modified",
+    }
+
     def __str__(self):
         return f"{self.project} - {self.date}"
-
-    @classmethod
-    def table_view_fields(cls):
-        return {
-            "Date": "date",
-        }
-
-    def table_view(self):
-        return [
-            (field, getattr(self, field)) for field in self.table_view_fields().values()
-        ]

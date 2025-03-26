@@ -41,7 +41,7 @@
                     <h5 class="card-title">Basic Information</h5>
                     <ul class="list-group list-group-flush">
                         {% for fld, val in object.detail_view_items %}
-                        <li class="list-group-item"><strong>{{ fld }}:</strong> {{ val }} </li>
+                            <li class="list-group-item"><strong>{{ fld }}:</strong> {{ val }} </li>
                         {% endfor %}
                         {% if object.description %}
                         <li class="list-group-item"><strong>Description:</strong>
@@ -49,6 +49,9 @@
                                 <p class="card-text">{{ object.description }}</p>
                             </div>
                         </li>
+                        {% endif %}
+                        {% if object.user %}
+                            {% include "shared/user_list.html" with object=object %}
                         {% endif %}
                     </ul>
                     {% if object.detail %}

@@ -114,6 +114,27 @@ class WatersyncGenericViewProperties:
             return get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
         else:
             return None
+        
+    def get_base_url_kwargs(self):
+        base_kwargs = {"user_id": self.request.user.id}
+        if project := self.get_project():
+            base_kwargs["project_pk"] = project.pk
+        return base_kwargs
+    
+    def get_base_template(self, htmx_context: str) -> str:
+        """Determine the appropriate base template based on context.
+        
+        For now we only check if htmx_context is "block". Then we return the blank template.
+        In other cases, we check if projects is present in the URL. If it is, we return the project_base_template.
+        Otherwise, we return the base_template.
+        """
+        if htmx_context == "block":
+            return self.blank_template
+
+        if "projects" in self.request.path:
+            return self.project_base_template
+
+        return self.base_template
 
 
 class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ListView):
@@ -165,30 +186,25 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         """
         context = super().get_context_data(**kwargs)
 
-        base_url_kwargs = {"user_id": self.request.user.id}
+        project = self.get_project()
 
-        if "projects" in self.request.path:
-            base_template = "project_dashboard.html"
-            context["project"] = self.get_project()
-            base_url_kwargs["project_pk"] = context["project"].pk
-        else:
-            base_template = "base_dashboard.html"
+        if project:
+            context["project"] = project
 
-        if "locationvisits" in self.request.path:
-            base_url_kwargs["location_pk"] = self.kwargs.get("location_pk")
+        htmx_context = self.request.headers.get("HX-Context")
 
         list_context = ListContext(
-            add_url=self.get_add_url()(kwargs=base_url_kwargs),
-            list_url=self.get_list_url()(kwargs=base_url_kwargs),
-            update_url=self.get_update_url()(kwargs={**base_url_kwargs, **self.item}),
-            delete_url=self.get_delete_url()(kwargs={**base_url_kwargs, **self.item}),
+            add_url=self.get_add_url()(kwargs=self.get_base_url_kwargs()),
+            list_url=self.get_list_url()(kwargs=self.get_base_url_kwargs()),
+            update_url=self.get_update_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
+            delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
             action=self.htmx_trigger,
-            columns=self.model.table_view_fields().keys(),
+            columns=self.model._list_view_fields.keys(),
         )
 
         if self.detail_type == "page":
             list_context.detail_page_url = self.get_detail_url()(
-                kwargs={**base_url_kwargs, **self.item}
+                kwargs={**self.get_base_url_kwargs(), **self.item}
             )
 
         elif self.detail_type == "popover":
@@ -196,10 +212,10 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
 
         elif self.detail_type == "modal":
             list_context.detail_url = self.get_detail_url()(
-                kwargs={**base_url_kwargs, **self.item}
+                kwargs={**self.get_base_url_kwargs(), **self.item}
             )
 
-        context["base_template"] = base_template
+        context["base_template"] = self.get_base_template(htmx_context)
         context["list_context"] = list_context
 
         return context
@@ -254,15 +270,10 @@ class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
     
     template_name = "detail.html"
     htmx_template = "detail.html"
+    detail_type: str | None = None
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
-    
-    def get_base_url_kwargs(self):
-        base_kwargs = {"user_id": self.request.user.id}
-        if project := self.get_project():
-            base_kwargs["project_pk"] = project.pk
-        return base_kwargs
     
     def get_base_template(self, htmx_context: str) -> str:
         """Determine the appropriate base template based on context.
@@ -271,12 +282,12 @@ class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         In other cases, we check if projects is present in the URL. If it is, we return the project_base_template.
         Otherwise, we return the base_template.
         """
-        if htmx_context == "block":
+        if htmx_context == "block" or self.detail_type == "modal":
             return self.blank_template
-        
+
         if "projects" in self.request.path:
             return self.project_base_template
-        
+
         return self.base_template
 
     def get_context_data(self, **kwargs):

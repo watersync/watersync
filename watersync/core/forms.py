@@ -52,7 +52,7 @@ class LocationVisitForm(ModelForm):
 
     class Meta:
         model = LocationVisit
-        fields = ["status", "comment"]
+        fields = ["location", "status", "comment"]
 
 
 class FieldworkForm(ModelForm):
