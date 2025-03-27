@@ -20,7 +20,7 @@ from django.views.generic import (
 from watersync.core.models import Project
 from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListContext, DetailContext
 from functools import partial
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 
 class WatersyncGenericViewProperties:
@@ -228,34 +228,64 @@ class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
 
 
 class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
-    """
-    """
+    """Delete logic for watersync DeleteViews.
+
+    The largest chunk here is about redirecting after the delete. After the delete,
+    the user will be redirected to the list view, if the request is made from the detail
+    view of the deleted object, or to the current URL if the request is made
+    from elswhere."""
+
     template_name = "confirm_delete.html"
     htmx_template = "confirm_delete.html"
+
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
 
+    def get_redirect_url(self, request):
+        """Get the URL from htmx request to redirect to after the delete.
+        
+        For now, I am going return None in the case of the request being made from
+        elswhere than the detail view. This is because normally upon deletion a trigger
+        is sent to the client to request the new list of objects. This is done by the
+        configRequest trigger.
+        """
+        list_kwargs = self.get_base_url_kwargs()
+
+        current_url = request.headers.get("HX-Current-Url")
+
+        if current_url and not current_url.endswith(f'/{self.object.pk}/'):
+            return None
+        else:
+            return self.get_list_url()(kwargs=list_kwargs)
+
+
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.object.delete()
 
-        list_kwargs = {"user_id": self.request.user.id}
-
-        if self.model_name != "project":
-            project = self.get_project()
-            list_kwargs["project_pk"] = project.pk
+        redirect_url = self.get_redirect_url(request)
 
         if request.headers.get("HX-Request"):
+
+            self.object.delete()
+
+            headers = {
+                "HX-Trigger": "configRequest",
+            }
+
+            if redirect_url:
+                headers["HX-Redirect"] = redirect_url
+
             return HttpResponse(
                 status=204,
-                headers={
-                    "HX-Trigger": "configRequest",
-                    "HX-Redirect": self.get_list_url()(kwargs=list_kwargs),
-                },
+                headers=headers,
             )
+
+        self.object.delete()
+
         return super().delete(request, *args, **kwargs)
-    
+
 
 class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, UpdateView):
     

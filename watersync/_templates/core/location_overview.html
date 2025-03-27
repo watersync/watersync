@@ -15,31 +15,32 @@
 <h3 class="text-muted">Resources linked to location</h3>
     <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
             itself.</em></p>
+
             <ul class="nav nav-tabs" id="myTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane"
-                        type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">
+                    <button class="nav-link active" id="locationvisits-tab" data-bs-toggle="tab" data-bs-target="#locationvisits-tab-pane"
+                        type="button" role="tab" aria-controls="locationvisits-tab-pane" aria-selected="true">
                         Location visits
                         <span class="badge rounded-pill bg-primary">{{ statuscount }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane"
-                        type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">
+                    <button class="nav-link" id="gwlmeasurements-tab" data-bs-toggle="tab" data-bs-target="#gwlmeasurements-tab-pane"
+                        type="button" role="tab" aria-controls="gwlmeasurements-tab-pane" aria-selected="false">
                         GWL
                         <span class="badge rounded-pill bg-primary">{{ gwlmeasurementcount }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane"
-                        type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">
+                    <button class="nav-link" id="deployments-tab" data-bs-toggle="tab" data-bs-target="#deployments-tab-pane"
+                        type="button" role="tab" aria-controls="deployments-tab-pane" aria-selected="false">
                         Timeseries
                         <span class="badge rounded-pill bg-primary">{{ deploymentcount }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="disabled-tab" data-bs-toggle="tab" data-bs-target="#disabled-tab-pane"
-                        type="button" role="tab" aria-controls="disabled-tab-pane" aria-selected="false">
+                    <button class="nav-link" id="sampling-tab" data-bs-toggle="tab" data-bs-target="#sampling-tab-pane"
+                        type="button" role="tab" aria-controls="sampling-tab-pane" aria-selected="false">
                         Water Quality
                         <span class="badge rounded-pill bg-primary">{{ samplingeventcount }}</span>
                     </button>
@@ -51,10 +52,10 @@
                 <span id="deployment-count" hx-swap-oob="true"></span>
                 <span id="samplingevent-count" hx-swap-oob="true"></span>
             </div>
-            <div class="tab-content" id="myTabContent">
-                <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab"
+            <div class="tab-content" id="location-resources-tab-content">
+                <div class="tab-pane fade show active" id="locationvisits-tab-pane" role="tabpanel" aria-labelledby="locationvisits-tab"
                     tabindex="0">
-                    <div id="locationvisit" class="container p-4">
+                    <div id="locationvisits" class="container p-4">
                         <p>
                             <em class="text-decoration-none text-muted">
                                 Location visits
@@ -65,39 +66,42 @@
                         {% endwith %}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+                <div class="tab-pane fade" id="gwlmeasurements-tab-pane" role="tabpanel" aria-labelledby="gwlmeasurements-tab">
                     <div id="gwlmeasurements" class="container p-4">
-                        <h4>
-                            <a href="{% url 'groundwater:gwlmeasurements' user.id project.pk location.pk %}"
-                                class="text-decoration-none text-dark">
-                                Manual groundwater level measurements
-                            </a>
-                        </h4>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                    <div id="sensordeployments" class="container p-4">
-                        <h4>
-                            <!-- <a href="{% url 'sensor:deployments' user.id project.pk %}" class="text-decoration-none text-dark">
-                                Timeseries from deployed sensors
-                            </a> -->
-                        </h4>
+                        <p>
+                            <em class="text-decoration-none text-muted">
+                                Groundwater level measurements
+                            </em>
+                        </p>
                                                 {% comment %}
-                        {% with list_context=deployments.list_context base_template="blank.html" %}
+                        {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
                                                 {% endcomment %}
                     </div>
                 </div>
-                <div class="tab-pane fade" id="disabled-tab-pane" role="tabpanel" aria-labelledby="disabled-tab" tabindex="0">
-                    <div id="wqsamples" class="container p-4">
+                <div class="tab-pane fade" id="deployments-tab-pane" role="tabpanel" aria-labelledby="deployments-tab">
+                    <div id="deployments" class="container p-4">
+                        <p>
+                            <em class="text-decoration-none text-muted">
+                                Sensor deployments
+                            </em>
+                        </p>
+                                                {% comment %}
+                        {% with list_context=deployments.list_context htmx_context="block" base_template="blank.html" %}
+                            {% include "list.html"%}
+                        {% endwith %}
+                                                {% endcomment %}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="sampling-tab-pane" role="tabpanel" aria-labelledby="sampling-tab">
+                    <div id="sampling" class="container p-4">
                         <h4>
                             <a href="{% url 'waterquality:samplingevents' user.id project.pk location.pk %}"
                                 class="text-decoration-none text-dark">
                                 Water quality sampling
                             </a>
                         </h4>
-                        <!-- {% include 'waterquality/partial/samplingevent_list.html' %} -->
         
                     </div>
                 </div>

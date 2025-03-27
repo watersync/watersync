@@ -1,28 +1,26 @@
 from django.urls import include, path
 
-from watersync.groundwater.views.groundwaterlevel import (
-    gwl_create_view,
+from watersync.groundwater.views import gwl_create_view, gwl_list_view, gwl_update_view
+from watersync.groundwater.views import (
     gwl_delete_view,
-    gwl_list_view,
-    gwl_update_view,
 )
 
 app_name = "groundwater"
 
 gwl_urlpatterns = [
-    path("", gwl_list_view, name="gwlmeasurements"),
-    path("add/", gwl_create_view, name="add-gwlmeasurement"),
+    path("", gwl_list_view, name="gwlmanualmeasurements"),
+    path("add/", gwl_create_view, name="add-gwlmanualmeasurement"),
     path(
-        "<int:gwlmeasurement_pk>/update/", gwl_update_view, name="update-gwlmeasurement"
+        "<str:gwlmanualmeasurement_pk>/update/", gwl_update_view, name="update-gwlmanualmeasurement"
     ),
     path(
-        "<int:gwlmeasurement_pk>/delete/", gwl_delete_view, name="delete-gwlmeasurement"
+        "<str:gwlmanualmeasurement_pk>/delete/", gwl_delete_view, name="delete-gwlmanualmeasurement"
     ),
 ]
 
 urlpatterns = [
     path(
-        "projects/<int:project_pk>/locations/<int:location_pk>/gwlmeasurements/",
+        "projects/<str:project_pk>/gwlmanualmeasurements/",
         include(gwl_urlpatterns),
     ),
 ]

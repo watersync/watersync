@@ -6,10 +6,9 @@ import pandas as pd
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import (
-    CreateView,
     DeleteView,
     DetailView,
     FormView,
@@ -18,24 +17,17 @@ from django.views.generic import (
     View,
 )
 from watersync.core.generics.base import WatersyncListView
-from watersync.core.mixins import (
-    HTMXFormMixin,
-    RenderToResponseMixin,
-)
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
+from watersync.core.generics.base import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
 
 from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
 
 
-class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
+class SensorCreateView(WatersyncCreateView):
     model = Sensor
     form_class = SensorForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "sensorChanged"
-    htmx_render_template = "shared/simple_form.html"
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -44,59 +36,26 @@ class SensorCreateView(LoginRequiredMixin, HTMXFormMixin, CreateView):
         return response
 
 
-class SensorUpdateView(LoginRequiredMixin, HTMXFormMixin, UpdateView):
+class SensorUpdateView(WatersyncUpdateView):
     model = Sensor
     form_class = SensorForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "sensorChanged"
-    htmx_render_template = "shared/simple_form.html"
-
-    def get_object(self):
-        return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
 
 
 class SensorListView(WatersyncListView):
     model = Sensor
-    detail_type = "offcanvas"
+    detail_type = "modal"
 
     def get_queryset(self):
         return self.request.user.sensors.all()
 
 
-class SensorDetailView(LoginRequiredMixin, RenderToResponseMixin, DetailView):
+class SensorDetailView(WatersyncDetailView):
     model = Sensor
-    template_name = "sensor/sensor_detail.html"
-    htmx_template = "sensor/sensor_detail.html"
-
-    def get_object(self):
-        return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
+    detail_type = "modal"
 
 
-class SensorDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
+class SensorDeleteView(WatersyncDeleteView):
     model = Sensor
-    template_name = "confirm_delete.html"
-    htmx_template = "confirm_delete.html"
-
-    def get_object(self):
-        return get_object_or_404(Sensor, pk=self.kwargs["sensor_pk"])
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        if request.headers.get("HX-Request"):
-            sensors_url = reverse(
-                "sensor:sensors", kwargs={"user_id": self.kwargs["user_id"]}
-            )
-            return HttpResponse(
-                status=204,
-                headers={
-                    "HX-Trigger": "configRequest",
-                    "HX-Redirect": sensors_url,
-                },
-            )
-        return super().delete(request, *args, **kwargs)
 
 
 sensor_create_view = SensorCreateView.as_view()
@@ -298,35 +257,13 @@ sensorrecord_list_view = SensorRecordListView.as_view()
 # ================ Deployment views ========================
 
 
-class DeploymentCreateView(LoginRequiredMixin, CreateView):
+class DeploymentCreateView(WatersyncCreateView):
     model = Deployment
     form_class = DeploymentForm
-    template_name = "shared/simple_form.html"
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        deployment = form.save(commit=False)
-
-        # This creates the deployment and
-        # sets the sensor availability to False
-        deployment.deploy()
-        return response
-
-    def get_success_url(self):
-        return reverse_lazy(
-            "sensor:deployments",
-            kwargs={
-                "project_pk": self.kwargs["project_pk"],
-                "user_id": self.request.user.id,
-            },
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["project"] = project
-        return context
-
+class DeploymentUpdateView(WatersyncUpdateView):
+    model = Deployment
+    form_class = DeploymentForm
 
 class DeploymentListView(WatersyncListView):
     model = Deployment
@@ -369,70 +306,8 @@ class DeploymentDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class DeploymentUpdateView(LoginRequiredMixin, UpdateView):
+class DeploymentDeleteView(WatersyncDeleteView):
     model = Deployment
-    form_class = DeploymentForm
-    template_name = "shared/simple_form.html"
-
-    def get_object(self):
-        return get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
-
-    def get_success_url(self):
-        return reverse(
-            "sensor:detail-deployment",
-            kwargs={
-                "user_id": self.request.user.id,
-                "project_pk": self.kwargs["project_pk"],
-                "deployment_pk": [self.kwargs["deployment_pk"]],
-            },
-        )
-
-
-class DeploymentDeleteView(LoginRequiredMixin, RenderToResponseMixin, DeleteView):
-    model = Deployment
-    template_name = "confirm_delete.html"
-    htmx_template = "confirm_delete.html"
-
-    def get_object(self):
-        return get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
-
-    def get_success_url(self):
-        return reverse(
-            "sensor:deployments",
-            kwargs={
-                "user_id": self.kwargs["user_id"],
-                "project_pk": self.kwargs["project_pk"],
-            },
-        )
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        if request.headers.get("HX-Request"):
-            deployments_url = reverse(
-                "sensor:deployments",
-                kwargs={
-                    "user_id": self.kwargs["user_id"],
-                    "project_pk": self.kwargs["project_pk"],
-                },
-            )
-            return HttpResponse(
-                status=204,
-                headers={
-                    "HX-Trigger": "configRequest",
-                    "HX-Redirect": deployments_url,
-                },
-            )
-        return super().delete(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        project_pk = self.kwargs.get("project_pk")
-
-        context["project"] = get_object_or_404(Project, pk=project_pk)
-
-        return context
 
 
 deployment_create_view = DeploymentCreateView.as_view()

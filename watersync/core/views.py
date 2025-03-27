@@ -1,22 +1,17 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.gis.geos import Point
 from django.forms import ModelForm
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.urls import reverse
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, TemplateView
+from django.views.generic import ListView, TemplateView
+from watersync.groundwater.views import GWLListView
 from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
-from watersync.core.mixins import DeleteHTMX, HTMXFormMixin, RenderToResponseMixin
+from watersync.core.mixins import RenderToResponseMixin
 from watersync.core.models import Fieldwork, Location, LocationVisit, Project
 from watersync.core.generics.base import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
+from watersync.sensor.views import DeploymentListView
 from django.utils.safestring import mark_safe
 import json
 
 from django.shortcuts import get_object_or_404
-
-from watersync.groundwater.views.groundwaterlevel import GWLListView
-from watersync.sensor.views import DeploymentListView
-from watersync.waterquality.views.samplingevent import SamplingEventListView
 
 
 class FieldworkCreateView(WatersyncCreateView):
@@ -250,11 +245,11 @@ class LocationOverviewView(TemplateView):
 
         return {key: view.count() for key, view in views.items()}
     
-    def get_resource_list_context(self, location):
+    def get_resource_list_context(self):
         views = {
             "locationvisits": LocationVisitListView,
-            # "gwlmeasurements": GWLListView,
-            # "deployments": DeploymentListView,
+            "gwlmeasurements": GWLListView,
+            "deployments": DeploymentListView,
             # "samplingevents": SamplingEventListView,
         }
 
@@ -271,7 +266,7 @@ class LocationOverviewView(TemplateView):
         context["location"] = location
         context["project"] = project
         context.update(self.get_resource_counts(location))
-        context.update(self.get_resource_list_context(location))
+        context.update(self.get_resource_list_context())
         context["hx_vals"] = mark_safe(json.dumps({"location_pk": location.pk}))
 
         return context

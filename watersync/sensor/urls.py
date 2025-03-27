@@ -91,13 +91,13 @@ sensorrecord_urlpatterns = [
 urlpatterns = [
     path("sensors/", include(sensor_urlpatterns)),
     path(
-        "projects/<int:project_pk>/deployments/",
+        "projects/<str:project_pk>/deployments/",
         include(deployment_urlpatterns),
     ),
     # This one should probably be just a downloadable or viewable as a graph only.
     # There is no sense in displaying the records as a list.
     path(
-        "project/<int:project_pk>/deployments/<int:deployment_pk>/records/",
+        "project/<str:project_pk>/deployments/<str:deployment_pk>/records/",
         include(sensorrecord_urlpatterns),
     ),
 ]

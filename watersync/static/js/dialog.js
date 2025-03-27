@@ -1,44 +1,57 @@
 document.addEventListener('htmx:afterSwap', function (e) {
-
     if (e.detail.target.id === "dialog") {
         const modalElement = document.getElementById('modal');
-        const mapContainer = modalElement.querySelector("#map");
-
-        if (mapContainer) {
-
-            const initialLat = parseFloat(mapContainer.dataset.lat) || 51.505;
-            const initialLng = parseFloat(mapContainer.dataset.lng) || -0.09;
-            const latFieldId = mapContainer.dataset.latFieldId;
-            const lngFieldId = mapContainer.dataset.lngFieldId;
-
-            // Always reinitialize the map instance and invalidate size
-            const map = customLeafletWidget(initialLat, initialLng, latFieldId, lngFieldId);
-            window.modalMap = map;
-
+        let modal = bootstrap.Modal.getInstance(modalElement);
+        
+        // Initialize or get existing modal
+        if (!modal) {
+            modal = new bootstrap.Modal(modalElement);
         }
-        // Show the modal after ensuring the map is ready
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
+
+        // Delay map initialization for DOM stability
+        setTimeout(() => {
+            const mapContainer = modalElement.querySelector("#map");
+            if (mapContainer) {
+                if (window.modalMap) {
+                    // Cleanup existing map
+                    window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
+                    window.modalMap.off();
+                    window.modalMap.remove();
+                    mapContainer._leaflet_id = null;
+                }
+                
+                const initialLat = parseFloat(mapContainer.dataset.lat) || 51.505;
+                const initialLng = parseFloat(mapContainer.dataset.lng) || -0.09;
+                window.modalMap = customLeafletWidget(initialLat, initialLng, 
+                    mapContainer.dataset.latFieldId, 
+                    mapContainer.dataset.lngFieldId
+                );
+            }
+            modal.show();
+        }, 50);
     }
 });
 
+// Unified cleanup function
 function cleanupModalAndMap() {
     const modalElement = document.getElementById('modal');
     const modal = bootstrap.Modal.getInstance(modalElement);
-
+    
     if (modal) {
         modal.hide();
+        modal.dispose(); // Properly dispose the modal instance
     }
 
-    const mapContainer = modalElement.querySelector("#map");
-
-    if (mapContainer && window.modalMap) {
-
-        window.modalMap.off(); // Remove all event listeners
-        window.modalMap.remove(); // Destroy the map instance
-        window.modalMap = null; // Clear the reference
+    if (window.modalMap) {
+        window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
+        window.modalMap.off();
+        window.modalMap.remove();
+        const mapContainer = document.querySelector("#map");
+        if (mapContainer) mapContainer._leaflet_id = null;
+        window.modalMap = null;
     }
 }
+
 
 document.addEventListener('htmx:beforeSwap', function (e) {
 

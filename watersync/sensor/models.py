@@ -2,10 +2,11 @@ from django.db import models
 from django.utils import timezone
 
 from watersync.core.models import Location
+from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
 
-class Sensor(models.Model):
+class Sensor(models.Model, ModelTemplateInterface):
     """Stores sensing devices details.
 
     Attributes:
@@ -20,23 +21,21 @@ class Sensor(models.Model):
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
+    _list_view_fields = {
+        "Identifier": "identifier",
+        "Available": "available"
+    }
+
+    _detail_view_fields = {
+        "Identifier": "identifier",
+        "Available": "available"
+    }
+
     def __str__(self):
         return self.identifier
 
-    @classmethod
-    def table_view_fields(cls):
-        return {
-            "Identifier": "identifier",
-            "Available": "available",
-        }
 
-    def table_view(self):
-        return [
-            (field, getattr(self, field)) for field in self.table_view_fields().values()
-        ]
-
-
-class Deployment(models.Model):
+class Deployment(models.Model, ModelTemplateInterface):
     """Deployments of sensors aka a sensor timeseries.
 
     A sensor deployment happens when a sensor is placed in a particular location. Deployment
@@ -64,6 +63,13 @@ class Deployment(models.Model):
     decommissioned_at = models.DateTimeField(null=True, blank=True)
     detail = models.JSONField(null=True, blank=True)
 
+    _list_view_fields = {
+            "Location": "location",
+            "Sensor": "sensor",
+            "Start": "deployed_at",
+            "End": "decommissioned_at",
+        }
+
     class Meta:
         """Extra attribute in the Meta is the table_view_fields. It's used in the view to
         automate the creation of tables and lists."""
@@ -72,15 +78,6 @@ class Deployment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sensor.identifier} at {self.location.name}"
-
-    @classmethod
-    def table_view_fields(cls):
-        return {
-            "Location": "location",
-            "Sensor": "sensor",
-            "Start": "deployed_at",
-            "End": "decommissioned_at",
-        }
 
     def deploy(self):
         """
@@ -131,11 +128,6 @@ class Deployment(models.Model):
 
         except cls.DoesNotExist:
             return None
-
-    def table_view(self):
-        return [
-            (field, getattr(self, field)) for field in self.table_view_fields().values()
-        ]
 
 
 class SensorRecord(models.Model):
