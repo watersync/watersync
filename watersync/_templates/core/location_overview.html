@@ -1,7 +1,5 @@
 {% extends 'project_dashboard.html' %}
 
-{% load static %}
-
 {% block content %}
 <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
     hx-trigger="revealed, configRequest from:body, locationChanged from:body"
@@ -58,7 +56,7 @@
                     <div id="locationvisits" class="container p-4">
                         <p>
                             <em class="text-decoration-none text-muted">
-                                Location visits
+                                Reports from location visits
                             </em>
                         </p>
                         {% with list_context=locationvisits.list_context htmx_context="block" base_template="blank.html" %}
@@ -73,35 +71,30 @@
                                 Groundwater level measurements
                             </em>
                         </p>
-                                                {% comment %}
-                        {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="blank.html" %}
+                       {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
-                                                {% endcomment %}
                     </div>
                 </div>
                 <div class="tab-pane fade" id="deployments-tab-pane" role="tabpanel" aria-labelledby="deployments-tab">
                     <div id="deployments" class="container p-4">
                         <p>
                             <em class="text-decoration-none text-muted">
-                                Sensor deployments
+                                Sensors deployed at this location.
                             </em>
                         </p>
-                                                {% comment %}
                         {% with list_context=deployments.list_context htmx_context="block" base_template="blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
-                                                {% endcomment %}
                     </div>
                 </div>
                 <div class="tab-pane fade" id="sampling-tab-pane" role="tabpanel" aria-labelledby="sampling-tab">
                     <div id="sampling" class="container p-4">
-                        <h4>
-                            <a href="{% url 'waterquality:samplingevents' user.id project.pk location.pk %}"
-                                class="text-decoration-none text-dark">
-                                Water quality sampling
-                            </a>
-                        </h4>
+                        <p>
+                            <em class="text-decoration-none text-muted">
+                                Water quality monitoring.
+                            </em>
+                        </p>
         
                     </div>
                 </div>

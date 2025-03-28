@@ -217,9 +217,10 @@ class LocationVisitUpdateView(WatersyncUpdateView):
     form_class = LocationVisitForm
 
     def update_form_instance(self, form: ModelForm):
-        form.instance.location = get_object_or_404(
-            Location, pk=self.kwargs["location_pk"]
-        )
+        if "location_pk" in self.kwargs and not form.instance.location:
+            form.instance.location = get_object_or_404(
+                Location, pk=self.kwargs["location_pk"]
+            )
 
 
 class LocationVisitDeleteView(WatersyncDeleteView):

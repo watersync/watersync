@@ -1,12 +1,21 @@
 {% extends base_template %}
 
 {% load static %}
+
 {% block content %}
-<button type="button" class="btn btn-success mb-3" 
-    hx-get="{{ list_context.add_url }}" 
-    hx-target="#dialog"
-    hx-trigger="click">
-    <i class="fa-solid fa-plus"></i></button>
+<div class="d-flex align-items-start mb-3">
+    {% if base_template == "blank.html" %}
+        <a href="{{ list_context.list_url }}" class="btn btn-info me-2">See all
+            <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    {% endif %}
+    <button type="button" class="btn btn-success" 
+        hx-get="{{ list_context.add_url }}" 
+        hx-target="#dialog"
+        hx-trigger="click">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+</div>
 
 
 <table class="table table-striped table-sm">
