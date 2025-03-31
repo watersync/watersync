@@ -7,41 +7,51 @@ document.addEventListener('htmx:afterSwap', function (e) {
         if (!modal) {
             modal = new bootstrap.Modal(modalElement);
         }
-
-        // Delay map initialization for DOM stability
-        setTimeout(() => {
+        
+        modal.show();
+        
+        // Wait for modal to be fully visible before initializing map
+        modalElement.addEventListener('shown.bs.modal', function() {
             const mapContainer = modalElement.querySelector("#map");
             if (mapContainer) {
-                if (window.modalMap) {
-                    // Cleanup existing map
-                    window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
-                    window.modalMap.off();
-                    window.modalMap.remove();
-                    mapContainer._leaflet_id = null;
-                }
-                
-                const initialLat = parseFloat(mapContainer.dataset.lat) || 51.505;
-                const initialLng = parseFloat(mapContainer.dataset.lng) || -0.09;
-                window.modalMap = customLeafletWidget(initialLat, initialLng, 
-                    mapContainer.dataset.latFieldId, 
-                    mapContainer.dataset.lngFieldId
-                );
+                // Initialize modal map
+                initializeModalMap(mapContainer);
+
+                window.modalMap.invalidateSize();
+
             }
-            modal.show();
-        }, 50);
+        }, { once: true });
     }
 });
 
 // Unified cleanup function
 function cleanupModalAndMap() {
     const modalElement = document.getElementById('modal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
     
-    if (modal) {
-        modal.hide();
-        modal.dispose(); // Properly dispose the modal instance
+    if (modalElement) {
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        
+        if (modal) {
+            try {
+                // Use a safer approach to hiding the modal
+                modal.hide();
+                
+                // Don't dispose immediately - let the hiding complete first
+                modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+                    // Remove this listener to prevent memory leaks
+                    modalElement.removeEventListener('hidden.bs.modal', onHidden);
+                    
+                    if (bootstrap.Modal.getInstance(modalElement)) {
+                        modal.dispose();
+                    }
+                }, { once: true });
+            } catch (e) {
+                console.error("Error with modal:", e);
+            }
+        }
     }
 
+    // Map cleanup code - this part seems fine
     if (window.modalMap) {
         window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
         window.modalMap.off();

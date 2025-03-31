@@ -11,6 +11,24 @@ function initializeMap(mapId, lat = 0, lng = 0, zoom = 2) {
     return map;
 }
 
+function initializeModalMap(mapContainer) {
+    if (window.modalMap) {
+        // Cleanup existing modal map
+        window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
+        window.modalMap.off();
+        window.modalMap.remove();
+        if (mapContainer._leaflet_id) mapContainer._leaflet_id = null;
+    }
+    
+    const initialLat = parseFloat(mapContainer.dataset.lat) || 51.505;
+    const initialLng = parseFloat(mapContainer.dataset.lng) || -0.09;
+    window.modalMap = customLeafletWidget(initialLat, initialLng, 
+        mapContainer.dataset.latFieldId, 
+        mapContainer.dataset.lngFieldId
+    );
+}
+
+
 // Plot locations on the map
 function plotLocations(map, locations) {
     var bounds = L.latLngBounds();
