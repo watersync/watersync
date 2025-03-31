@@ -1,7 +1,6 @@
 {% extends base_template %}
 
 {% load static %}
-
 {% block content %}
 <div class="d-flex align-items-start mb-3">
     {% if base_template == "blank.html" %}
@@ -29,8 +28,8 @@
     </thead>
     <tbody hx-get="{{ list_context.list_url }}"
         hx-trigger="revealed, configRequest from:body, {{ list_context.action }} from:body"
-        hx-vals='{{ hx_vals }}'
-        hx-headers="HX-Context: {{ htmx_context }}">
+        hx-vals='js:{{ hx_vals|safe }}'
+        hx-headers='{"HX-Context": "{{ htmx_context }}"}'>
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">
                 <div class="spinner-grow" role="status">
