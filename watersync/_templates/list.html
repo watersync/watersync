@@ -3,17 +3,25 @@
 {% load static %}
 {% block content %}
 <div class="d-flex align-items-start mb-3">
-    {% if base_template == "blank.html" %}
-        <a href="{{ list_context.list_url }}" class="btn btn-info me-2">See all
-            <i class="fa-solid fa-arrow-right"></i>
-        </a>
+    {% if base_template == "layouts/blank.html" %}
+    <a href="{{ list_context.list_url }}" class="btn btn-info me-2">See all
+        <i class="fa-solid fa-arrow-right"></i>
+    </a>
     {% endif %}
     <button type="button" class="btn btn-success" 
-        hx-get="{{ list_context.add_url }}" 
-        hx-target="#dialog"
-        hx-trigger="click">
-        <i class="fa-solid fa-plus"></i>
-    </button>
+    hx-get="{{ list_context.add_url }}" 
+    hx-target="#dialog"
+    hx-trigger="click">
+    <i class="fa-solid fa-plus"></i>
+</button>    
+<button class="btn btn-primary"
+hx-get="{{ list_context.list_url }}"
+hx-vals='js:Object.assign({export_csv: true}, {{ hx_vals|safe }})'
+hx-headers='{"HX-Context": "{{ htmx_context }}"}'
+hx-swap="none"
+hx-trigger="click">
+<i class="fa-solid fa-download me-1"></i> Download CSV
+</button>
 </div>
 
 

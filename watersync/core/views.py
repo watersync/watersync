@@ -1,7 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.gis.geos import Point
 from django.forms import ModelForm
 from django.views.generic import ListView, TemplateView
+from watersync.core.generics.decorators import filter_by_location
+from watersync.core.generics.utils import update_location_geom
 from watersync.groundwater.views import GWLListView
 from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
 from watersync.core.mixins import RenderToResponseMixin
@@ -54,20 +55,11 @@ fieldwork_list_view = FieldworkListView.as_view()
 fieldwork_delete_view = FieldworkDeleteView.as_view()
 fieldwork_update_view = FieldworkUpdateView.as_view()
 
-# ================================LOCATION VIEWS================================
-
-def update_location_geom(form):
-    lat = form.cleaned_data.get("latitude")
-    lon = form.cleaned_data.get("longitude")
-    if lat and lon:
-        form.instance.geom = Point(lon, lat, srid=4326)
-
 class LocationCreateView(WatersyncCreateView):
     model = Location
     form_class = LocationForm
 
     def update_form_instance(self, form: ModelForm):
-        form.instance.project = self.get_project()
         update_location_geom(form)
 
 
@@ -76,7 +68,6 @@ class LocationUpdateView(WatersyncUpdateView):
     form_class = LocationForm
 
     def update_form_instance(self, form: ModelForm):
-        form.instance.project = self.get_project()
         update_location_geom(form)
 
 
@@ -85,10 +76,6 @@ class LocationDeleteView(WatersyncDeleteView):
     User is redirected to the locations list view after deletion."""
 
     model = Location
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["project"] = self.get_project()
 
 
 class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
@@ -129,36 +116,14 @@ location_detail_view = LocationDetailView.as_view()
 location_list_view = LocationListView.as_view()
 
 
-def add_requesting_user_to_form(form, requesting_user):
-    """Prototype function adding the requesting user to the form instance."""
-
-    # in case no users are selected, add at least the requesting user to an empty list
-    # I also meant to include it in the generic form_valid method so I am checking if
-    # the form has a user field
-    if hasattr(form.instance, 'user') and requesting_user not in form.cleaned_data.get("user", []):
-        form.cleaned_data["user"].append(requesting_user)
-
-        form.instance.user.set(form.cleaned_data["user"])
-        return form.instance
-
-    return form.instance
-
 class ProjectCreateView(WatersyncCreateView):
     model = Project
     form_class = ProjectForm
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        add_requesting_user_to_form(form, self.request.user)
-        return response
 
 
 class ProjectUpdateView(WatersyncUpdateView):
     model = Project
     form_class = ProjectForm
-
-    def update_form_instance(self, form):
-        return add_requesting_user_to_form(form, self.request.user)
 
 
 class ProjectDeleteView(WatersyncDeleteView):
@@ -189,38 +154,21 @@ class LocationVisitListView(WatersyncListView):
     model = LocationVisit
     detail_type = "popover"
 
+    @filter_by_location
     def get_queryset(self):
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        project = self.get_project()
         locations = project.locations.all()
-
-        queryset = LocationVisit.objects.filter(location__in=locations).order_by("-created")
-
-        if "location_pk" in self.request.GET:
-            queryset = queryset.filter(location__pk=self.request.GET.get("location_pk"))
-
-        return queryset
+        return LocationVisit.objects.filter(location__in=locations).order_by("-created")
 
 
 class LocationVisitCreateView(WatersyncCreateView):
     model = LocationVisit
     form_class = LocationVisitForm
 
-    def update_form_instance(self, form):
-        if "location_pk" in self.kwargs and not form.instance.location:
-            form.instance.location = get_object_or_404(
-                Location, pk=self.kwargs["location_pk"]
-            )
-
 
 class LocationVisitUpdateView(WatersyncUpdateView):
     model = LocationVisit
     form_class = LocationVisitForm
-
-    def update_form_instance(self, form: ModelForm):
-        if "location_pk" in self.kwargs and not form.instance.location:
-            form.instance.location = get_object_or_404(
-                Location, pk=self.kwargs["location_pk"]
-            )
 
 
 class LocationVisitDeleteView(WatersyncDeleteView):
@@ -258,7 +206,6 @@ class LocationOverviewView(TemplateView):
             key: view(request=self.request, kwargs=self.kwargs).get_context_data(object_list=0)
             for key, view in views.items()
         }
-        
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -268,7 +215,8 @@ class LocationOverviewView(TemplateView):
         context["project"] = project
         context.update(self.get_resource_counts(location))
         context.update(self.get_resource_list_context())
-        context["hx_vals"] = mark_safe(json.dumps({"location_pk": location.pk}))
+        context["hx_vals"] = json.dumps({"location_pk": str(location.pk)})
+
 
         return context
 

@@ -16,19 +16,19 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-
 from watersync.core.models import Project
+from watersync.core.generics.mixins import ExportCsvMixin
 from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListContext, DetailContext
 from functools import partial
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 
 
 class WatersyncGenericViewProperties:
     """Mixin to add shortcuts to the views."""
 
-    blank_template = "blank.html"
-    base_template = "base_dashboard.html"
-    project_base_template = "project_dashboard.html"
+    blank_template = "layouts/blank.html"
+    base_template = "layouts/base_dashboard.html"
+    project_base_template = "layouts/project_dashboard.html"
 
     class Meta:
         abstract = True
@@ -117,7 +117,8 @@ class WatersyncGenericViewProperties:
         
     def get_base_url_kwargs(self):
         base_kwargs = {"user_id": self.request.user.id}
-        if project := self.get_project():
+        project = self.get_project()
+        if project and self.model_name != "project":
             base_kwargs["project_pk"] = project.pk
         return base_kwargs
     
@@ -137,7 +138,7 @@ class WatersyncGenericViewProperties:
         return self.base_template
 
 
-class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ListView):
+class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ExportCsvMixin, ListView):
     """Base view for listing objects.
 
     It contains the basic setup that is shared between all list views. The individual list view can override default
@@ -175,6 +176,11 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
     detail_type: str
     template_name = "list.html"
     htmx_template = "table.html"
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('export_csv'):
+            return self.export_as_csv(request)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         """Add common context data to the template.

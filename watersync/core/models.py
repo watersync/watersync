@@ -19,14 +19,16 @@ class Project(TimeStampedModel, ModelTemplateInterface):
         user (ManyToManyField): The users attached to the project.
         name (CharField): The name of the project.
         description (TextField): The description of the project.
-        location (PointField): The geographic coordinates of the project.
+        geom (PolygonField): The location of the project.
         start_date (DateField): The date when the project started.
-        created_at (DateTimeField): The date and time when the project was
-            created. This field will autoupdate when created.
-        updated_at (DateTimeField): The date and time when the project was
-            updated. This field will update when created.
         end_date (DateField): The date when the project ended.
         is_active (BooleanField): The status of the project.
+        created (DateTimeField): The date and time when the project was
+            created. Handled by TimesStampedModel. This field will autoupdate
+            when created.
+        modified (DateTimeField): The date and time when the project was
+            updated. Handled by TimesStampedModel. This field will update
+            when created.
     """
 
     user = models.ManyToManyField(User, related_name="projects")
@@ -52,24 +54,29 @@ class Project(TimeStampedModel, ModelTemplateInterface):
 class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     """List of locations.
 
-    Locations are attached to projects and each measurement or analysis
-    is attached to the location. On this basis the user can see the data
-    related to the location.
+    Locations are attached to projects and most of other types of data in projects like
+    measurements or analyses are attached to locations. Location also tracks the
+    history of the updates. The history is tracked by the simple_history package.
+    It is useful in cases when the location parameters like height of the top of the
+    casing change, but old measurement still refer to the old location height.
 
     Attributes:
+        user (ForeignKey): The user that created the location.
         project (ForeignKey): The project to which the location is attached.
         name (CharField): The name of the location.
         geom (PointField): The geographic coordinates of the location.
         altitude (DecimalField): The altitude of the location.
+        type (CharField): The type of the location. The type is one of the
+            following: well, river, lake, wastewater, precipitation.
         description (TextField): The description of the location.
-        added_by (ForeignKey): The user that added the location.
-        created_at (DateTimeField): The date and time when the location was
-            created.
-        updated_at (DateTimeField): The date and time when the location was
-            updated.
         detail (JSONField): JSON field with station detail to provide flexible
-        schema and avoid related models.
-
+            schema and avoid related models.
+        created (DateTimeField): The date and time when the location was
+            created. This field is handled by TimesStampedModel and will be populated
+            when created.
+        updated (DateTimeField): The date and time when the location was
+            updated. This field is handled by TimesStampedModel and will autoupdate
+            when updated.
 
         Properties:
             latest_status (str): The latest status of the location.
@@ -83,6 +90,7 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
         "precipitation": "Precipitation",
     }
 
+    user = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="locations"
     )
@@ -91,7 +99,6 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     altitude = models.DecimalField(max_digits=8, decimal_places=2)
     type = models.CharField(choices=LOCATION_TYPES)
     description = models.TextField(blank=True, null=True)
-    user = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
@@ -121,7 +128,7 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     Attributes:
         location (ForeignKey): The location to which the status is attached.
         status (CharField): Short status of the location.
-        comment (Optional[CharField]): Descriptive comment about the status, if necessary.
+        description (Optional[CharField]): Descriptive comment about the status, if necessary.
         timestamp (DateTimeField): The date and time when the status was
             created.
     """
@@ -144,7 +151,8 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
         null=True,
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
-    comment = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
 
     _list_view_fields = {
         "Location": "location",
@@ -173,7 +181,7 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     weather = models.JSONField(null=True, blank=True)
-    comment = models.TextField(null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
 
     _list_view_fields = {
         "Date": "date",

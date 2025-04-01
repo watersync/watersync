@@ -1,5 +1,6 @@
 {% load custom_tags %}
 {% for obj in object_list %}
+
 <tr>
     <th scope="row">{{ forloop.counter }}</th>
     {% for fld, val in obj.list_view_items %}
@@ -20,7 +21,7 @@
         {% endif %}
         {% if list_context.detail_popover %}
         <button type="button" class="btn btn-sm btn-info" data-toggle="popover" data-bs-trigger="focus"
-            data-bs-placement="top" title="Comment" data-bs-content="{{ obj.comment }}">
+            data-bs-placement="top" title="Comment" data-bs-content="{{ obj.description }}">
             <i class="fas fa-info"></i>
         </button>
         {% endif %}

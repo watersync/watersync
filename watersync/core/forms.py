@@ -52,7 +52,7 @@ class LocationVisitForm(ModelForm):
 
     class Meta:
         model = LocationVisit
-        fields = ["location", "status", "comment"]
+        fields = ["location", "status", "description"]
 
 
 class FieldworkForm(ModelForm):
@@ -86,7 +86,7 @@ class LocationForm(ModelForm):
 
     title = "Add Location"
     detail_schema = "piezometer_detail_schema.json"
-    latitude = FloatField(required=False, label="Latitude")
+    latitude = FloatField(required=False, label="Latitude", initial=0)
     longitude = FloatField(required=False, label="Longitude")
     geom = CharField(required=False)
 
@@ -99,10 +99,19 @@ class LocationForm(ModelForm):
             "altitude",
             "latitude",
             "longitude",
+            "project",
             "detail",
             "geom",
         )
         widgets = {
+            # "project": HiddenInput(),
             "detail": HiddenInput(),
             "geom": HiddenInput(),
         }
+
+    def get_initial(self):
+        """Override the get_initial method to set the initial value for the project field."""
+        initial = super().get_initial()
+        if "project_pk" in self.data:
+            initial["project"] = self.data["project_pk"]
+        return initial

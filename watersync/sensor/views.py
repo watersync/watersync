@@ -20,7 +20,7 @@ from watersync.core.generics.base import WatersyncListView
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
 from watersync.core.generics.base import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
-
+from watersync.core.generics.decorators import filter_by_location
 from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
 
@@ -28,12 +28,6 @@ from .plotting import create_sensor_graph
 class SensorCreateView(WatersyncCreateView):
     model = Sensor
     form_class = SensorForm
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.request.user not in form.instance.user.all():
-            form.instance.user.add(self.request.user)
-        return response
 
 
 class SensorUpdateView(WatersyncUpdateView):
@@ -269,18 +263,13 @@ class DeploymentListView(WatersyncListView):
     model = Deployment
     detail_type = "page"
 
+    @filter_by_location
     def get_queryset(self, **kwargs):
-        project = get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
-
-        if self.request.GET.get("location_pk"):
-            location = get_object_or_404(Location, pk=self.request.GET.get("location_pk"))
-            return Deployment.objects.filter(location=location)
-    
-        else:
-            locations = get_list_or_404(Location, project=project)
-            deployments = Deployment.objects.filter(location__in=locations)
-            return deployments
-
+        project = self.get_project()
+        locations = project.locations.all()
+        return Deployment.objects.filter(
+            location__in=locations
+        ).order_by("-deployed_at")
 
 class DeploymentDetailView(LoginRequiredMixin, DetailView):
     model = Deployment

@@ -1,4 +1,4 @@
-{% extends 'project_dashboard.html' %}
+{% extends 'layouts/project_dashboard.html' %}
 
 {% block content %}
 <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
@@ -59,7 +59,7 @@
                                 Reports from location visits
                             </em>
                         </p>
-                        {% with list_context=locationvisits.list_context htmx_context="block" base_template="blank.html" %}
+                        {% with list_context=locationvisits.list_context htmx_context="block" base_template="layouts/blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
@@ -71,7 +71,7 @@
                                 Groundwater level measurements
                             </em>
                         </p>
-                       {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="blank.html" %}
+                       {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="layouts/blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
@@ -83,7 +83,7 @@
                                 Sensors deployed at this location.
                             </em>
                         </p>
-                        {% with list_context=deployments.list_context htmx_context="block" base_template="blank.html" %}
+                        {% with list_context=deployments.list_context htmx_context="block" base_template="layouts/blank.html" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>

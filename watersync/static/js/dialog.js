@@ -14,35 +14,55 @@ document.addEventListener('htmx:afterSwap', function (e) {
         modalElement.addEventListener('shown.bs.modal', function() {
             const mapContainer = modalElement.querySelector("#map");
             if (mapContainer) {
-                // Initialize modal map
-                initializeModalMap(mapContainer);
-
-                window.modalMap.invalidateSize();
-
+                // Initialize modal map after a short delay
+                setTimeout(() => {
+                    initializeModalMap(mapContainer);
+                }, 100);
             }
         }, { once: true });
     }
 });
 
-// Unified cleanup function
+// Improved cleanup function
 function cleanupModalAndMap() {
-    const modalElement = document.getElementById('modal');
+    // First clean up the map
+    if (window.modalMap) {
+        try {
+            window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
+            window.modalMap.off();
+            window.modalMap.remove();
+            window.modalMap = null;
+        } catch (e) {
+            console.error("Error cleaning up modal map:", e);
+        }
+    }
     
+    // Clean up any leaflet IDs from the map container
+    const mapContainer = document.querySelector("#map");
+    if (mapContainer && mapContainer._leaflet_id) {
+        mapContainer._leaflet_id = null;
+    }
+
+    // Then handle the modal
+    const modalElement = document.getElementById('modal');
     if (modalElement) {
         const modal = bootstrap.Modal.getInstance(modalElement);
-        
         if (modal) {
             try {
-                // Use a safer approach to hiding the modal
                 modal.hide();
                 
-                // Don't dispose immediately - let the hiding complete first
                 modalElement.addEventListener('hidden.bs.modal', function onHidden() {
-                    // Remove this listener to prevent memory leaks
                     modalElement.removeEventListener('hidden.bs.modal', onHidden);
                     
                     if (bootstrap.Modal.getInstance(modalElement)) {
                         modal.dispose();
+                    }
+                    
+                    // Refresh the main page map if it exists
+                    if (window.mainPageMap) {
+                        setTimeout(() => {
+                            window.mainPageMap.invalidateSize();
+                        }, 200);
                     }
                 }, { once: true });
             } catch (e) {
@@ -50,27 +70,16 @@ function cleanupModalAndMap() {
             }
         }
     }
-
-    // Map cleanup code - this part seems fine
-    if (window.modalMap) {
-        window.modalMap.eachLayer(layer => window.modalMap.removeLayer(layer));
-        window.modalMap.off();
-        window.modalMap.remove();
-        const mapContainer = document.querySelector("#map");
-        if (mapContainer) mapContainer._leaflet_id = null;
-        window.modalMap = null;
-    }
 }
 
-
 document.addEventListener('htmx:beforeSwap', function (e) {
-
     if (e.detail.target.id === "dialog" && !e.detail.xhr.response) {
         cleanupModalAndMap();
     }
 });
 
-$(document).on('hidden.bs.modal', '#modal', function () {
+// Make sure we only have one event listener for modal hidden
+$(document).off('hidden.bs.modal', '#modal').on('hidden.bs.modal', '#modal', function () {
     cleanupModalAndMap();
 });
 
@@ -89,12 +98,13 @@ document.addEventListener('htmx:afterSwap', function (e) {
 });
 
 document.addEventListener('htmx:beforeSwap', function (e) {
-    const offcanvasElement = document.getElementById('offcanvasRight');
-    const offcanvasRight = bootstrap.Offcanvas.getInstance(offcanvasElement);
-
     if (e.detail.target.id === "ofc-dialog" && !e.detail.xhr.response) {
-        if (offcanvasRight) {
-            offcanvasRight.hide();
+        const offcanvasElement = document.getElementById('offcanvasRight');
+        if (offcanvasElement) {
+            const offcanvasRight = bootstrap.Offcanvas.getInstance(offcanvasElement);
+            if (offcanvasRight) {
+                offcanvasRight.hide();
+            }
         }
     }
 });
