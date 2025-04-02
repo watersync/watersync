@@ -72,7 +72,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     {% if object.geom %}
-                        <div id="basic_map" style="height: 400px;"></div>
+                        <div id="map_location" style="height: 400px; position: relative; overflow: hidden;"></div>
                     {% else %}
                     <p>No location data available.</p>
                     {% endif %}
@@ -84,7 +84,7 @@
 {% if object.geom %}
 <script>
     var locations = JSON.parse('{{ object|get_coordinates|escapejs }}');
-    var map = initializeMap('basic_map');
+    var map = initializeMap('map_location');
     plotLocations(map, locations);
 </script>
 {% endif %}

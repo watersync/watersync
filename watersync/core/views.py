@@ -5,9 +5,9 @@ from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom
 from watersync.groundwater.views import GWLListView
 from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
-from watersync.core.mixins import RenderToResponseMixin
+from watersync.core.generics.htmx import RenderToResponseMixin
 from watersync.core.models import Fieldwork, Location, LocationVisit, Project
-from watersync.core.generics.base import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
+from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from watersync.sensor.views import DeploymentListView
 from django.utils.safestring import mark_safe
 import json

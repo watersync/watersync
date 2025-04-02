@@ -8,7 +8,8 @@ from django.views.generic import (
     UpdateView,
 )
 
-from watersync.core.mixins import DeleteHTMX, HTMXFormMixin, RenderToResponseMixin
+from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.generics.htmx import DeleteHTMX
 from watersync.waterquality.forms import (
     ProtocolForm,
 )

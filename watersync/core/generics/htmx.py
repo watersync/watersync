@@ -1,7 +1,7 @@
 from django.http import HttpResponse, JsonResponse
-from django.template.loader import render_to_string
-from dataclasses import dataclass
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+
 from watersync.core.models import Location
 
 
@@ -11,6 +11,7 @@ def is_htmx_request(request):
 
 
 class RenderToResponseMixin:
+    """Mixin for rendering HTMX responses."""
     def render_to_response(self, context, **response_kwargs):
         if self.request.headers.get("HX-Request"):
             html = render_to_string(self.htmx_template, context, request=self.request)
@@ -69,6 +70,7 @@ class UpdateFormMixin:
                 Location, pk=self.kwargs["location_pk"]
             )
 
+
 class HTMXFormMixin(UpdateFormMixin):
     """Mixin for handling HTMX forms."""
 
@@ -108,13 +110,11 @@ class HTMXFormMixin(UpdateFormMixin):
                 if self.htmx_trigger
                 else {}
             )
-            print(f"HTMX request detected: {self.request.headers}")
 
             return HttpResponse(status=self.htmx_response_status, headers=headers)
         return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
 
     def form_invalid(self, form):
-        print(f"Form errors: {form.errors}")
         if is_htmx_request(self.request):
             self.update_form_instance(form)
             context = self.get_context_data(form=form)
@@ -139,26 +139,3 @@ class DeleteHTMX:
 
             return HttpResponse(status=204, headers=headers)
         return super().delete(request, *args, **kwargs)
-
-
-@dataclass
-class ListContext:
-    """Custom object helping to provide the right information in the context objects of ListViews."""
-
-    add_url: str | None = None
-    base_url_kwargs: dict | None = None
-    list_url: str | None = None
-    update_url: str | None = None
-    delete_url: str | None = None
-    columns: list | None = None
-    action: str | None = None
-    detail_url: str | None = None
-    detail_popover: bool | None = None
-    detail_page_url: str | None = None
-
-
-@dataclass
-class DetailContext:
-    delete_url: str
-    update_url: str
-

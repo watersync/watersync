@@ -16,10 +16,10 @@ from django.views.generic import (
     UpdateView,
     View,
 )
-from watersync.core.generics.base import WatersyncListView
+from watersync.core.generics.views import WatersyncListView
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
-from watersync.core.generics.base import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
+from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
 from watersync.core.generics.decorators import filter_by_location
 from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph

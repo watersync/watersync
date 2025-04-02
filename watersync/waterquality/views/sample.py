@@ -9,7 +9,8 @@ from django.views.generic import (
     UpdateView,
 )
 
-from watersync.core.mixins import DeleteHTMX, HTMXFormMixin, RenderToResponseMixin
+from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.generics.htmx import DeleteHTMX
 from watersync.core.models import Location, Project
 from watersync.utils.get_objects import get_project_location
 from watersync.waterquality.forms import (

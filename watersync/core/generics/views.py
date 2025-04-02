@@ -16,9 +16,10 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
+from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
 from watersync.core.models import Project
-from watersync.core.generics.mixins import ExportCsvMixin
-from watersync.core.mixins import HTMXFormMixin, RenderToResponseMixin, ListContext, DetailContext
+from watersync.core.generics.mixins import ExportCsvMixin, ListContext
+from watersync.core.generics.mixins import DetailContext
 from functools import partial
 from django.urls import reverse
 
@@ -178,8 +179,9 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
     htmx_template = "table.html"
 
     def get(self, request, *args, **kwargs):
-        if request.GET.get('export_csv'):
-            return self.export_as_csv(request)
+        if request.headers.get("HX-Download"):
+            queryset = self.get_queryset()
+            return self.export_as_csv(request, queryset)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
