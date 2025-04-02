@@ -2,6 +2,7 @@ from django.contrib.gis.db import models as geomodels
 from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
+from django.utils.text import slugify
 
 from watersync.core.managers import LocationManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
@@ -140,6 +141,7 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
         ("unknown", "Unknown"),
     ]
 
+    slug = models.SlugField(max_length=100, unique=False, editable=False)
     location = models.ForeignKey(
         Location, related_name="visits", on_delete=models.CASCADE
     )
@@ -163,6 +165,12 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     def __str__(self) -> str:
         return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(
+                f"{self.location.name}-{self.created.strftime('%Y-%m-%d')}"
+            )
+        super().save(*args, **kwargs)
 
 class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     """Register fieldwork day done in a project.

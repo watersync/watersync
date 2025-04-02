@@ -7,7 +7,8 @@ from django.views.generic import DetailView, RedirectView, TemplateView, UpdateV
 
 from watersync.users.models import User
 from watersync.waterquality.forms import ProtocolForm
-from watersync.waterquality.views.protocol import protocol_list_view
+from watersync.waterquality.views import ProtocolListView
+from watersync.core.generics.utils import get_resource_list_context
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
@@ -49,10 +50,13 @@ user_redirect_view = UserRedirectView.as_view()
 class SettingsView(LoginRequiredMixin, TemplateView):
     template_name = "users/settings/settings.html"
 
+    def get_resource_list_context(self, **kwargs):
+        views = {"protocols": ProtocolListView}
+        return get_resource_list_context(self.request, self.kwargs, views)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["protocol_list"] = protocol_list_view.get_queryset()
-        context["form"] = ProtocolForm()
+        context.update(self.get_resource_list_context())
         return context
 
 

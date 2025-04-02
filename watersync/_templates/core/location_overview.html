@@ -40,9 +40,10 @@
                     <button class="nav-link" id="sampling-tab" data-bs-toggle="tab" data-bs-target="#sampling-tab-pane"
                         type="button" role="tab" aria-controls="sampling-tab-pane" aria-selected="false">
                         Water Quality
-                        <span class="badge rounded-pill bg-primary">{{ samplingeventcount }}</span>
+                        <span class="badge rounded-pill bg-primary">{{ samplecount }}</span>
                     </button>
                 </li>
+
             </ul>
             <div id="resource-counts" hx-swap-oob="true">
                 <span id="status-count" hx-swap-oob="true"></span>
@@ -95,7 +96,9 @@
                                 Water quality monitoring.
                             </em>
                         </p>
-        
+                        {% with list_context=samples.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                            {% include "list.html"%}
+                        {% endwith %}
                     </div>
                 </div>
             </div>

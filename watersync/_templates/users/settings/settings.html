@@ -1,9 +1,5 @@
 {% extends 'layouts/base_dashboard.html' %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item active" aria-current="page">Settings</li>
-{% endblock %}
-
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -17,7 +13,16 @@
       </h2>
       <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
         <div class="accordion-body">
-            {% include "waterquality/partial/protocol_list.html" %}
+          <div id="protocols" class="container p-4">
+            <p>
+                <em class="text-decoration-none text-muted">
+                    Sampling protocols
+                </em>
+            </p>
+            {% with list_context=protocols.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                {% include "list.html"%}
+            {% endwith %}
+        </div>
         </div>
       </div>
     </div>

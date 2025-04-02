@@ -6,7 +6,7 @@ from watersync.waterquality.models import Measurement, Sample
 @admin.register(Sample)
 class SampleAdmin(admin.ModelAdmin):
     # Columns to display in the list view
-    list_display = ("sampling_event", "target_parameters")
+    list_display = ("target_parameters", )
 
 
 @admin.register(Measurement)

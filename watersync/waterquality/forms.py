@@ -1,10 +1,11 @@
 from django import forms
 from django.forms import DateInput, DateTimeInput, HiddenInput, Textarea
 
-from watersync.waterquality.models import Measurement, Protocol, Sample, SamplingEvent
+from watersync.waterquality.models import Measurement, Protocol, Sample
 
 
 class ProtocolForm(forms.ModelForm):
+    title = "Add Protocol"
     class Meta:
         model = Protocol
         fields = [
@@ -15,33 +16,32 @@ class ProtocolForm(forms.ModelForm):
             "analytical_method",
             "data_postprocessing",
             "standard_reference",
-            "details",
+            "description",
         ]
 
 
-class SamplingEventForm(forms.ModelForm):
-    class Meta:
-        model = SamplingEvent
-        fields = ("executed_at", "executed_by", "details")
-        widgets = {
-            "executed_at": DateTimeInput(attrs={"type": "datetime-local"}),
-        }
-
-
 class SampleForm(forms.ModelForm):
+    title = "Add Sample"
     class Meta:
         model = Sample
         fields = (
+            "location_visit",
             "protocol",
             "target_parameters",
             "container_type",
             "volume_collected",
-            "details",
             "replica_number",
+            "detail",
+            "description",
         )
+
+        widgets = {
+            "detail": HiddenInput(),
+        }
 
 
 class MeasurementForm(forms.ModelForm):
+    title = "Add Measurement"
     class Meta:
         model = Measurement
         fields = ("parameter", "value", "unit", "measured_on", "details")

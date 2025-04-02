@@ -10,24 +10,40 @@ from django.db import models
 from django.utils.text import slugify
 from django_extensions.db.models import TimeStampedModel
 
-from watersync.core.models import Location
+from watersync.core.models import LocationVisit
+from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
 
-class Protocol(models.Model):
+class Protocol(models.Model, ModelTemplateInterface):
     """Protocol describes the details of the sampling collection and analysis process,
     starting form sample collection, preservation, storage, analysis and data postprocessing."""
 
-    method_name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True, editable=False)
+    method_name = models.CharField(max_length=100)
     sample_collection = models.TextField(blank=True, null=True)
     sample_preservation = models.TextField(blank=True, null=True)
     sample_storage = models.TextField(blank=True, null=True)
     analytical_method = models.TextField(blank=True, null=True)
     data_postprocessing = models.TextField(blank=True, null=True)
     standard_reference = models.CharField(max_length=100, blank=True, null=True)
-    details = models.TextField(max_length=256, blank=True, null=True)
-    users = models.ManyToManyField(User, related_name="protocols")
+    description = models.TextField(max_length=256, blank=True, null=True)
+    user = models.ManyToManyField(User, related_name="protocols")
+
+    _list_view_fields = {
+        "Method Name": "method_name",
+    }
+
+    _detail_view_fields = {
+        "Method Name": "method_name",
+        "Sample Collection": "sample_collection",
+        "Sample Preservation": "sample_preservation",
+        "Sample Storage": "sample_storage",
+        "Analytical Method": "analytical_method",
+        "Data Postprocessing": "data_postprocessing",
+        "Standard Reference": "standard_reference",
+        "Description": "description",
+    }
 
     def __str__(self):
         return self.method_name
@@ -38,46 +54,39 @@ class Protocol(models.Model):
         super().save(*args, **kwargs)
 
 
-class SamplingEvent(TimeStampedModel):
-    """Sampling event is linked to a particular location and date."""
-
-    slug = models.SlugField(max_length=100, unique=True, editable=False)
-    location = models.ForeignKey(
-        Location, on_delete=models.CASCADE, related_name="samplingevents"
-    )
-    executed_at = models.DateTimeField()
-    executed_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="samplingevents"
-    )
-    details = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Sampling at {self.location.name} on {self.executed_at.strftime('%Y-%m-%d')}"
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(
-                f"{self.location.name}-{self.executed_at.strftime('%Y-%m-%d')}"
-            )
-        super().save(*args, **kwargs)
-
-
-class Sample(models.Model):
-    sampling_event = models.ForeignKey(
-        SamplingEvent, on_delete=models.CASCADE, related_name="samples"
+class Sample(TimeStampedModel, ModelTemplateInterface):
+    location_visit = models.ForeignKey(
+        LocationVisit, on_delete=models.CASCADE, related_name="samples"
     )
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     target_parameters = models.CharField(max_length=50)
     container_type = models.CharField(max_length=50, blank=True, null=True)
     volume_collected = models.FloatField(blank=True, null=True)
     replica_number = models.IntegerField(default=0)
-    details = models.TextField(blank=True, null=True)
+    detail = models.JSONField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
 
-    class Meta:
-        unique_together = (("sampling_event", "target_parameters", "replica_number"),)
+    _list_view_fields = {
+        "Target Parameters": "target_parameters",
+        "Container Type": "container_type",
+        "Volume Collected": "volume_collected",
+        "Replica Number": "replica_number",
+        "Created": "created",
+        "Modified": "modified",
+    }
+
+    _detail_view_fields = {
+        "Target Parameters": "target_parameters",
+        "Container Type": "container_type",
+        "Volume Collected": "volume_collected",
+        "Replica Number": "replica_number",
+        "Created": "created",
+        "Modified": "modified",
+    }
 
     def __str__(self):
-        return f"{self.sampling_event.slug}-{self.target_parameters}-R{self.replica_number}"
+        return f"{self.target_parameters} - {self.container_type} - {self.volume_collected} - {self.replica_number}"
+
 
 
 class Measurement(TimeStampedModel):

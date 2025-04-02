@@ -108,10 +108,3 @@ class LocationForm(ModelForm):
             "detail": HiddenInput(),
             "geom": HiddenInput(),
         }
-
-    def get_initial(self):
-        """Override the get_initial method to set the initial value for the project field."""
-        initial = super().get_initial()
-        if "project_pk" in self.data:
-            initial["project"] = self.data["project_pk"]
-        return initial

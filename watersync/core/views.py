@@ -10,6 +10,8 @@ from watersync.core.models import Fieldwork, Location, LocationVisit, Project
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from watersync.sensor.views import DeploymentListView
 from django.utils.safestring import mark_safe
+from watersync.waterquality.views import SampleListView
+from watersync.core.generics.utils import get_resource_list_context
 import json
 
 from django.shortcuts import get_object_or_404
@@ -189,7 +191,7 @@ class LocationOverviewView(TemplateView):
             "statuscount": location.visits,
             "gwlmeasurementcount": location.gwlmeasurements,
             "deploymentcount": location.deployments,
-            "samplingeventcount": location.samplingevents,
+            # "samplecount": location.samples,
         }
 
         return {key: view.count() for key, view in views.items()}
@@ -199,13 +201,10 @@ class LocationOverviewView(TemplateView):
             "locationvisits": LocationVisitListView,
             "gwlmeasurements": GWLListView,
             "deployments": DeploymentListView,
-            # "samplingevents": SamplingEventListView,
+            "samples": SampleListView,
         }
 
-        return {
-            key: view(request=self.request, kwargs=self.kwargs).get_context_data(object_list=0)
-            for key, view in views.items()
-        }
+        return get_resource_list_context(self.request, self.kwargs, views)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
