@@ -1,7 +1,5 @@
 {% extends 'layouts/project_dashboard.html' %}
 
-{% load crispy_forms_tags %}
-{% load static %}
 
 {% block content %}
 <div id="location-detail" hx-get="{% url 'core:detail-location' user.id project.pk location.pk %}"
@@ -33,9 +31,11 @@
                         Reports from location visits
                     </em>
                 </p>
-                {% with list_context=locationvisits.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                
+                {% with list_context=locationvisits.list_context htmx_context="block" %}
                     {% include "list.html"%}
                 {% endwith %}
+                
             </div>
         </div>
       </div>
@@ -55,7 +55,7 @@
                         Groundwater level measurements
                     </em>
                 </p>
-               {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="layouts/blank.html" %}
+               {% with list_context=gwlmeasurements.list_context htmx_context="block" %}
                     {% include "list.html"%}
                 {% endwith %}
             </div>        
@@ -77,7 +77,7 @@
                         Sensors deployed at this location.
                     </em>
                 </p>
-                {% with list_context=deployments.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                {% with list_context=deployments.list_context htmx_context="block" %}
                     {% include "list.html"%}
                 {% endwith %}
             </div>        
@@ -85,13 +85,13 @@
       </div>
     </div>
     <div class="accordion-item">
-        <h2 class="accordion-header" id="flush-headingThree">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
+        <h2 class="accordion-header" id="flush-headingFour">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFour" aria-expanded="false" aria-controls="flush-collapseFour">
             Water Quality
             <span class="badge rounded-pill bg-primary">{{ samplecount }}</span>
           </button>
         </h2>
-        <div id="flush-collapseThree" class="accordion-collapse collapse" aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
+        <div id="flush-collapseFour" class="accordion-collapse collapse" aria-labelledby="flush-headingFour" data-bs-parent="#accordionFlushExample">
           <div class="accordion-body">
             <div id="sampling-table" class="container p-4">
                 <p>
@@ -99,7 +99,7 @@
                         Water quality monitoring.
                     </em>
                 </p>
-                {% with list_context=samples.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                {% with list_context=samples.list_context htmx_context="block" %}
                     {% include "list.html"%}
                 {% endwith %}
             </div>     

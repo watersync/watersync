@@ -1,9 +1,5 @@
-{% extends base_template %}
-
-{% load static %}
-{% block content %}
-<div class="align-items-start mb-3 gap-6"></div>
-    {% if base_template == "layouts/blank.html" %}
+<div class="align-items-start mb-3 gap-6">
+    {% if htmx_context == "block" %}
     <a href="{{ list_context.list_url }}" class="btn btn-info">See all
         <i class="fa-solid fa-arrow-right"></i>
     </a>
@@ -47,6 +43,7 @@
     </tbody>
 </table>
 
+
 <script>
     if (!window.csvDownloadListenersAdded) {
         // Listen for the HTMX trigger event
@@ -83,4 +80,3 @@
         window.csvDownloadListenersAdded = true;
     }
     </script>
-{% endblock content %}

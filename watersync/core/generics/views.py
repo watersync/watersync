@@ -2,8 +2,12 @@
 
 The idea is to abstract as much as possible the common logic between the views for the different models.
 
-    Notes:
-        - Consider implementing 
+TODO:
+    - I implemented a smarter check of the base template. Now it's done in the view itself and does not
+    require passing the blank template. Simply when the htmx_context is "block", we set the list template_name to
+    one that has only the html element in it. list_page.html contains a reference to the base template and includes the
+    list.html template. The base_template is not required in the with -- include statement in the template. Would be good to
+    unify these two approaches a bit.
 """
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
@@ -177,6 +181,22 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
     detail_type: str
     template_name = "list.html"
     htmx_template = "table.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.template_name = self.determine_template_name()
+
+    def determine_template_name(self):
+        """Determine the template name dynamically.
+
+        If it's a page list, take a template called page_list.html. If it is an
+        inserted list, take the template called list.html.
+        """
+        if self.request.headers.get("HX-Context") == "block":
+            print("THIS IS A BLOCK LIST")
+            return "list.html"
+        print("THIS IS A PAGE LIST")
+        return "list_page.html"
 
     def get(self, request, *args, **kwargs):
         if request.headers.get("HX-Download"):

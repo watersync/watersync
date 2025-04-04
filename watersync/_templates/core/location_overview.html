@@ -60,7 +60,7 @@
                                 Reports from location visits
                             </em>
                         </p>
-                        {% with list_context=locationvisits.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                        {% with list_context=locationvisits.list_context htmx_context="block" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
@@ -72,7 +72,7 @@
                                 Groundwater level measurements
                             </em>
                         </p>
-                       {% with list_context=gwlmeasurements.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                       {% with list_context=gwlmeasurements.list_context htmx_context="block" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
@@ -84,7 +84,7 @@
                                 Sensors deployed at this location.
                             </em>
                         </p>
-                        {% with list_context=deployments.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                        {% with list_context=deployments.list_context htmx_context="block" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
@@ -96,7 +96,7 @@
                                 Water quality monitoring.
                             </em>
                         </p>
-                        {% with list_context=samples.list_context htmx_context="block" base_template="layouts/blank.html" %}
+                        {% with list_context=samples.list_context htmx_context="block" %}
                             {% include "list.html"%}
                         {% endwith %}
                     </div>
