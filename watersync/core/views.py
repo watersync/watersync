@@ -184,7 +184,7 @@ location_visit_update_view = LocationVisitUpdateView.as_view()
 
 
 class LocationOverviewView(TemplateView):
-    template_name = "core/location_overview_acordeon.html"
+    template_name = "core/location_overview.html"
 
     def get_resource_counts(self, location):
         views = {
