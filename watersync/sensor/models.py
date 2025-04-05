@@ -7,11 +7,12 @@ from watersync.users.models import User
 
 
 class Sensor(models.Model, ModelTemplateInterface):
-    """Stores sensing devices details.
+    """Sensing devices.
 
     Attributes:
         identifier: The unique identifier of the sensor.
         user: The owner of the sensor.
+        available: whether the sensor is currently deployed or not.
         detail: Additional information about the sensor
             in a JSON format.
     """
@@ -20,6 +21,8 @@ class Sensor(models.Model, ModelTemplateInterface):
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
+
+    explanation = "Sensing devices."
 
     _list_view_fields = {
         "Identifier": "identifier",
@@ -36,7 +39,7 @@ class Sensor(models.Model, ModelTemplateInterface):
 
 
 class Deployment(models.Model, ModelTemplateInterface):
-    """Deployments of sensors aka a sensor timeseries.
+    """Timeseries from sensors.
 
     A sensor deployment happens when a sensor is placed in a particular location. Deployment
     marks the beginning and the end of a timeseries obtained from a particular location from
@@ -86,6 +89,7 @@ class Deployment(models.Model, ModelTemplateInterface):
         if not self.sensor.available:
             message = "This sensor is already deployed and not available."
             raise ValueError(message)
+
         self.sensor.available = False
         self.sensor.save()
         self.save()
@@ -131,7 +135,11 @@ class Deployment(models.Model, ModelTemplateInterface):
 
 
 class SensorRecord(models.Model):
-    """All measurements linked to deployment.
+    """Measurements from sensors.
+
+    This table stores the measurements taken by all sensors. Deployment model acts
+    as metadata for the measurements, so we only need to store the deployment,
+    the value and the timestamp.
 
     Attributes:
         deployment: link to the particular logger deployment.

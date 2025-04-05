@@ -25,6 +25,17 @@ function initializeJSONEditor(elementId, schemaUrl,
     });
 }
 
+function reinitializeJSONEditor(elementId, schemaUrl, hiddenFieldId, newData) {
+    // Clear the existing editor instance
+    var element = document.getElementById(elementId);
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+
+    // Reinitialize the editor with new data
+    initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, newData);
+}
+
 function downloadCSV(elementId, data, fileName) {
     // Get the button element by ID
     const button = document.getElementById(elementId);

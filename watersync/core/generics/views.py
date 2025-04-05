@@ -228,6 +228,9 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
             delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
             action=self.htmx_trigger,
             columns=self.model._list_view_fields.keys(),
+            explanation=self.model.__doc__.split("\n\n")[0],
+            explanation_detail=self.model.__doc__.split("\n\n")[1],
+            title=self.model._meta.verbose_name_plural,
         )
 
         if self.detail_type == "page":

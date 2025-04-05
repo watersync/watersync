@@ -3,6 +3,7 @@ from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
 from django.utils.text import slugify
+from django.utils import timezone
 
 from watersync.core.managers import LocationManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
@@ -13,8 +14,8 @@ class Project(TimeStampedModel, ModelTemplateInterface):
     """List of projects.
 
     Project is the main object of the database. All other objects are
-    connected to the project. Depending on whether the user is attached
-    to the project, the user can see the data related to the project.
+    connected to the project. Only users that are attached to the project have access
+    to the resources in it.
 
     Attributes:
         user (ManyToManyField): The users attached to the project.
@@ -124,7 +125,12 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
 
 
 class LocationVisit(TimeStampedModel, ModelTemplateInterface):
-    """Status of the location at the given time.
+    """Status of locations at the given time.
+
+    Normally when you go to the field, you visit one or more locations of interst and 
+    take measurements at them. First it is important to give an update on the status of
+    the location. Then measurements are taken. In the database, those measurements are
+    linked to location visits for easy retrieval.
 
     Attributes:
         location (ForeignKey): The location to which the status is attached.
@@ -141,10 +147,10 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
         ("unknown", "Unknown"),
     ]
 
-    slug = models.SlugField(max_length=100, unique=False, editable=False)
     location = models.ForeignKey(
         Location, related_name="visits", on_delete=models.CASCADE
     )
+    date = models.DateField(blank=True, null=True)
     fieldwork = models.ForeignKey(
         "Fieldwork",
         related_name="visits",
@@ -155,7 +161,6 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     description = models.TextField(blank=True, null=True)
 
-
     _list_view_fields = {
         "Location": "location",
         "Status": "status",
@@ -163,17 +168,11 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     }
 
     def __str__(self) -> str:
-        return f"{self.location} - {self.created:%Y-%m-%d} - {self.status}"
+        return f"{self.location} - {self.created:%Y-%m-%d}"
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(
-                f"{self.location.name}-{self.created.strftime('%Y-%m-%d')}"
-            )
-        super().save(*args, **kwargs)
 
 class Fieldwork(TimeStampedModel, ModelTemplateInterface):
-    """Register fieldwork day done in a project.
+    """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
     user can take multiple measurements at different locations. The fieldwork is related to a

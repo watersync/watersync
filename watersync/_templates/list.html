@@ -1,3 +1,17 @@
+{% if htmx_context != "block" %}
+<h3 class="text-muted">{{ list_context.title|capfirst }}</h3>
+{% endif %}
+
+<p>
+    <span class="text-muted">
+        {{ list_context.explanation }}
+    </span>
+    <button type="button" class="btn btn-sm p-0 text-info" data-toggle="popover" data-bs-trigger="focus"
+        data-bs-placement="top" title="Comment" data-bs-content="{{ list_context.explanation_detail }}">
+        <i class="fas fa-info-circle"></i>
+    </button>
+</p>
+
 <div class="align-items-start mb-3 gap-6">
     {% if htmx_context == "block" %}
     <a href="{{ list_context.list_url }}" class="btn btn-info">See all

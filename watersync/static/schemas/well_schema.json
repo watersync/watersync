@@ -1,0 +1,29 @@
+{
+    "title": "Location details    ",
+    "type": "array",
+    "format": "table",
+    "uniqueItems": true,
+    "items": {
+        "type": "object",
+        "properties": {
+            "property": {
+                "type": "string",
+                "title": "Key",
+                "enum": [
+                    "altitude",
+                    "toc_height",
+                    "filter_bottom",
+                    "filter_top",
+                    "total_length",
+                    "diameter",
+                    "material",
+                    "placement_technique"
+                ]
+            },
+            "value": {
+                "type": "string",
+                "title": "Value"
+            }
+        }
+    }
+}

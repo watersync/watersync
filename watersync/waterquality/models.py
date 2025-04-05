@@ -1,9 +1,8 @@
 """The workflow of collecting data looks as follows:
 
-1. A sampling event is registered (SamplingEvent).
-2. A sample (Sample) of physicochemical parameters is registered as STN-YYYYMMDD-PARAMS
-3. Other samples (Sample) are defined, e.g., for nutrients (NUT), metals (MET), etc.
-4. Once the measurements (MEASUREMENT) are completed, they are created and linked to the previously created samples.
+A sample (Sample) of physicochemical parameters is registered as STN-YYYYMMDD-PARAMS
+Other samples (Sample) are defined, e.g., for nutrients (NUT), metals (MET), etc.
+Once the measurements (MEASUREMENT) are completed, they are created and linked to the previously created samples.
 """
 
 from django.db import models
@@ -16,8 +15,24 @@ from watersync.users.models import User
 
 
 class Protocol(models.Model, ModelTemplateInterface):
-    """Protocol describes the details of the sampling collection and analysis process,
-    starting form sample collection, preservation, storage, analysis and data postprocessing."""
+    """Protocols for sampling and analysis.
+    
+    Protocol describes the details of the sampling collection and analysis process,
+    starting form sample collection, preservation, storage, analysis and data
+    postprocessing.
+    
+    Attributes:
+        slug: A unique identifier for the protocol, generated from the method name.
+        method_name: The name of the analytical method.
+        sample_collection: Details about sample collection.
+        sample_preservation: Details about sample preservation.
+        sample_storage: Details about sample storage.
+        analytical_method: Details about the analytical method used.
+        data_postprocessing: Details about data postprocessing.
+        standard_reference: Reference to a standard or guideline followed.
+        description: A brief description of the protocol.
+        user: The user associated with the protocol.
+    """
 
     slug = models.SlugField(max_length=100, unique=True, editable=False)
     method_name = models.CharField(max_length=100)
@@ -55,6 +70,20 @@ class Protocol(models.Model, ModelTemplateInterface):
 
 
 class Sample(TimeStampedModel, ModelTemplateInterface):
+    """Samples taken for analysis.
+
+    Each sample represents a volume of water collected for analysis of specific parameters.
+    The sample is linked to a specific location visit and protocol.
+
+    Attributes:
+        location_visit: The location visit associated with the sample.
+        protocol: The protocol used for the sample.
+        target_parameters: The parameters targeted for analysis in the sample.
+        container_type: The type of container used for the sample.
+        volume_collected: The volume of water collected in the
+            sample.
+    """
+
     location_visit = models.ForeignKey(
         LocationVisit, on_delete=models.CASCADE, related_name="samples"
     )
@@ -65,14 +94,13 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     replica_number = models.IntegerField(default=0)
     detail = models.JSONField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-
+    
     _list_view_fields = {
+        "Location Visit": "location_visit",
         "Target Parameters": "target_parameters",
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",
         "Replica Number": "replica_number",
-        "Created": "created",
-        "Modified": "modified",
     }
 
     _detail_view_fields = {
@@ -87,9 +115,12 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     def __str__(self):
         return f"{self.target_parameters} - {self.container_type} - {self.volume_collected} - {self.replica_number}"
 
-
-
 class Measurement(TimeStampedModel):
+    """Individual measurements of parameters in a sample.
+    
+    It is possible to create a sample first, let's say in the field when it's taken, and
+    then add the measurements later when the analysis is done.
+    """
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="measurements"
     )
@@ -97,7 +128,8 @@ class Measurement(TimeStampedModel):
     value = models.FloatField()
     unit = models.CharField(max_length=50)
     measured_on = models.DateField(null=True, blank=True)
-    details = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    detail = models.JSONField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.parameter}: {self.value} {self.unit} ({self.sample})"
+        return f"{self.sample}: "

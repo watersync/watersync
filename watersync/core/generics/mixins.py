@@ -85,6 +85,9 @@ class ListContext:
     detail_url: str | None = None
     detail_popover: bool | None = None
     detail_page_url: str | None = None
+    explanation: str | None = None
+    explanation_detail: str | None = None
+    title: str | None = None
 
 
 @dataclass

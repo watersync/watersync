@@ -44,9 +44,9 @@ class MeasurementForm(forms.ModelForm):
     title = "Add Measurement"
     class Meta:
         model = Measurement
-        fields = ("parameter", "value", "unit", "measured_on", "details")
+        fields = ("parameter", "value", "unit", "measured_on", "detail")
         widgets = {
-            "details": HiddenInput(),
+            "detail": HiddenInput(),
             "measured_on": DateInput(attrs={"type": "date"}),
         }
 

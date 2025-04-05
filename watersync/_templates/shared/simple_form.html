@@ -6,6 +6,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
+    {{ form.instance.type.value}}
         <form hx-post="{{ request.path }}" hx-target="#dialog">
             {% csrf_token %}
             {{ form|crispy }}
@@ -27,7 +28,6 @@
         </form>
     </div>
 </div>
-
 {% if form.detail %}
 {% load static %}
 
@@ -38,6 +38,25 @@
     var hiddenFieldId = 'id_detail';
     var initialData = JSON.parse('{{ form.detail.value|escapejs }}');
 
-    initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
+    const typeSelect = document.getElementById('id_type');
+
+    if (!typeSelect.value) {
+        schemaUrl = "{% static 'schemas/default_schema.json' %}";
+    } else {
+        schemaUrl = "{% static 'schemas/' %}" + typeSelect.value + "_schema.json";
+        initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
+    }
+
+    typeSelect.addEventListener('change', function() {
+        // Update the schema URL based on the selected type
+        if (this.value) {
+            schemaUrl = "{% static 'schemas/' %}" + this.value + "_schema.json";
+        } else {
+            schemaUrl = "{% static 'schemas/default_schema.json' %}";
+        }
+        // Reinitialize the JSON editor with the new schema URL
+        reinitializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
+    });
+
 </script>
 {% endif %}

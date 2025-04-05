@@ -1,7 +1,6 @@
 from decimal import Decimal
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
-from django.utils.timezone import now
 
 from watersync.core.models import Location
 from watersync.core.generics.mixins import ModelTemplateInterface
@@ -20,6 +19,13 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
     depth = models.DecimalField(max_digits=5, decimal_places=2)
     measured_at = models.DateTimeField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
+
+    _list_view_fields = {
+        "Location": "location",
+        "Measured at": "measured_at",
+        "Depth": "depth",
+        "Elevation": "groundwater_elevation",
+    }
 
     @property
     def groundwater_elevation(self):
@@ -49,10 +55,3 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
         # Calculate groundwater elevation
         return historical_toc - self.depth
 
-        
-    _list_view_fields = {
-        "Location": "location",
-        "Measured at": "measured_at",
-        "Depth": "depth",
-        "Elevation": "groundwater_elevation",
-    }
