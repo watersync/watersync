@@ -4,7 +4,7 @@ from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom
 from watersync.groundwater.views import GWLListView
-from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
+from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm, location_formset
 from watersync.core.generics.htmx import RenderToResponseMixin
 from watersync.core.models import Fieldwork, Location, LocationVisit, Project
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
@@ -59,7 +59,9 @@ fieldwork_update_view = FieldworkUpdateView.as_view()
 
 class LocationCreateView(WatersyncCreateView):
     model = Location
-    form_class = LocationForm
+    # form_class = LocationForm
+    form_class = location_formset
+
 
     def update_form_instance(self, form: ModelForm):
         update_location_geom(form)
