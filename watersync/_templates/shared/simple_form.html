@@ -5,8 +5,9 @@
         <h5 class="modal-title" id="{{ modal_id }}Label">{{ form.title }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
+    
     <div class="modal-body">
-    {{ form.instance.type.value}}
+        {{ request.path }}
         <form hx-post="{{ request.path }}" hx-target="#dialog">
             {% csrf_token %}
             {{ form|crispy }}
@@ -30,7 +31,7 @@
 </div>
 {% if form.detail %}
 {% load static %}
-
+{% comment %}
 <script>
     // Initialize the detail input
     var elementId = 'detail_form';
@@ -59,4 +60,6 @@
     });
 
 </script>
+{% endcomment %}
+
 {% endif %}

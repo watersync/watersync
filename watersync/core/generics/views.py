@@ -12,7 +12,9 @@ TODO:
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django import forms
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -20,7 +22,11 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.forms import (
+    PiezometerDetailForm,
+    LakeDetailForm,
+)
+from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin, is_htmx_request
 from watersync.core.models import Project
 from watersync.core.generics.mixins import ExportCsvMixin, ListContext
 from watersync.core.generics.mixins import DetailContext
@@ -186,6 +192,11 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         super().setup(request, *args, **kwargs)
         self.template_name = self.determine_template_name()
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['type'].widget.attrs['hx-get'] = self.request.path
+        return form
+
     def determine_template_name(self):
         """Determine the template name dynamically.
 
@@ -193,9 +204,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         inserted list, take the template called list.html.
         """
         if self.request.headers.get("HX-Context") == "block":
-            print("THIS IS A BLOCK LIST")
             return "list.html"
-        print("THIS IS A PAGE LIST")
         return "list_page.html"
 
     def get(self, request, *args, **kwargs):
@@ -251,11 +260,40 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
 
         return context
 
+class CreateUpdateDetailMixin:
+    partial_form_template = "shared/form_detail.html"
 
-class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateView):
+    def swap_detail_form(self, request, initial=None) -> HttpResponse:
+        """Swap the detail form in the main form template.
+        
+        This method returns a partial template with crispy form for the detail. It's
+        called by HTMX when the user changes the type of the object. The assumption is
+        that the when a detail field is present, the form will also contain a dictionary
+        of detail forms. The detail form is then swapped in the main form template.
+        """
+        form = self.form_class.detail_forms.get(
+                type := request.GET.get("type"), self.form_class
+            )
+        
+        return render(
+            request,
+            self.partial_form_template if type else self.template_name,
+            {"form": form},
+        )
+    
+    def get(self, request, *args, **kwargs):
+        result = super().get(request, *args, **kwargs)
+        print("RESULT: ", result)
+        if is_htmx_request(request):
+            return self.swap_detail_form(request, initial=kwargs.get("initial"))
+        return super().get(request, *args, **kwargs)
+
+
+class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, CreateView):
 
     template_name = "shared/simple_form.html"
     htmx_render_template = "shared/simple_form.html"
+
 
 
 class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
@@ -318,13 +356,19 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         return super().delete(request, *args, **kwargs)
 
 
-class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, UpdateView):
+class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, UpdateView):
     
     template_name = "shared/simple_form.html"
     htmx_render_template = "shared/simple_form.html"
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+    
+    def get(self, request, *args, **kwargs):
+        print("INITIAL DATA: ", self.get_initial())
+        print("OBJECT: ", self.get_object())
+        response = super().get(request, initial=self.get_initial(), *args, **kwargs)
+        return response
     
 
 class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DetailView):
