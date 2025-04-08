@@ -17,12 +17,21 @@ class Sensor(models.Model, ModelTemplateInterface):
             in a JSON format.
     """
 
+    SENSOR_TYPE_CHOICES = [
+        ("vented", "Vented"),
+        ("unvented", "Unvented"),
+        ("other", "Other"),
+    ]
+
     identifier = models.CharField(max_length=55, unique=True)
+    type = models.CharField(
+        max_length=20,
+        choices=SENSOR_TYPE_CHOICES,
+        default="other",
+    )
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
-
-    explanation = "Sensing devices."
 
     _list_view_fields = {
         "Identifier": "identifier",
@@ -72,6 +81,13 @@ class Deployment(models.Model, ModelTemplateInterface):
             "Start": "deployed_at",
             "End": "decommissioned_at",
         }
+    
+    _detail_view_fields = {
+            "Location": "location",
+            "Sensor": "sensor",
+            "Start": "deployed_at",
+            "End": "decommissioned_at",
+    }
 
     class Meta:
         """Extra attribute in the Meta is the table_view_fields. It's used in the view to

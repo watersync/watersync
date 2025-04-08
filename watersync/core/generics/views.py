@@ -268,12 +268,12 @@ class CreateUpdateDetailMixin:
 
     def get_detail_form_class(self, request):
         """Return the appropriate detail form class based on the selected type or empty response."""
-        location_type = request.GET.get("type")
+        item_type = request.GET.get("type")
 
-        if not location_type:
+        if not item_type:
             return HttpResponse("")
 
-        return self.form_class.detail_forms.get(location_type) or HttpResponse("")
+        return self.form_class.detail_forms.get(item_type) or HttpResponse("")
 
     def add_hx_get(self, response):
         """Add hx-get attribute to the form field from the request."""
@@ -291,7 +291,8 @@ class CreateUpdateDetailMixin:
 
         if not initial:
             initial = {}
-            
+        
+        # THis is a week point, it might fail if the form is not bound
         detail_form = detail_form_class(initial=initial)
         
         # Render the detail form template
@@ -309,8 +310,8 @@ class CreateUpdateDetailMixin:
 
 class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, CreateView):
 
-    template_name = "shared/simple_form.html"
-    htmx_render_template = "shared/simple_form.html"
+    template_name = "shared/form.html"
+    htmx_render_template = "shared/form.html"
 
     def get(self, request, *args, **kwargs):
         # Check if this is a request for the detail form
@@ -356,9 +357,7 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         is_location_overview = (
             self.model_name == "location"
         )
-        # If the request comes from the detail view I want to redirect to the list view
-        # of the object. If it is made from the list view or an overview page, I want to
-        # only send the configRequest.
+
         if not is_detail_view and not is_overview_view and not is_location_overview:
             return None
         else:
@@ -394,8 +393,8 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
 
 class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, UpdateView):
     
-    template_name = "shared/simple_form.html"
-    htmx_render_template = "shared/simple_form.html"
+    template_name = "shared/form.html"
+    htmx_render_template = "shared/form.html"
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])

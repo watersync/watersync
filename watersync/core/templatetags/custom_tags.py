@@ -45,3 +45,7 @@ def get_coordinates(obj):
 def replace_placeholder(url, pk):
     """Replaces a placeholder in the URL with the actual primary key."""
     return url.replace("__placeholder__", str(pk))
+
+@register.filter
+def field_title(value):
+    return value.replace("_"," ").capitalize()

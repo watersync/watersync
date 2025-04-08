@@ -15,6 +15,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
     View,
+    TemplateView
 )
 from watersync.core.generics.views import WatersyncListView
 from watersync.core.models import Location, Project
@@ -271,16 +272,21 @@ class DeploymentListView(WatersyncListView):
             location__in=locations
         ).order_by("-deployed_at")
 
-class DeploymentDetailView(LoginRequiredMixin, DetailView):
-    model = Deployment
-    template_name = "sensor/deployment_detail.html"
 
-    def get_object(self):
-        return get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
+class DeploymentDetailView(WatersyncDetailView):
+    model = Deployment
+
+
+class DeploymentDeleteView(WatersyncDeleteView):
+    model = Deployment
+
+
+class DeploymentOverviewView(TemplateView):
+    template_name = "sensor/deployment_detail.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        deployment = self.get_object()
+        deployment = get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
 
         # Include additional context from SensorRecordListView
         record_view = SensorRecordListView.as_view()(
@@ -294,16 +300,12 @@ class DeploymentDetailView(LoginRequiredMixin, DetailView):
 
         return context
 
-
-class DeploymentDeleteView(WatersyncDeleteView):
-    model = Deployment
-
-
 deployment_create_view = DeploymentCreateView.as_view()
 deployment_delete_view = DeploymentDeleteView.as_view()
 deployment_detail_view = DeploymentDetailView.as_view()
 deployment_list_view = DeploymentListView.as_view()
 deployment_update_view = DeploymentUpdateView.as_view()
+deployment_overview_view = DeploymentOverviewView.as_view()
 
 # ================ Additionaly functional views ========================
 

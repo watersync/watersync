@@ -26,6 +26,7 @@ from watersync.sensor.views import (
     deployment_delete_view,
     deployment_detail_view,
     deployment_list_view,
+    deployment_overview_view,
     deployment_update_view,
     sensorrecord_create_view,
     sensorrecord_delete_view,
@@ -48,6 +49,7 @@ deployment_urlpatterns = [
     path("", deployment_list_view, name="deployments"),
     path("add/", deployment_create_view, name="add-deployment"),
     path("<str:deployment_pk>/", deployment_detail_view, name="detail-deployment"),
+    path("<str:deployment_pk>/overview", deployment_overview_view, name="overview-deployment"),
     path(
         "<str:deployment_pk>/update/", deployment_update_view, name="update-deployment"
     ),

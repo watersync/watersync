@@ -48,23 +48,11 @@
                             <div class="card-body">
                                 <p class="card-text">{{ object.description }}</p>
                             </div>
+
                         </li>
                         {% endif %}
-                        {% if object.user %}
-                            {% include "shared/user_list.html" with object=object %}
-                        {% endif %}
                     </ul>
-                    {% if object.detail %}
-                    <p>
-                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#detail-panel" aria-expanded="false" aria-controls="collapseExample">
-                            Details
-                        </button>
-                    </p>
-                    <div class="collapse" id="detail-panel">
-                        {% include "shared/detail_list.html" with object=object %}
-                    </div>
-                    {% endif %}
+                    {% include "shared/list_detail.html" with object=object %}
                 </div>
             </div>
         </div>

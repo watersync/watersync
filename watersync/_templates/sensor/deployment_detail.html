@@ -8,22 +8,18 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-<div class="container mt-4">
-    <h3 class="text-muted">Deployment Details</h3>    
-    <br>
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Basic Information</h5>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item"><strong>Location:</strong> {{ deployment.location }}</li>
-                <li class="list-group-item"><strong>Sensor:</strong> {{ deployment.sensor }}</li>
-                <li class="list-group-item"><strong>Deployed at:</strong> {{ deployment.deployed_at }}</li>
-                <li class="list-group-item"><strong>Decommissioned at:</strong> {{ deployment.decommissioned_at }}</li>
-            </ul>
-        </div>
+<div id="deployment-detail" hx-get="{% url 'sensor:detail-deployment' user.id project.pk deployment.pk %}"
+    hx-trigger="revealed, configRequest from:body, locationChanged from:body" hx-target="#deployment-detail"
+    hx-headers='{"HX-Context": "block"}'>
+    <div class="spinner-grow" role="status">
+        <span class="visually-hidden">Loading...</span>
     </div>
+</div>
+<hr>
+<h3 class="text-muted">Resources linked to location</h3>
+<p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
+        itself.</em></p>
 
-    {% include "shared/detail_list.html" %}
 
     <a href="{% url 'sensor:update-deployment' user.id project.pk deployment.pk %}" class="btn btn-warning">
         <i class="fas fa-edit"></i> Edit
@@ -45,5 +41,4 @@
     
     {% include "sensor/partial/record_list.html" %}
     
-</div>
 {% endblock %}

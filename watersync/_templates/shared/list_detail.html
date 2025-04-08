@@ -1,0 +1,46 @@
+{% load custom_tags %}
+<div class="accordion accordion-flush" id="accordeonDetails">
+    {% if object.user %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="users-heading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUser" aria-expanded="false" aria-controls="collapsUser">
+          <strong>Users</strong>
+        </button>
+      </h2>
+      <div id="collapseUser" class="accordion-collapse collapse" aria-labelledby="users-heading" data-bs-parent="#accordeonDetails">
+        <ul class="list-group list-group-flush">
+            {% for user in object.user.all %}
+                <li class="list-group-item">{{ user.email }}</li>
+                {% empty %}
+                <li class="list-group-item">
+                    <em>No users involved</em>
+                </li>
+            {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% if object.detail %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="detail-heading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-detail" aria-expanded="false" aria-controls="collapse-detail">
+          <strong>Details</strong>
+        </button>
+      </h2>
+      <div id="collapse-detail" class="accordion-collapse collapse" aria-labelledby="detail-heading" data-bs-parent="#accordeonDetails">
+        <ul class="list-group list-group-flush">
+            {% for key, item in object.detail.items %}
+            <li class="list-group-item">
+                <strong>{{ key|field_title }}:</strong> {{ item }}
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                <em>No details available</em>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    </div>
+    {% endif %}
+    
+  </div>

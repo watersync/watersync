@@ -2,22 +2,98 @@ import pandas as pd
 from django import forms
 from django.forms import HiddenInput
 
-from watersync.core.models import Location
+from watersync.core.generics.forms import FormWithDetailMixin
+from watersync.sensor.models import Deployment, Sensor
 
-from .models import Deployment, Sensor
 
+class SensorDetailForm(forms.Form):
+    """Form for additional details about the sensor."""
 
-class SensorForm(forms.ModelForm):
+    # Add any additional fields you need for the sensor detail
+    # For example, if you want to add a field for the sensor's model:
+    model = forms.CharField(
+        label="Sensor Model",
+        max_length=100,
+        required=False,
+        help_text="Optional: Enter the model of the sensor.",
+    )
+    manufacturer = forms.CharField(
+        label="Manufacturer",
+        max_length=100,
+        required=False,
+        help_text="Optional: Enter the manufacturer of the sensor.",
+    )
+
+class SensorForm(FormWithDetailMixin):
     title = "Add Sensor"
-    detail_schema = "sensor_detail_schema.json"
+    type = forms.ChoiceField(
+        choices=Sensor.SENSOR_TYPE_CHOICES,
+        required=True,
+        label="Type",
+        widget=forms.ChoiceField.widget(
+            attrs={
+                "hx-trigger": "change, revealed",
+                "hx-target": "#detail_form",
+                "hx-swap": "innerHTML",
+            }
+        ),
+    )
+    detail_forms = {
+        "vented": SensorDetailForm,
+        "unvented": SensorDetailForm,
+        "other": SensorDetailForm,
+    }
 
     class Meta:
         model = Sensor
-        fields = ("identifier", "user", "detail", "available")
+        fields = ("identifier", "type", "user", "detail", "available")
         widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
 
 
-class DeploymentForm(forms.ModelForm):
+class DeploymentVentedDetailForm(forms.Form):
+    """Information necessary for further processing of data from deployments of
+    vented sensors."""
+
+    rope_length = forms.FloatField(
+        label="Rope length (m)",
+        help_text="Length of the rope in meters.",
+        required=True,
+    )
+
+class DeploymentForm(FormWithDetailMixin):
+    # I should make this auto-populate based on the sensor type. Can be done with htmx,
+    # but for now, I will just use a simple form.
+    sensor = forms.ModelChoiceField(
+        queryset=Sensor.objects.filter(available=True),
+        label="Sensor",
+        required=True,
+        widget=forms.Select(
+            attrs={
+                "hx-trigger": "change, revealed, click",
+                "hx-target": "#id_type",
+            }
+        ),
+
+    )
+    type = forms.ChoiceField(
+        choices=Sensor.SENSOR_TYPE_CHOICES,
+        label="Sensor type",
+        required=True,
+        widget=forms.ChoiceField.widget(
+            attrs={
+                "hx-trigger": "change, revealed",
+                "hx-target": "#detail_form",
+                "hx-swap": "innerHTML",
+            }
+        ),
+    )
+
+    detail_forms = {
+        "vented": DeploymentVentedDetailForm,
+        "unvented": forms.Form,
+        "other": forms.Form,
+    }
+
     class Meta:
         model = Deployment
         fields = ["sensor", "location", "detail"]
@@ -26,16 +102,6 @@ class DeploymentForm(forms.ModelForm):
             "detail": forms.HiddenInput(),
         }
 
-    def __init__(self, *args, **kwargs):
-        # Get project_pk from kwargs
-        project_pk = kwargs.pop("project_pk", None)
-        super().__init__(*args, **kwargs)
-        if project_pk:
-            self.fields["location"].queryset = Location.objects.filter(
-                project__pk=int(project_pk)
-            )
-
-        self.fields["sensor"].queryset = Sensor.objects.filter(available=True)
 
 
 class SensorRecordForm(forms.Form):
