@@ -1,7 +1,7 @@
 <ul class="list-group list-group-flush">
-    {% for item in object.detail %}
+    {% for key, item in object.detail.items %}
     <li class="list-group-item">
-        <strong>{{ item.property|capfirst }}:</strong> {{ item.value }}
+        <strong>{{ key|capfirst }}:</strong> {{ item }}
     </li>
     {% empty %}
     <li class="list-group-item">

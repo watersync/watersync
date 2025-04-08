@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django import forms
+
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -32,6 +33,7 @@ from watersync.core.generics.mixins import ExportCsvMixin, ListContext
 from watersync.core.generics.mixins import DetailContext
 from functools import partial
 from django.urls import reverse
+from django.template.response import TemplateResponse
 
 
 class WatersyncGenericViewProperties:
@@ -260,40 +262,62 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
 
         return context
 
+
 class CreateUpdateDetailMixin:
     partial_form_template = "shared/form_detail.html"
 
+    def get_detail_form_class(self, request):
+        """Return the appropriate detail form class based on the selected type or empty response."""
+        location_type = request.GET.get("type")
+
+        if not location_type:
+            return HttpResponse("")
+
+        return self.form_class.detail_forms.get(location_type) or HttpResponse("")
+
+    def add_hx_get(self, response):
+        """Add hx-get attribute to the form field from the request."""
+        if isinstance(response, TemplateResponse) and not response.is_rendered:
+            if 'form' in response.context_data and 'detail' in response.context_data['form'].fields and 'type' in response.context_data['form'].fields:
+                # Set hx-get to the current path with a query parameter to acocunt for both updates and creates
+                response.context_data['form'].fields['type'].widget.attrs['hx-get'] = f"{self.request.path}"
+
+        return response
+    
     def swap_detail_form(self, request, initial=None) -> HttpResponse:
-        """Swap the detail form in the main form template.
+        """Swap the detail form in the main form template based on selected type."""
+
+        detail_form_class = self.get_detail_form_class(request)
+
+        if not initial:
+            initial = {}
+            
+        detail_form = detail_form_class(initial=initial)
         
-        This method returns a partial template with crispy form for the detail. It's
-        called by HTMX when the user changes the type of the object. The assumption is
-        that the when a detail field is present, the form will also contain a dictionary
-        of detail forms. The detail form is then swapped in the main form template.
-        """
-        form = self.form_class.detail_forms.get(
-                type := request.GET.get("type"), self.form_class
-            )
-        
+        # Render the detail form template
         return render(
             request,
-            self.partial_form_template if type else self.template_name,
-            {"form": form},
+            self.partial_form_template,
+            {"form": detail_form}
         )
     
     def get(self, request, *args, **kwargs):
-        result = super().get(request, *args, **kwargs)
-        print("RESULT: ", result)
-        if is_htmx_request(request):
-            return self.swap_detail_form(request, initial=kwargs.get("initial"))
-        return super().get(request, *args, **kwargs)
-
+        response = super().get(request, *args, **kwargs)
+        self.add_hx_get(response)
+        return response
+    
 
 class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, CreateView):
 
     template_name = "shared/simple_form.html"
     htmx_render_template = "shared/simple_form.html"
 
+    def get(self, request, *args, **kwargs):
+        # Check if this is a request for the detail form
+        if is_htmx_request(request) and request.GET.get("type"):
+            return self.swap_detail_form(request)
+        
+        return super().get(request, *args, **kwargs)
 
 
 class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
@@ -323,7 +347,19 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
 
         current_url = request.headers.get("HX-Current-Url")
 
-        if current_url and not current_url.endswith(f'/{self.object.pk}/'):
+        is_detail_view = (
+            current_url.endswith(f'/{self.object.pk}/')
+        )
+        is_overview_view = (
+            current_url.endswith(f'/{self.object.pk}/overview/')
+        )
+        is_location_overview = (
+            self.model_name == "location"
+        )
+        # If the request comes from the detail view I want to redirect to the list view
+        # of the object. If it is made from the list view or an overview page, I want to
+        # only send the configRequest.
+        if not is_detail_view and not is_overview_view and not is_location_overview:
             return None
         else:
             return self.get_list_url()(kwargs=list_kwargs)
@@ -365,11 +401,12 @@ class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
     
     def get(self, request, *args, **kwargs):
-        print("INITIAL DATA: ", self.get_initial())
-        print("OBJECT: ", self.get_object())
-        response = super().get(request, initial=self.get_initial(), *args, **kwargs)
-        return response
-    
+        # Check if this is a request for the detail form
+        if is_htmx_request(request) and request.GET.get("type"):
+            return self.swap_detail_form(request, initial=self.get_object().detail)
+            
+        return super().get(request, *args, **kwargs)
+
 
 class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DetailView):
     

@@ -139,7 +139,6 @@ class LocationForm(ModelForm):
                 "hx-trigger": "change, revealed",
                 "hx-target": "#detail_form",
                 "hx-swap": "innerHTML",
-                "hx-get": "."
             }
         ),
     )
@@ -166,22 +165,64 @@ class LocationForm(ModelForm):
             "geom",
         )
         widgets = {
-            # "project": HiddenInput(),
+            "project": HiddenInput(),
             "detail": HiddenInput(),
             "geom": HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form and set the detail form based on the type"""
         super().__init__(*args, **kwargs)
+        
+        # Initialize the detail form based on the instance's type
+        self.detail_form = None
+        
+        # If we have an instance with a type and detail data
+        if self.instance and self.instance.pk and self.instance.type:
+            detail_form_class = self.detail_forms.get(self.instance.type)
+            if detail_form_class:
+                # Initialize with existing detail data
+                self.detail_form = detail_form_class(initial=self.instance.detail or {})
+        
+        # If no detail form yet (new instance or type changed), create default
+        if not self.detail_form and 'type' in self.data:
+            selected_type = self.data.get('type')
+            detail_form_class = self.detail_forms.get(selected_type)
+            if detail_form_class:
+                # Get detail data from POST if available
+                detail_data = {}
+                for field_name in detail_form_class().fields.keys():
+                    if field_name in self.data:
+                        detail_data[field_name] = self.data.get(field_name)
+                self.detail_form = detail_form_class(data=detail_data or None)
+        
+        # Default to first type's form if nothing else
+        if not self.detail_form and self.detail_forms:
+            first_type = next(iter(self.detail_forms))
+            self.detail_form = self.detail_forms[first_type]()
 
-        print("REQUEST PATH: ", kwargs.pop('request', None))
 
     def is_valid(self):
         """Validate both the main form and the detail form"""
-        print("VALIDATING THE FORM: ", self.instance)
         main_valid = super().is_valid()
-        detail_valid = self.detail_form.is_valid()
+        
+        # Get the selected type
+        selected_type = self.cleaned_data.get('type') if self.is_bound and hasattr(self, 'cleaned_data') else None
+        
+        # If we have a type but no detail form yet, create one
+        if selected_type and not self.detail_form:
+            detail_form_class = self.detail_forms.get(selected_type)
+            if detail_form_class:
+                # Extract detail form data from the request
+                detail_data = {}
+                for field_name in detail_form_class().fields.keys():
+                    if field_name in self.data:
+                        detail_data[field_name] = self.data.get(field_name)
+                self.detail_form = detail_form_class(data=detail_data or None)
+        
+        # Validate detail form if we have one
+        detail_valid = self.detail_form.is_valid() if self.detail_form else True
+
+        
         return main_valid and detail_valid
 
     def save(self, commit=True):
@@ -189,7 +230,7 @@ class LocationForm(ModelForm):
         instance = super().save(commit=False)
 
         # Convert detail form data to JSON
-        if self.detail_form.is_valid():
+        if self.detail_form and self.detail_form.is_valid():
             instance.detail = self.detail_form.cleaned_data
 
         if commit:

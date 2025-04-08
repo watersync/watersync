@@ -22,17 +22,17 @@ class RenderToResponseMixin:
 class UpdateFormMixin:
     """Mixin for updating form instances."""
 
-    # def get_initial(self):
-    #     """Get initial data for the form."""
-    #     initial = super().get_initial()
-    #     if 'project_pk' in self.kwargs and self.model_name != 'project':
-    #         initial['project'] = self.kwargs['project_pk']
-    #     if 'location_pk' in self.kwargs and self.model_name != 'location':
-    #         initial['location'] = self.kwargs['location_pk']
-    #     if 'user_pk' in self.kwargs:
-    #         initial['user'] = self.kwargs['user_pk']
+    def get_initial(self):
+        """Get initial data for the form."""
+        initial = super().get_initial()
+        if 'project_pk' in self.kwargs and self.model_name != 'project':
+            initial['project'] = self.kwargs['project_pk']
+        if 'location_pk' in self.kwargs and self.model_name != 'location':
+            initial['location'] = self.kwargs['location_pk']
+        if 'user_pk' in self.kwargs:
+            initial['user'] = self.kwargs['user_pk']
 
-    #     return initial
+        return initial
 
     def update_user(self, instance):
         """Updating user field in forms."""

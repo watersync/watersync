@@ -15,3 +15,8 @@ base template is automatically determined depending on whether the detail is sup
 ## Cusomizing the models
 
 In order for the reusable template to work, new methods have to be created on the model that control which information is provided to the detail view. Also, each model should have a `__str__` method, because it is used as reference name of the object (for example as the page title).
+
+## Details in forms
+Initially JSONEditor was used to handle details of various objects. It has been changed to Django/HTMX implementation. Now, when the user presses the update or create button on an object, a check is made if the form contains a detail and type fields. If it does, then logic choosing an appropriate form is triggered. This assumes that the forms requireing details have a dictionary defined on them called detail_forms. That dictionary contains a mapping of options in the type field with appropriate form class.
+
+Creation and updatind of the forms is handled in respective CreateView and UpdateView.

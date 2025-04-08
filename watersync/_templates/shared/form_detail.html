@@ -3,8 +3,5 @@
 <h5 class="modal-title">Details</h5>
 <hr>
 <div>
-    <form hx-post="{{ request.path }}" hx-target="#dialog">
-        {% csrf_token %}
-        {{ form|crispy }}
-    </form>
+    {{ form|crispy }}
 </div>

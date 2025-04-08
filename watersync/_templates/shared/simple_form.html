@@ -5,11 +5,12 @@
         <h5 class="modal-title" id="{{ modal_id }}Label">{{ form.title }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    
     <div class="modal-body">
-        {{ request.path }}
         <form hx-post="{{ request.path }}" hx-target="#dialog">
             {% csrf_token %}
+            <div id="id_type2">
+                {{ form.type|crispy }}
+            </div>
             {{ form|crispy }}
             {% if form.geom %}
             <div id="map" style="height: 400px; position: relative; overflow: hidden;"
@@ -29,37 +30,3 @@
         </form>
     </div>
 </div>
-{% if form.detail %}
-{% load static %}
-{% comment %}
-<script>
-    // Initialize the detail input
-    var elementId = 'detail_form';
-    var schemaUrl = "{% static 'schemas/' %}{{ form.detail_schema }}";
-    var hiddenFieldId = 'id_detail';
-    var initialData = JSON.parse('{{ form.detail.value|escapejs }}');
-
-    const typeSelect = document.getElementById('id_type');
-
-    if (!typeSelect.value) {
-        schemaUrl = "{% static 'schemas/default_schema.json' %}";
-    } else {
-        schemaUrl = "{% static 'schemas/' %}" + typeSelect.value + "_schema.json";
-        initializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
-    }
-
-    typeSelect.addEventListener('change', function() {
-        // Update the schema URL based on the selected type
-        if (this.value) {
-            schemaUrl = "{% static 'schemas/' %}" + this.value + "_schema.json";
-        } else {
-            schemaUrl = "{% static 'schemas/default_schema.json' %}";
-        }
-        // Reinitialize the JSON editor with the new schema URL
-        reinitializeJSONEditor(elementId, schemaUrl, hiddenFieldId, initialData);
-    });
-
-</script>
-{% endcomment %}
-
-{% endif %}
