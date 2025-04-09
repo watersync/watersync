@@ -14,11 +14,6 @@
       <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
         <div class="accordion-body">
           <div id="protocols" class="container p-4">
-            <p>
-                <em class="text-decoration-none text-muted">
-                    Sampling protocols
-                </em>
-            </p>
             {% with list_context=protocols.list_context htmx_context="block" base_template="layouts/blank.html" %}
                 {% include "list.html"%}
             {% endwith %}

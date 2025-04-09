@@ -6,7 +6,7 @@
             <p class="card-text">{{project.description|truncatechars:150}}</p>
         </div>
         <div class="card-footer">
-            <a class="btn btn-sm btn-info" href="{% url 'core:detail-project' user.id project.pk %}">
+            <a class="btn btn-sm btn-info" href="{% url 'core:locations' user.id project.pk %}">
                 Open<i class="fa-solid fa-arrow-right mx-2"></i>
             </a>
         </div>
