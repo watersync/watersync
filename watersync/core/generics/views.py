@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
-from django import forms
+import re
 
 from django.views.generic import (
     CreateView,
@@ -239,8 +239,8 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
             delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
             action=self.htmx_trigger,
             columns=self.model._list_view_fields.keys(),
-            explanation=self.model.__doc__.split("\n\n")[0],
-            explanation_detail=self.model.__doc__.split("\n\n")[1],
+            explanation=re.split(r'\n\n|\r\n\r\n', self.model.__doc__)[0] if self.model and self.model.__doc__ else None,
+            explanation_detail=re.split(r'\n\n|\r\n\r\n', self.model.__doc__)[1] if self.model and self.model.__doc__ else None,
             title=self.model._meta.verbose_name_plural,
         )
 

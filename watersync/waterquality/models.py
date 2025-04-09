@@ -16,11 +16,11 @@ from watersync.users.models import User
 
 class Protocol(models.Model, ModelTemplateInterface):
     """Protocols for sampling and analysis.
-    
+
     Protocol describes the details of the sampling collection and analysis process,
     starting form sample collection, preservation, storage, analysis and data
     postprocessing.
-    
+
     Attributes:
         slug: A unique identifier for the protocol, generated from the method name.
         method_name: The name of the analytical method.
