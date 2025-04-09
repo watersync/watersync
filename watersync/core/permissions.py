@@ -1,31 +1,44 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from rest_framework import permissions
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
+from watersync.users.models import User
+from django.contrib.auth.mixins import AccessMixin
+from django.shortcuts import redirect
 
-from .models import Project
 
+class ApprovalRequiredMixin(AccessMixin):
+    """
+    Mixin that verifies the user is approved by admin.
+    """
+    def get_approval_pending_url(self):
+        from django.urls import reverse
+        return reverse("users:approval-pending")
 
-class IsStaffMixin(UserPassesTestMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        
+        user = request.user
+        is_approved = User.objects.filter(id=user.id, is_approved=True).exists()
+        
+        if not is_approved:
+            return redirect(self.get_approval_pending_url())
+        
+        return super().dispatch(request, *args, **kwargs)
+
+class ProjectPermissionMixin(UserPassesTestMixin):
+    """
+    Mixin that verifies the user has permission to access the project.
+    """
     def test_func(self):
-        return self.request.user.is_staff
+        project_id = self.kwargs.get("project_id")
+        if not project_id:
+            return False
+
+        return self.request.user.projects.filter(id=project_id).exists()
 
     def handle_no_permission(self):
         if self.raise_exception:
             raise PermissionDenied
         return super().handle_no_permission()
 
-
-class HasProjectAccess(permissions.BasePermission):
-    def has_permission(self, request, view):
-        project = request.query_params.get("project")
-        if not project:
-            return False
-
-        if not Project.objects.filter(name=project).exists():
-            raise NotFound("Project not found!")
-
-        if not Project.objects.filter(name=project, user=request.user).exists():
-            raise PermissionDenied("You do not have permission to access this project.")
-
-        return True

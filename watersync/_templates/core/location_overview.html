@@ -22,6 +22,7 @@
             <span class="badge rounded-pill bg-primary">{{ statuscount }}</span>
         </button>
     </li>
+    {% if location.type == 'well' %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="gwlmeasurements-tab" data-bs-toggle="tab"
             data-bs-target="#gwlmeasurements-tab-pane" type="button" role="tab" aria-controls="gwlmeasurements-tab-pane"
@@ -30,6 +31,7 @@
             <span class="badge rounded-pill bg-primary">{{ gwlmeasurementcount }}</span>
         </button>
     </li>
+    {% endif %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="deployments-tab" data-bs-toggle="tab" data-bs-target="#deployments-tab-pane"
             type="button" role="tab" aria-controls="deployments-tab-pane" aria-selected="false">
@@ -44,7 +46,6 @@
             <span class="badge rounded-pill bg-primary">{{ samplecount }}</span>
         </button>
     </li>
-
 </ul>
 <div id="resource-counts" hx-swap-oob="true">
     <span id="status-count" hx-swap-oob="true"></span>

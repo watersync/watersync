@@ -1,3 +1,6 @@
+{% load custom_tags %}
+{% load static %}
+
 {% if htmx_context != "block" %}
 <h3 class="text-muted">{{ list_context.title|capfirst }}</h3>
 {% endif %}
@@ -32,8 +35,14 @@
         <i class="fa fa-download"></i>
     </button>
 </div>
-
-
+{% if "locations" in request.path and "overview" not in request.path %}
+    <div id="map_locations" style="height: 400px; position: relative; overflow: hidden;"></div>
+    <script>
+        var locations = JSON.parse('{{ location_list|get_coordinates|escapejs }}');
+        var map = initializeMap('map_locations');
+        plotLocations(map, locations);
+    </script>
+{% endif %}
 <table class="table table-striped table-sm">
     <thead>
         <tr>
@@ -93,4 +102,4 @@
         // Mark that the listeners have been added
         window.csvDownloadListenersAdded = true;
     }
-    </script>
+</script>

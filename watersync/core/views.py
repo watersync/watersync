@@ -12,6 +12,7 @@ from watersync.sensor.views import DeploymentListView
 from django.utils.safestring import mark_safe
 from watersync.waterquality.views import SampleListView
 from watersync.core.generics.utils import get_resource_list_context
+from watersync.waterquality.models import Sample
 import json
 
 from django.shortcuts import get_object_or_404
@@ -80,8 +81,7 @@ class LocationDeleteView(WatersyncDeleteView):
 
     model = Location
 
-
-class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
+class LocationListView(WatersyncListView):
     """Location list has a special view which includes a table and a map, so for
     now it does inherit the WaterstncListView.
     
@@ -91,21 +91,12 @@ class LocationListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
     """
 
     model = Location
-    template_name = "core/partial/location_list.html"
-    htmx_template = "core/partial/location_table.html"
+    detail_type = "page"
 
     def get_queryset(self):
-        project_id = self.kwargs.get("project_pk")
-        user = self.request.user
+        project = self.get_project()
+        return project.locations.all()
 
-        project = get_object_or_404(Project, id=project_id, user=user)
-
-        return Location.objects.filter(project=project)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["project"] = get_object_or_404(Project, id=self.kwargs["project_pk"])
-        return context
 
 
 class LocationDetailView(WatersyncDetailView):
@@ -192,7 +183,7 @@ class LocationOverviewView(TemplateView):
             "statuscount": location.visits,
             "gwlmeasurementcount": location.gwlmeasurements,
             "deploymentcount": location.deployments,
-            # "samplecount": location.samples,
+            "samplecount": location.samples,
         }
 
         return {key: view.count() for key, view in views.items()}

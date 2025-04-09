@@ -13,7 +13,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.template.loader import render_to_string
 import re
 
 from django.views.generic import (
@@ -23,10 +22,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from watersync.core.forms import (
-    PiezometerDetailForm,
-    LakeDetailForm,
-)
+from watersync.core.permissions import ApprovalRequiredMixin, ProjectPermissionMixin
 from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin, is_htmx_request
 from watersync.core.models import Project
 from watersync.core.generics.mixins import ExportCsvMixin, ListContext
@@ -36,7 +32,7 @@ from django.urls import reverse
 from django.template.response import TemplateResponse
 
 
-class WatersyncGenericViewProperties:
+class WatersyncGenericViewProperties(ApprovalRequiredMixin):
     """Mixin to add shortcuts to the views."""
 
     blank_template = "layouts/blank.html"
@@ -90,6 +86,11 @@ class WatersyncGenericViewProperties:
     def detail_url(self):
         """Url name for the detail view."""
         return f"{self.app_label}:detail-{self.model_name}"
+    
+    @property
+    def overview_url(self):
+        """Url name for the detail view."""
+        return f"{self.app_label}:overview-{self.model_name}"
 
     @property
     def item_pk_name(self):
@@ -120,6 +121,9 @@ class WatersyncGenericViewProperties:
 
     def get_detail_url(self):
         return partial(reverse, self.detail_url)
+    
+    def get_overview_url(self):
+        return partial(reverse, self.overview_url)
 
     def get_project(self):
         """Get the project object from the URL."""
@@ -245,7 +249,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         )
 
         if self.detail_type == "page":
-            list_context.detail_page_url = self.get_detail_url()(
+            list_context.detail_page_url = self.get_overview_url()(
                 kwargs={**self.get_base_url_kwargs(), **self.item}
             )
 

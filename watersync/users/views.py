@@ -9,6 +9,7 @@ from watersync.users.models import User
 from watersync.waterquality.forms import ProtocolForm
 from watersync.waterquality.views import ProtocolListView
 from watersync.core.generics.utils import get_resource_list_context
+from watersync.core.permissions import ApprovalRequiredMixin
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
@@ -47,7 +48,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 user_redirect_view = UserRedirectView.as_view()
 
 
-class SettingsView(LoginRequiredMixin, TemplateView):
+class SettingsView(LoginRequiredMixin, ApprovalRequiredMixin, TemplateView):
     template_name = "users/settings/settings.html"
 
     def get_resource_list_context(self, **kwargs):
@@ -59,5 +60,9 @@ class SettingsView(LoginRequiredMixin, TemplateView):
         context.update(self.get_resource_list_context())
         return context
 
+class ApprovalPendingView(TemplateView):
+    template_name = 'users/approval_pending.html'
+
 
 settings_view = SettingsView.as_view()
+approval_pending_view = ApprovalPendingView.as_view()

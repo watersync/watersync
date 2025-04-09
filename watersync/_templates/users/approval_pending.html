@@ -1,0 +1,28 @@
+{% extends "layouts/base_landing.html" %}
+
+{% block title %}Approval Pending{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center min-vh-100 text-center">
+    <h1 class="mb-4">Approval Pending</h1>
+
+    <div class="mb-4">
+        {% include "shared/hamster.html" %}
+    </div>
+    
+    <div class="approval-message mb-4">
+        <p>Thank you for registering! Your account is currently awaiting approval from an administrator.</p>
+        <p>You'll receive an email notification once your account has been approved.</p>
+    </div>
+
+    <div class="contact-info">
+        <p>If you have any questions, please contact us at <a href="mailto:admin@watersync.app">admin@watersync.app</a></p>
+    </div>
+</div>
+
+<style>
+    .typewriter {
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}

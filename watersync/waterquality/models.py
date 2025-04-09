@@ -9,7 +9,7 @@ from django.db import models
 from django.utils.text import slugify
 from django_extensions.db.models import TimeStampedModel
 
-from watersync.core.models import LocationVisit
+from watersync.core.models import LocationVisit, Location
 from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
@@ -84,19 +84,24 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
             sample.
     """
 
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, related_name="samples"
+    )
+    date = models.DateField()
     location_visit = models.ForeignKey(
-        LocationVisit, on_delete=models.CASCADE, related_name="samples"
+        LocationVisit, on_delete=models.CASCADE, related_name="samples",
+        blank=True, null=True
     )
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     target_parameters = models.CharField(max_length=50)
     container_type = models.CharField(max_length=50, blank=True, null=True)
     volume_collected = models.FloatField(blank=True, null=True)
     replica_number = models.IntegerField(default=0)
-    detail = models.JSONField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     
     _list_view_fields = {
-        "Location Visit": "location_visit",
+        "Location": "location",
+        "Date": "date",
         "Target Parameters": "target_parameters",
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",
@@ -117,7 +122,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
 
 class Measurement(TimeStampedModel):
     """Individual measurements of parameters in a sample.
-    
+
     It is possible to create a sample first, let's say in the field when it's taken, and
     then add the measurements later when the analysis is done.
     """
@@ -129,7 +134,22 @@ class Measurement(TimeStampedModel):
     unit = models.CharField(max_length=50)
     measured_on = models.DateField(null=True, blank=True)
     description = models.TextField(blank=True, null=True)
-    detail = models.JSONField(blank=True, null=True)
 
-    def __str__(self):
-        return f"{self.sample}: "
+    _list_view_fields = {
+        "Sample": "sample",
+        "Parameter": "parameter",
+        "Value": "value",
+        "Unit": "unit",
+        "Measured On": "measured_on",
+    }
+
+    _detail_view_fields = {
+        "Sample": "sample",
+        "Parameter": "parameter",
+        "Value": "value",
+        "Unit": "unit",
+        "Measured On": "measured_on",
+        "Created": "created",
+        "Modified": "modified",
+    }
+

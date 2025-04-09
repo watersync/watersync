@@ -25,28 +25,26 @@ class SampleForm(forms.ModelForm):
     class Meta:
         model = Sample
         fields = (
+            "location",
+            "date",
             "location_visit",
             "protocol",
             "target_parameters",
             "container_type",
             "volume_collected",
             "replica_number",
-            "detail",
             "description",
         )
 
-        widgets = {
-            "detail": HiddenInput(),
-        }
 
 
 class MeasurementForm(forms.ModelForm):
     title = "Add Measurement"
+
     class Meta:
         model = Measurement
-        fields = ("parameter", "value", "unit", "measured_on", "detail")
+        fields = ("sample", "parameter", "value", "unit", "measured_on", "description")
         widgets = {
-            "detail": HiddenInput(),
             "measured_on": DateInput(attrs={"type": "date"}),
         }
 

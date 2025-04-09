@@ -1,4 +1,6 @@
-<div class="col py-3">
+{% load static %}
+
+<div class="col py-4">
     <div class="container d-flex justify-content-between align-items-center">                
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
@@ -9,10 +11,10 @@
             {% endblock breadcrumb %}
         </ol>
     </nav>
-    <div class="dropdown pb-4">
+    <div class="dropdown pb-2">
         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
             id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="https://github.com/mdo.png" alt="hugenerd" width="30" height="30"
+            <img src="{% static 'images/profile/pingu-placeholder.jpg' %}" alt="profile-photo" width="50" height="50"
                 class="rounded-circle">
             <span class="d-none d-sm-inline mx-1">{{ user.name }}</span>
         </a>

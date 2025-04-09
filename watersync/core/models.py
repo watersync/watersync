@@ -112,6 +112,9 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
         "Created at": "created",
         "Modified at": "modified",
     }
+    _list_view_fields = {
+        "Name": "name",
+    }
 
     class Meta:
         unique_together = ("project", "name")

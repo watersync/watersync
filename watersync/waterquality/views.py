@@ -67,12 +67,8 @@ class SampleListView(WatersyncListView):
     @filter_by_location
     def get_queryset(self):
         project = self.get_project()
-        locationvisits = LocationVisit.objects.filter(
-            location__in=project.locations.all()
-        )
-
         return Sample.objects.filter(
-                location_visit__in=locationvisits
+                location__in=project.locations.all()
             ).order_by("-created")
 
 
@@ -114,13 +110,6 @@ sample_detail_view = SampleDetailView.as_view()
 class MeasurementCreateView(WatersyncCreateView):
     model = Measurement
     form_class = MeasurementForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "measurementChanged"
-    htmx_render_template = "shared/simple_form.html"
-
-    def update_form_instance(self, form):
-        form.instance.sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
 
 
 # class MeasurementBulkCreateView(LoginRequiredMixin, HTMXFormMixin, FormView):
@@ -163,14 +152,16 @@ class MeasurementDetailView(WatersyncDetailView):
 
 class MeasurementListView(WatersyncListView):
     model = Measurement
+    detail_type = "popover"
 
     def get_queryset(self):
-        location = get_object_or_404(
-            Location, pk=self.kwargs["location_pk"]
-        )
-        samples = location.samples.all()
+        project = self.get_project()
+        locations = project.locations.all()
+        samples = Sample.objects.filter(location__in=locations)
 
-        return Measurement.objects.filter(sample__in=samples).order_by("-measured_on")
+        return Measurement.objects.filter(
+            sample__in=samples
+        ).order_by("-created")
 
 
 measurement_create_view = MeasurementCreateView.as_view()
