@@ -5,6 +5,9 @@
     </div>
     <div class="modal-body">
         <p>Are you sure you want to delete this item?</p>
+        {% if 'deployments' in request.path %}
+        <p class="text-danger">Deleting this item will also remove all associated sensor records.</p>
+        {% endif %}
     </div>
     <div class="modal-footer">
         <form hx-delete="{{ request.path }}" 

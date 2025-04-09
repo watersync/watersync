@@ -15,30 +15,14 @@
         <span class="visually-hidden">Loading...</span>
     </div>
 </div>
+<form action="{% url 'sensor:decommission-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-warning" {% if deployment.decommissioned_at is not None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
+        <i class="fas fa-trash"></i> Decommission
+    </button>
+</form>
 <hr>
-<h3 class="text-muted">Resources linked to location</h3>
-<p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
-        itself.</em></p>
 
-
-    <a href="{% url 'sensor:update-deployment' user.id project.pk deployment.pk %}" class="btn btn-warning">
-        <i class="fas fa-edit"></i> Edit
-    </a>
-    <form action="{% url 'sensor:decommission-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-warning" {% if deployment.decommissioned_at is not None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
-            <i class="fas fa-trash"></i> Decommission
-        </button>
-    </form>
-
-    <form action="{% url 'sensor:delete-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger" {% if deployment.decommissioned_at is None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
-            <i class="fas fa-trash"></i> Delete
-        </button>
-        <p class="text-danger"><em>WARNING: deleting the deployment deletes all the records as well!</em></p>
-    </form>
-    
     {% include "sensor/partial/record_list.html" %}
     
 {% endblock %}
