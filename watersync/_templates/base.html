@@ -25,6 +25,9 @@
 
   <!-- Project CSS -->
   <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+  <link href="{% static 'css/typewriter.css' %}" rel="stylesheet" />
+  <link href="{% static 'css/hamster.css' %}" rel="stylesheet" />
+
   {% endblock css %}
   {% block javascript %}
   <!-- jQuery -->
@@ -67,7 +70,7 @@
   {% endblock content %}
   {% endblock body %}
   <div class="modal fade" id="modal" tabindex="-1">
-    <div class="modal-dialog" id="dialog" hx-target="this">
+    <div class="modal-dialog modal-dialog-scrollable" id="dialog" hx-target="this">
       <!-- HTMX will load the content here. Things loaded here are mostly the forms -->
     </div>
   </div>
