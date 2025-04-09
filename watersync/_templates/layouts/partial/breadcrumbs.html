@@ -1,0 +1,25 @@
+
+{% if "sensors" in request.path and not sensor %}
+<li class="breadcrumb-item active" aria-current="page">Sensors</li>
+{% endif %}
+{% if "projects" in request.path and not project %}
+<li class="breadcrumb-item active" aria-current="page">Projects</li>
+{% elif "projects" in request.path and project %}
+<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">{{ project.name }}</a></li>
+{% endif %}
+{% if "locations" in request.path and not location %}
+<li class="breadcrumb-item active" aria-current="page">Locations</li>
+{% elif "locations" in request.path and location %}
+<li class="breadcrumb-item"><a href="{% url 'core:locations' user.id project.pk %}">Locations</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
+{% endif %}
+{% if "deployments" in request.path and not deployment %}
+<li class="breadcrumb-item active" aria-current="page">Deployed sensors</li>
+{% elif "deployments" in request.path and deployment %}
+<li class="breadcrumb-item"><a href="{% url 'sensor:deployments' user.id project.pk %}">Deployed sensors</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ deployment }}</li>
+{% endif %}
+{% if "fieldworks" in request.path %}
+<li class="breadcrumb-item active" aria-current="page">Fieldworks</li>
+{% endif %}
