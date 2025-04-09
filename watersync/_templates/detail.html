@@ -35,7 +35,11 @@
 <!-- Information block -->
 <div class="container mt-4">
     <div class="row">
+        {% if object.geom %}
         <div class="col-md-6">
+        {% else %}
+        <div>
+        {% endif %}
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Basic Information</h5>
@@ -48,6 +52,7 @@
                             <div class="card-body">
                                 <p class="card-text">{{ object.description }}</p>
                             </div>
+                            
 
                         </li>
                         {% endif %}
@@ -56,17 +61,15 @@
                 </div>
             </div>
         </div>
+        {% if object.geom %}
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-body">
-                    {% if object.geom %}
                         <div id="map_location" style="height: 400px; position: relative; overflow: hidden;"></div>
-                    {% else %}
-                    <p>No location data available.</p>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
+            {% endif %}
 </div>
 
 {% if object.geom %}
