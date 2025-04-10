@@ -1,0 +1,16 @@
+{% extends 'layouts/project_dashboard.html' %}
+
+{% block content %}
+<div id="sample-detail" hx-get="{% url 'waterquality:detail-sample' user.id project.pk sample.pk %}"
+    hx-trigger="revealed, configRequest from:body, sampleChanged from:body" hx-target="#sample-detail"
+    hx-headers='{"HX-Context": "block"}'>
+    <div class="spinner-grow" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+<hr>
+<h3 class="text-muted">Measurements</h3>
+<p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
+        itself.</em></p>
+
+{% endblock content %}

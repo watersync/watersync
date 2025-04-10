@@ -36,7 +36,8 @@ sample_create_view,
 sample_update_view,
 sample_delete_view,
 sample_list_view,
-sample_detail_view
+sample_detail_view,
+sample_overview_view
 )
 
 
@@ -62,6 +63,7 @@ sample_patterns = [
     path("", sample_list_view, name="samples"),
     path("add/", sample_create_view, name="add-sample"),
     path("<str:sample_pk>/", sample_detail_view, name="detail-sample"),
+    path("<str:sample_pk>/overview/", sample_overview_view, name="overview-sample"),
     path("<str:sample_pk>/update/", sample_update_view, name="update-sample"),
     path("<str:sample_pk>/delete/", sample_delete_view, name="delete-sample"),
 ]

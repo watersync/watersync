@@ -26,7 +26,8 @@ class SampleForm(forms.ModelForm):
         model = Sample
         fields = (
             "location",
-            "date",
+            "collected_at",
+            "measured_at",
             "location_visit",
             "protocol",
             "target_parameters",
@@ -43,10 +44,7 @@ class MeasurementForm(forms.ModelForm):
 
     class Meta:
         model = Measurement
-        fields = ("sample", "parameter", "value", "unit", "measured_on", "description")
-        widgets = {
-            "measured_on": DateInput(attrs={"type": "date"}),
-        }
+        fields = ("sample", "parameter", "value", "unit")
 
 
 class MeasurementBulkForm(forms.Form):

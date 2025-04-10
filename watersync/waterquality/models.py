@@ -87,7 +87,8 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE, related_name="samples"
     )
-    date = models.DateField()
+    collected_at = models.DateField()
+    measured_at = models.DateField(blank=True, null=True)
     location_visit = models.ForeignKey(
         LocationVisit, on_delete=models.CASCADE, related_name="samples",
         blank=True, null=True
@@ -120,7 +121,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     def __str__(self):
         return f"{self.target_parameters} - {self.container_type} - {self.volume_collected} - {self.replica_number}"
 
-class Measurement(TimeStampedModel):
+class Measurement(TimeStampedModel, ModelTemplateInterface):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and
@@ -132,15 +133,12 @@ class Measurement(TimeStampedModel):
     parameter = models.CharField(max_length=100)
     value = models.FloatField()
     unit = models.CharField(max_length=50)
-    measured_on = models.DateField(null=True, blank=True)
-    description = models.TextField(blank=True, null=True)
 
     _list_view_fields = {
         "Sample": "sample",
         "Parameter": "parameter",
         "Value": "value",
         "Unit": "unit",
-        "Measured On": "measured_on",
     }
 
     _detail_view_fields = {
@@ -148,8 +146,9 @@ class Measurement(TimeStampedModel):
         "Parameter": "parameter",
         "Value": "value",
         "Unit": "unit",
-        "Measured On": "measured_on",
         "Created": "created",
         "Modified": "modified",
     }
 
+    def __str__(self):
+        return f"{self.sample} - {self.parameter}"

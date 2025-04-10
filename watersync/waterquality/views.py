@@ -1,5 +1,5 @@
 from watersync.waterquality.models import Protocol, Sample, Measurement
-from watersync.core.models import LocationVisit, Location
+from watersync.core.models import Project, Location
 from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm
 from watersync.core.generics.views import (
     WatersyncCreateView,
@@ -8,8 +8,11 @@ from watersync.core.generics.views import (
     WatersyncListView,
     WatersyncUpdateView,
 )
+from django.views.generic import TemplateView
+import json
 from watersync.core.generics.decorators import filter_by_location
 from django.shortcuts import get_object_or_404
+from watersync.core.generics.utils import get_resource_list_context
 
 
 # ================ Protocols ========================
@@ -62,7 +65,7 @@ class SampleDeleteView(WatersyncDeleteView):
 
 class SampleListView(WatersyncListView):
     model = Sample
-    detail_type = "modal"
+    detail_type = "page"
 
     @filter_by_location
     def get_queryset(self):
@@ -77,6 +80,36 @@ class SampleDetailView(WatersyncDetailView):
     detail_type = "popover"
 
 
+class SampleOverviewView(TemplateView):
+    template_name = "waterquality/sample_overview.html"
+
+    def get_resource_counts(self, sample):
+        views = {
+            # "statuscount": location.visits,
+        }
+
+        return {key: view.count() for key, view in views.items()}
+    
+    def get_resource_list_context(self):
+        views = {
+            #"locationvisits": LocationVisitListView,
+        }
+
+        return get_resource_list_context(self.request, self.kwargs, views)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
+        context["project"] = project
+        context["sample"] = sample
+        context.update(self.get_resource_counts(sample))
+        context.update(self.get_resource_list_context())
+        context["hx_vals"] = json.dumps({"sample_pk": str(sample.pk)})
+
+        return context
+
+sample_overview_view = SampleOverviewView.as_view()
 sample_create_view = SampleCreateView.as_view()
 sample_update_view = SampleUpdateView.as_view()
 sample_delete_view = SampleDeleteView.as_view()
