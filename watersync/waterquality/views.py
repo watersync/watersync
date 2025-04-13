@@ -1,3 +1,4 @@
+from django.http import HttpResponseRedirect
 from watersync.waterquality.models import Protocol, Sample, Measurement
 from watersync.core.models import Project
 from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm, MeasurementBulkForm
@@ -10,6 +11,7 @@ from watersync.core.generics.views import (
 )
 from django.views.generic import TemplateView
 import json
+from django.http import JsonResponse
 from django.urls import reverse
 from watersync.core.generics.decorators import filter_by_location, filter_by_conditions
 from django.shortcuts import get_object_or_404
@@ -120,9 +122,9 @@ class MeasurementCreateView(WatersyncCreateView):
     def get_form_class(self):
         """
         Return the form class to use based on the request parameters.
-        If 'bulk' is in the request parameters, return the bulk form class.
+        If 'bulk' is in the request parameters or POST data, return the bulk form class.
         """
-        if 'bulk' in self.request.GET or 'bulk' in self.request.POST:
+        if 'bulk' in self.request.GET or self.request.POST.get('bulk') == 'true':
             return self.bulk_form_class
         return self.form_class
     
@@ -132,40 +134,46 @@ class MeasurementCreateView(WatersyncCreateView):
             kwargs.pop('instance', None)
         return kwargs
     
+    def post(self, request, *args, **kwargs):
+        """
+        Handle POST requests: instantiate a form instance with the passed
+        POST variables and then check if it's valid.
+        """
+        print("POST request received")
+        print("Request data: ", request.POST)
+        
+        self.object = None
+        form_class = self.get_form_class()
+        form = self.get_form(form_class)
+        
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            print("Form errors:", form.errors)
+            return self.form_invalid(form)
+    
     def form_valid(self, form):
-        cleaned_data = form.clean_data()
-        for data in cleaned_data:
-            Measurement.objects.create(
-                sample=data["sample"],
-                parameter=data["parameter"],
-                value=data["value"],
-                unit=data["unit"],
-            )
-        return super().form_valid(form)
+        if isinstance(form, self.bulk_form_class):
+            print("Bulk form valid")
+            print("cleaned data from the form: ", form.cleaned_data)
+            
+            # Use the processed_data from the form
+            processed_data = form.cleaned_data.get('processed_data', [])
+            measurements = []
+            
+            for data in processed_data:
+                measurements.append(Measurement(
+                    sample=data["sample"],
+                    parameter=data["parameter"],
+                    value=data["value"],
+                    unit=data["unit"],
+                ))
 
-class MeasurementBulkCreateView(WatersyncCreateView):
-    form_class = MeasurementBulkForm
-    template_name = "shared/simple_form.html"
-
-    htmx_trigger_header = "measurementChanged"
-    htmx_render_template = "shared/simple_form.html"
-
-    def form_valid(self, form):
-        sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
-        cleaned_data = form.clean_data()
-        for data in cleaned_data:
-            Measurement.objects.create(
-                sample=sample,
-                parameter=data["parameter"],
-                value=data["value"],
-                unit=data["unit"],
-                measured_on=data["measured_on"],
-                details=form.cleaned_data.get("details", ""),
-            )
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse("sample_detail", kwargs={"pk": self.kwargs["sample_pk"]})
+            print("Measurements to be created: ", measurements)
+            Measurement.objects.bulk_create(measurements)
+            return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
+        else:
+            return super().form_valid(form)
 
 
 class MeasurementUpdateView(WatersyncUpdateView):
@@ -200,7 +208,6 @@ class MeasurementListView(WatersyncListView):
 
 
 measurement_create_view = MeasurementCreateView.as_view()
-measurement_bulk_create_view = MeasurementBulkCreateView.as_view()
 measurement_update_view = MeasurementUpdateView.as_view()
 measurement_delete_view = MeasurementDeleteView.as_view()
 measurement_detail_view = MeasurementDetailView.as_view()

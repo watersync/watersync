@@ -49,6 +49,8 @@ class MeasurementForm(forms.ModelForm):
 
 
 class MeasurementBulkForm(forms.Form):
+
+    bulk = forms.CharField(widget=forms.HiddenInput(), initial="true", required=False)
     sample = forms.ModelChoiceField(
         queryset=Sample.objects.all(),
         label="Sample",
@@ -67,37 +69,38 @@ class MeasurementBulkForm(forms.Form):
         widget=Textarea(attrs={"rows": 5}),
     )
 
-    def clean_data(self):
-        data = self.cleaned_data["data"]
-        if not isinstance(data, str):
-            return data
-
-        cleaned_data = []
-        lines = data.splitlines()
-        for line in lines:
-            if not line.strip():
-                continue
-
-            fields = line.split("\t") if "\t" in line else line.split(",")
-            if len(fields) != 2:
-                msg = "Each line must contain exactly 2 fields."
-                raise forms.ValidationError(msg)
-
-            parameter, value = fields
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Only process if data field is present and valid
+        if 'data' in cleaned_data and isinstance(cleaned_data['data'], str):
+            data_str = cleaned_data['data']
+            processed_data = []
             
-            try:
-                value = float(value)
-            except ValueError:
-                msg = f"Value '{value}' is not a valid number."
-                raise forms.ValidationError(msg)
+            lines = data_str.splitlines()
+            for line in lines:
+                if not line.strip():
+                    continue
 
-            cleaned_data.append(
-                {
-                    "sample": self.cleaned_data["sample"],
-                    "unit": self.cleaned_data["unit"] or self.cleaned_data["unit"].strip(),
+                fields = line.split("\t") if "\t" in line else line.split(",")
+                if len(fields) != 2:
+                    raise forms.ValidationError("Each line must contain exactly 2 fields: parameter and value.")
+
+                parameter, value = fields
+                
+                try:
+                    value = float(value)
+                except ValueError:
+                    raise forms.ValidationError(f"Value '{value}' is not a valid number.")
+
+                processed_data.append({
+                    "sample": cleaned_data.get('sample'),
+                    "unit": cleaned_data.get('unit', ''),
                     "parameter": parameter.strip(),
                     "value": value,
-                }
-            )
-
-        return cleaned_data  # Return after processing all lines
+                })
+            
+            # Store the processed data back in cleaned_data
+            cleaned_data['processed_data'] = processed_data
+            
+        return cleaned_data

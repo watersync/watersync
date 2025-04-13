@@ -17,7 +17,6 @@ from django.urls import include, path
 
 from watersync.waterquality.views import protocol_create_view, protocol_delete_view, protocol_list_view, protocol_update_view, sample_create_view, sample_delete_view, sample_list_view, sample_update_view
 from watersync.waterquality.views import (
-    measurement_bulk_create_view,
     measurement_create_view,
     measurement_delete_view,
     measurement_detail_view,
@@ -71,7 +70,6 @@ sample_patterns = [
 measurement_patterns = [
     path("", measurement_list_view, name="measurements"),
     path("add/", measurement_create_view, name="add-measurement"),
-    path("add_bulk/", measurement_bulk_create_view, name="add_bulk-measurement"),
     path(
         "<str:measurement_pk>/update/",
         measurement_update_view,
