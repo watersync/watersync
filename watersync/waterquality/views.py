@@ -119,43 +119,8 @@ class MeasurementCreateView(WatersyncCreateView):
     form_class = MeasurementForm
     bulk_form_class = MeasurementBulkForm
 
-    def get_form_class(self):
-        """
-        Return the form class to use based on the request parameters.
-        If 'bulk' is in the request parameters or POST data, return the bulk form class.
-        """
-        if 'bulk' in self.request.GET or self.request.POST.get('bulk') == 'true':
-            return self.bulk_form_class
-        return self.form_class
-    
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        if self.get_form_class() == self.bulk_form_class:
-            kwargs.pop('instance', None)
-        return kwargs
-    
-    def post(self, request, *args, **kwargs):
-        """
-        Handle POST requests: instantiate a form instance with the passed
-        POST variables and then check if it's valid.
-        """
-        print("POST request received")
-        print("Request data: ", request.POST)
-        
-        self.object = None
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        
-        if form.is_valid():
-            return self.form_valid(form)
-        else:
-            print("Form errors:", form.errors)
-            return self.form_invalid(form)
-    
-    def form_valid(self, form):
+    def handle_bulk_create(self, form):
         if isinstance(form, self.bulk_form_class):
-            print("Bulk form valid")
-            print("cleaned data from the form: ", form.cleaned_data)
             
             # Use the processed_data from the form
             processed_data = form.cleaned_data.get('processed_data', [])
@@ -169,11 +134,7 @@ class MeasurementCreateView(WatersyncCreateView):
                     unit=data["unit"],
                 ))
 
-            print("Measurements to be created: ", measurements)
             Measurement.objects.bulk_create(measurements)
-            return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
-        else:
-            return super().form_valid(form)
 
 
 class MeasurementUpdateView(WatersyncUpdateView):

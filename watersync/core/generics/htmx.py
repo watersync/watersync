@@ -37,6 +37,9 @@ class UpdateFormMixin:
     def update_user(self, instance):
         """Updating user field in forms."""
         # If the instance doesn't have a user field or the requesting user is None
+        if not instance:
+            return
+        
         if not hasattr(instance, 'user') or not self.request.user:
             return
 
@@ -58,6 +61,8 @@ class UpdateFormMixin:
         project is also not ambiguous, like location, because most of items have to be
         linked to a project.
         """
+        if not hasattr(form, 'instance'):
+            return
         if not hasattr(form.instance, 'project'):
             return
 
@@ -65,6 +70,8 @@ class UpdateFormMixin:
 
     def update_location(self, form):
         """Hook for updating location in subclasses."""
+        if not hasattr(form, 'instance'):
+            return
         if "location_pk" in self.kwargs and self.model_name != "location":
             form.instance.location = get_object_or_404(
                 Location, pk=self.kwargs["location_pk"]
@@ -87,6 +94,14 @@ class HTMXFormMixin(UpdateFormMixin):
         form.save() in this method. This is handled in the form_valid method further.
         """
 
+    def handle_bulk_create(self, form):
+        """Hook for handling bulk creation of objects.
+
+        This method should be overridden in subclasses to handle bulk creation
+        logic. Do not call super().handle_bulk_create(form) and do not call
+        form.save() in this method. This is handled in the form_valid method further.
+        """
+        pass
 
     def form_valid(self, form):
         """Handle a valid form submission."""
@@ -97,9 +112,16 @@ class HTMXFormMixin(UpdateFormMixin):
         self.update_location(form)
 
         # Save the instance to the database
-        instance = form.save()
+        if hasattr(form, "save"):            
+            instance = form.save()
+        else:
+            instance = None
         if hasattr(form, "save_m2m"):
             form.save_m2m()
+
+        # Handle bulk creation if applicable
+        if form.data.get("bulk") == "true":
+            self.handle_bulk_create(form)
 
         # Update user AFTER saving m2m relationships
         self.update_user(instance)

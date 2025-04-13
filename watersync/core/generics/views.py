@@ -318,8 +318,30 @@ class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
     template_name = "shared/form.html"
     htmx_render_template = "shared/form.html"
 
+    def get_form_class(self):
+        """
+        Return the form class to use based on the request parameters.
+        If 'bulk' is in the request parameters or POST data, return the bulk form class.
+        """
+        if 'bulk' in self.request.GET or self.request.POST.get('bulk') == 'true':
+            return self.bulk_form_class
+        return self.form_class
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if not hasattr(self, 'bulk_form_class'):
+            return kwargs
+        if self.get_form_class() == self.bulk_form_class:
+            # This has to be done for non-ModelForm
+            kwargs.pop('instance', None)
+        return kwargs
+
+    # def handle_bulk_form(self, form):
+
     def get(self, request, *args, **kwargs):
         # Check if this is a request for the detail form
+        # This had to be done here because the swap of the form is handled by
+        # HTMX and via the hx-get attribute in the form field
         if is_htmx_request(request) and request.GET.get("type"):
             return self.swap_detail_form(request)
         
