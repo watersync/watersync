@@ -1,5 +1,7 @@
 from django import forms
-from django.forms import DateInput, DateTimeInput, HiddenInput, Textarea
+from django.forms import Textarea
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Row, Column, Submit, Div
 
 from watersync.waterquality.models import Measurement, Protocol, Sample
 
@@ -38,7 +40,6 @@ class SampleForm(forms.ModelForm):
         )
 
 
-
 class MeasurementForm(forms.ModelForm):
     title = "Add Measurement"
 
@@ -48,6 +49,17 @@ class MeasurementForm(forms.ModelForm):
 
 
 class MeasurementBulkForm(forms.Form):
+    sample = forms.ModelChoiceField(
+        queryset=Sample.objects.all(),
+        label="Sample",
+        help_text="Select the sample to which these measurements belong.",
+    )
+    unit = forms.CharField(
+        label="Unit",
+        help_text="Enter the unit of measurement (e.g., mg/L, µg/L).",
+        max_length=10,
+        required=False,
+    )
     data = forms.CharField(
         label="Data",
         help_text="Paste tab-separated or comma-separated data with the following columns: "
@@ -67,11 +79,12 @@ class MeasurementBulkForm(forms.Form):
                 continue
 
             fields = line.split("\t") if "\t" in line else line.split(",")
-            if len(fields) != 4:
-                msg = "Each line must contain exactly 4 fields."
+            if len(fields) != 2:
+                msg = "Each line must contain exactly 2 fields."
                 raise forms.ValidationError(msg)
 
-            parameter, value, unit, measured_on = fields
+            parameter, value = fields
+            
             try:
                 value = float(value)
             except ValueError:
@@ -80,10 +93,10 @@ class MeasurementBulkForm(forms.Form):
 
             cleaned_data.append(
                 {
+                    "sample": self.cleaned_data["sample"],
+                    "unit": self.cleaned_data["unit"] or self.cleaned_data["unit"].strip(),
                     "parameter": parameter.strip(),
                     "value": value,
-                    "unit": unit.strip(),
-                    "measured_on": measured_on.strip(),
                 }
             )
 

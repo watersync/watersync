@@ -1,6 +1,6 @@
 from watersync.waterquality.models import Protocol, Sample, Measurement
-from watersync.core.models import Project, Location
-from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm
+from watersync.core.models import Project
+from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm, MeasurementBulkForm
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -10,7 +10,8 @@ from watersync.core.generics.views import (
 )
 from django.views.generic import TemplateView
 import json
-from watersync.core.generics.decorators import filter_by_location
+from django.urls import reverse
+from watersync.core.generics.decorators import filter_by_location, filter_by_conditions
 from django.shortcuts import get_object_or_404
 from watersync.core.generics.utils import get_resource_list_context
 
@@ -82,17 +83,10 @@ class SampleDetailView(WatersyncDetailView):
 
 class SampleOverviewView(TemplateView):
     template_name = "waterquality/sample_overview.html"
-
-    def get_resource_counts(self, sample):
-        views = {
-            # "statuscount": location.visits,
-        }
-
-        return {key: view.count() for key, view in views.items()}
     
     def get_resource_list_context(self):
         views = {
-            #"locationvisits": LocationVisitListView,
+            "measurements": MeasurementListView,
         }
 
         return get_resource_list_context(self.request, self.kwargs, views)
@@ -103,7 +97,6 @@ class SampleOverviewView(TemplateView):
         sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
         context["project"] = project
         context["sample"] = sample
-        context.update(self.get_resource_counts(sample))
         context.update(self.get_resource_list_context())
         context["hx_vals"] = json.dumps({"sample_pk": str(sample.pk)})
 
@@ -116,58 +109,63 @@ sample_delete_view = SampleDeleteView.as_view()
 sample_list_view = SampleListView.as_view()
 sample_detail_view = SampleDetailView.as_view()
 
-    # template_name = "waterquality/sample_detail.html"
-
-    # def get_object(self):
-    #     return get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
-
-    # def get_success_url(self):
-    #     return reverse("waterquality:detail-samplingevent", kwargs=self.kwargs)
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     project, location = get_project_location(self.request, self.kwargs)
-    #     sampling_event = get_object_or_404(
-    #         SamplingEvent, pk=self.kwargs["samplingevent_pk"]
-    #     )
-
-    #     context["project"] = project
-    #     context["location"] = location
-    #     context["samplingevent"] = sampling_event
-    #     context["measurement_list"] = self.get_object().measurements.all()
-    #     context["measurement_form"] = MeasurementForm()
-    #     return context
 
 # ================ Measurement views ========================
 
 class MeasurementCreateView(WatersyncCreateView):
     model = Measurement
     form_class = MeasurementForm
+    bulk_form_class = MeasurementBulkForm
 
+    def get_form_class(self):
+        """
+        Return the form class to use based on the request parameters.
+        If 'bulk' is in the request parameters, return the bulk form class.
+        """
+        if 'bulk' in self.request.GET or 'bulk' in self.request.POST:
+            return self.bulk_form_class
+        return self.form_class
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.get_form_class() == self.bulk_form_class:
+            kwargs.pop('instance', None)
+        return kwargs
+    
+    def form_valid(self, form):
+        cleaned_data = form.clean_data()
+        for data in cleaned_data:
+            Measurement.objects.create(
+                sample=data["sample"],
+                parameter=data["parameter"],
+                value=data["value"],
+                unit=data["unit"],
+            )
+        return super().form_valid(form)
 
-# class MeasurementBulkCreateView(LoginRequiredMixin, HTMXFormMixin, FormView):
-#     form_class = MeasurementBulkForm
-#     template_name = "shared/simple_form.html"
+class MeasurementBulkCreateView(WatersyncCreateView):
+    form_class = MeasurementBulkForm
+    template_name = "shared/simple_form.html"
 
-#     htmx_trigger_header = "measurementChanged"
-#     htmx_render_template = "shared/simple_form.html"
+    htmx_trigger_header = "measurementChanged"
+    htmx_render_template = "shared/simple_form.html"
 
-#     def form_valid(self, form):
-#         sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
-#         cleaned_data = form.clean_data()
-#         for data in cleaned_data:
-#             Measurement.objects.create(
-#                 sample=sample,
-#                 parameter=data["parameter"],
-#                 value=data["value"],
-#                 unit=data["unit"],
-#                 measured_on=data["measured_on"],
-#                 details=form.cleaned_data.get("details", ""),
-#             )
-#         return super().form_valid(form)
+    def form_valid(self, form):
+        sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
+        cleaned_data = form.clean_data()
+        for data in cleaned_data:
+            Measurement.objects.create(
+                sample=sample,
+                parameter=data["parameter"],
+                value=data["value"],
+                unit=data["unit"],
+                measured_on=data["measured_on"],
+                details=form.cleaned_data.get("details", ""),
+            )
+        return super().form_valid(form)
 
-#     def get_success_url(self):
-#         return reverse("sample_detail", kwargs={"pk": self.kwargs["sample_pk"]})
+    def get_success_url(self):
+        return reverse("sample_detail", kwargs={"pk": self.kwargs["sample_pk"]})
 
 
 class MeasurementUpdateView(WatersyncUpdateView):
@@ -181,16 +179,20 @@ class MeasurementDeleteView(WatersyncDeleteView):
 
 class MeasurementDetailView(WatersyncDetailView):
     model = Measurement
-    detail_type = "popover"
+
 
 class MeasurementListView(WatersyncListView):
     model = Measurement
-    detail_type = "popover"
+    detail_type = None
 
     def get_queryset(self):
+        # for all locations in the project
         project = self.get_project()
         locations = project.locations.all()
         samples = Sample.objects.filter(location__in=locations)
+
+        if self.request.GET.get("sample_pk"):
+            samples = samples.filter(pk=self.request.GET.get("sample_pk"))
 
         return Measurement.objects.filter(
             sample__in=samples
@@ -198,7 +200,7 @@ class MeasurementListView(WatersyncListView):
 
 
 measurement_create_view = MeasurementCreateView.as_view()
-# measurement_bulk_create_view = MeasurementBulkCreateView.as_view()
+measurement_bulk_create_view = MeasurementBulkCreateView.as_view()
 measurement_update_view = MeasurementUpdateView.as_view()
 measurement_delete_view = MeasurementDeleteView.as_view()
 measurement_detail_view = MeasurementDetailView.as_view()

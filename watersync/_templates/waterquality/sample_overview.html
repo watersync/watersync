@@ -12,5 +12,10 @@
 <h3 class="text-muted">Measurements</h3>
 <p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
         itself.</em></p>
+<div id="measurements" class="container p-4">
+    {% with list_context=measurements.list_context htmx_context="block" %}
+    {% include "list.html"%}
+    {% endwith %}
+</div>
 
 {% endblock content %}

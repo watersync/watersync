@@ -21,7 +21,16 @@
         <i class="fa-solid fa-arrow-right"></i>
     </a>
     {% endif %}
+    {% if object_list.0.create_bulk %}
     <button type="button" class="btn btn-success" 
+    hx-get="{{ list_context.add_url }}" 
+    hx-target="#dialog"
+    hx-trigger="click"
+    hx-vals='{"bulk": true}'>
+    <img src="{% static 'icons/pluses-alt.svg' %}" alt="CSV Icon" class="text-white" style="filter: invert(1);">
+</button>
+{% endif %}
+<button type="button" class="btn btn-success" 
         hx-get="{{ list_context.add_url }}" 
         hx-target="#dialog"
         hx-trigger="click">

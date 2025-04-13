@@ -2,8 +2,6 @@ from django.contrib.gis.db import models as geomodels
 from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
-from django.utils.text import slugify
-from django.utils import timezone
 
 from watersync.core.managers import LocationManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup

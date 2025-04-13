@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- First plus (front, larger) -->
+  <line x1="12" y1="8" x2="12" y2="16" stroke-width="2.5"/>
+  <line x1="8" y1="12" x2="16" y2="12" stroke-width="2.5"/>
+  
+  <!-- Second plus (middle, medium) -->
+  <line x1="8" y1="5" x2="8" y2="11" stroke-width="1.8" opacity="0.8"/>
+  <line x1="5" y1="8" x2="11" y2="8" stroke-width="1.8" opacity="0.8"/>
+  
+  <!-- Third plus (back, smaller) -->
+  <line x1="17" y1="15" x2="17" y2="19" stroke-width="1.5" opacity="0.6"/>
+  <line x1="15" y1="17" x2="19" y2="17" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Fourth plus (smallest, most back) -->
+  <line x1="5" y1="16" x2="5" y2="19" stroke-width="1.2" opacity="0.4"/>
+  <line x1="3.5" y1="17.5" x2="6.5" y2="17.5" stroke-width="1.2" opacity="0.4"/>
+  
+  <!-- Fifth plus (smallest, most back) -->
+  <line x1="18" y1="5" x2="18" y2="8" stroke-width="1.2" opacity="0.4"/>
+  <line x1="16.5" y1="6.5" x2="19.5" y2="6.5" stroke-width="1.2" opacity="0.4"/>
+</svg>

@@ -102,14 +102,16 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     
     _list_view_fields = {
         "Location": "location",
-        "Date": "date",
+        "Collected At": "collected_at",
         "Target Parameters": "target_parameters",
-        "Container Type": "container_type",
-        "Volume Collected": "volume_collected",
         "Replica Number": "replica_number",
     }
 
     _detail_view_fields = {
+        "Location": "location",
+        "Collected At": "collected_at",
+        "Measured At": "measured_at",
+        "Location Visit": "location_visit",
         "Target Parameters": "target_parameters",
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",
@@ -119,7 +121,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     }
 
     def __str__(self):
-        return f"{self.target_parameters} - {self.container_type} - {self.volume_collected} - {self.replica_number}"
+        return f"{self.collected_at:%Y%m%d}/{slugify(self.location.name)}/{self.target_parameters}/{self.replica_number}"
 
 class Measurement(TimeStampedModel, ModelTemplateInterface):
     """Individual measurements of parameters in a sample.
@@ -149,6 +151,8 @@ class Measurement(TimeStampedModel, ModelTemplateInterface):
         "Created": "created",
         "Modified": "modified",
     }
+
+    create_bulk = True
 
     def __str__(self):
         return f"{self.sample} - {self.parameter}"

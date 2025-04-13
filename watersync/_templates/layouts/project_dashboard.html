@@ -34,7 +34,20 @@
                                     class="ms-1 d-none d-sm-inline">Fieldwork</span>
                             </a>
                         </li>
-
+                        <li class="nav-item">
+                            <a href="{% url 'waterquality:samples' user.id project.pk  %}"
+                                class="custom-nav-link align-middle px-0">
+                                <i class="fa-solid fa-flask-vial p-2"></i> <span
+                                    class="ms-1 d-none d-sm-inline">Samples</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'waterquality:measurements' user.id project.pk  %}"
+                                class="custom-nav-link align-middle px-0">
+                                <i class="fa-solid fa-flask-vial p-2"></i> <span
+                                    class="ms-1 d-none d-sm-inline">WQ Measurements</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="{% url 'sensor:deployments' user.id project.pk %}"
                                 class="custom-nav-link align-middle px-0">

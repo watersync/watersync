@@ -22,15 +22,15 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from watersync.core.permissions import ApprovalRequiredMixin, ProjectPermissionMixin
+from watersync.core.generics.context import ListContext
+from watersync.core.permissions import ApprovalRequiredMixin
 from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin, is_htmx_request
 from watersync.core.models import Project
-from watersync.core.generics.mixins import ExportCsvMixin, ListContext
-from watersync.core.generics.mixins import DetailContext
+from watersync.core.generics.mixins import ExportCsvMixin
+from watersync.core.generics.context import DetailContext
 from functools import partial
 from django.urls import reverse
 from django.template.response import TemplateResponse
-
 
 class WatersyncGenericViewProperties(ApprovalRequiredMixin):
     """Mixin to add shortcuts to the views."""
@@ -214,6 +214,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         return "list_page.html"
 
     def get(self, request, *args, **kwargs):
+        print("REQUEST PARAMS: ", request.GET)
         if request.headers.get("HX-Download"):
             queryset = self.get_queryset()
             return self.export_as_csv(request, queryset)
