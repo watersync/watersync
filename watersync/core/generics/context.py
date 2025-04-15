@@ -6,6 +6,7 @@ class ListContext:
     """Custom object helping to provide the right information in the context objects of ListViews."""
 
     add_url: str | None = None
+    has_bulk_create: bool | None = None
     base_url_kwargs: dict | None = None
     list_url: str | None = None
     update_url: str | None = None

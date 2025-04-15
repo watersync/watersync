@@ -214,7 +214,6 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         return "list_page.html"
 
     def get(self, request, *args, **kwargs):
-        print("REQUEST PARAMS: ", request.GET)
         if request.headers.get("HX-Download"):
             queryset = self.get_queryset()
             return self.export_as_csv(request, queryset)
@@ -239,6 +238,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
 
         list_context = ListContext(
             add_url=self.get_add_url()(kwargs=self.get_base_url_kwargs()),
+            has_bulk_create=getattr(self.model, "create_bulk", False),
             list_url=self.get_list_url()(kwargs=self.get_base_url_kwargs()),
             update_url=self.get_update_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
             delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),

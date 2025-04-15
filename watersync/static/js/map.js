@@ -16,6 +16,7 @@ function initializeMap(mapId, lat = 0, lng = 0, zoom = 2) {
     );
 
     const map = L.map(mapId, {
+        gestureHandling: true,
         maxBounds: maxBounds,
         maxBoundsViscosity: 1.0,  // How "sticky" the bounds are (1.0 = cannot go outside)
         noWrap: true,

@@ -6,6 +6,5 @@ from .models import GWLManualMeasurement
 @admin.register(GWLManualMeasurement)
 class GWLAdmin(admin.ModelAdmin):
     # Columns to display in the list view
-    list_display = ("location", "depth", "measured_at")
-    search_fields = ("location",)  # Fields to search by
-    list_filter = ("location",)  # Add filters in the right sidebar
+    list_display = ("location_visit", "depth")
+

@@ -27,10 +27,8 @@ class SampleForm(forms.ModelForm):
     class Meta:
         model = Sample
         fields = (
-            "location",
-            "collected_at",
-            "measured_at",
             "location_visit",
+            "measured_at",
             "protocol",
             "target_parameters",
             "container_type",

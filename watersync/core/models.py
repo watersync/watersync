@@ -7,6 +7,23 @@ from watersync.core.managers import LocationManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
 from watersync.users.models import User
 
+class Unit(models.Model):
+    """Unit of measurement for parameters.
+
+    Each parameter can have a specific unit of measurement. This model defines
+    the units that can be used for parameters.
+
+    Attributes:
+        name (CharField): The name of the unit.
+        symbol (CharField): The symbol of the unit.
+    """
+
+    symbol = models.CharField(max_length=10)
+    description = models.TextField(blank=True, null=True)
+
+
+    def __str__(self):
+        return self.name
 
 class Project(TimeStampedModel, ModelTemplateInterface):
     """List of projects.
@@ -151,7 +168,7 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     location = models.ForeignKey(
         Location, related_name="visits", on_delete=models.CASCADE
     )
-    date = models.DateField(blank=True, null=True)
+    date = models.DateField()
     fieldwork = models.ForeignKey(
         "Fieldwork",
         related_name="visits",

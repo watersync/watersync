@@ -13,6 +13,40 @@ from watersync.core.models import LocationVisit, Location
 from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
+class TargetParameterGroup(models.Model):
+    """Group of target parameters for analysis.
+
+    Each group can contain multiple target parameters, which are the specific
+    parameters to be analyzed in the samples.
+
+    Attributes:
+        name: The name of the target parameter group.
+        description: A brief description of the group.
+    """
+
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class Parameter(models.Model):
+    """Parameter for analysis.
+
+    Each parameter is a specific measurement that can be taken from a sample.
+    Parameters are grouped into target parameter groups.
+
+    Attributes:
+        name: The name of the parameter.
+        group: The target parameter group to which the parameter belongs.
+    """
+
+    name = models.CharField(max_length=50)
+    group = models.ForeignKey(TargetParameterGroup, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
 
 class Protocol(models.Model, ModelTemplateInterface):
     """Protocols for sampling and analysis.
@@ -84,15 +118,11 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
             sample.
     """
 
-    location = models.ForeignKey(
-        Location, on_delete=models.CASCADE, related_name="samples"
-    )
-    collected_at = models.DateField()
-    measured_at = models.DateField(blank=True, null=True)
     location_visit = models.ForeignKey(
         LocationVisit, on_delete=models.CASCADE, related_name="samples",
         blank=True, null=True
     )
+    measured_at = models.DateField(blank=True, null=True)
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     target_parameters = models.CharField(max_length=50)
     container_type = models.CharField(max_length=50, blank=True, null=True)
@@ -101,17 +131,14 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     description = models.TextField(blank=True, null=True)
     
     _list_view_fields = {
-        "Location": "location",
-        "Collected At": "collected_at",
+        "Location visit": "location_visit",
         "Target Parameters": "target_parameters",
         "Replica Number": "replica_number",
     }
 
     _detail_view_fields = {
-        "Location": "location",
-        "Collected At": "collected_at",
-        "Measured At": "measured_at",
         "Location Visit": "location_visit",
+        "Measured At": "measured_at",
         "Target Parameters": "target_parameters",
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",
@@ -121,7 +148,8 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     }
 
     def __str__(self):
-        return f"{self.collected_at:%Y%m%d}/{slugify(self.location.name)}/{self.target_parameters}/{self.replica_number}"
+        return f"{self.location_visit.date:%Y%m%d}/{slugify(self.location_visit.location.name)}/{self.target_parameters}/{self.replica_number}"
+
 
 class Measurement(TimeStampedModel, ModelTemplateInterface):
     """Individual measurements of parameters in a sample.

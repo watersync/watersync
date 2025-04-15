@@ -74,7 +74,7 @@ class SampleListView(WatersyncListView):
     def get_queryset(self):
         project = self.get_project()
         return Sample.objects.filter(
-                location__in=project.locations.all()
+                location_visit__location__in=project.locations.all()
             ).order_by("-created")
 
 
@@ -158,7 +158,7 @@ class MeasurementListView(WatersyncListView):
         # for all locations in the project
         project = self.get_project()
         locations = project.locations.all()
-        samples = Sample.objects.filter(location__in=locations)
+        samples = Sample.objects.filter(location_visit__location__in=locations)
 
         if self.request.GET.get("sample_pk"):
             samples = samples.filter(pk=self.request.GET.get("sample_pk"))

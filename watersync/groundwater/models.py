@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-from watersync.core.models import Location
+from watersync.core.models import Location, LocationVisit
 from watersync.core.generics.mixins import ModelTemplateInterface
 
 
@@ -13,16 +13,18 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
     The depth is measured from the top of the casing to the water level.
     Should always be cprrected for the casing height before saving."""
 
-    location = models.ForeignKey(
-        Location, on_delete=models.PROTECT, related_name="gwlmeasurements"
+    location_visit = models.ForeignKey(
+        LocationVisit,
+        on_delete=models.PROTECT,
+        related_name="gwlmeasurements",
+        null=True,
+        blank=True,
     )
     depth = models.DecimalField(max_digits=5, decimal_places=2)
-    measured_at = models.DateTimeField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
     _list_view_fields = {
-        "Location": "location",
-        "Measured at": "measured_at",
+        "Location visit": "location_visit",
         "Depth": "depth",
         "Elevation": "groundwater_elevation",
     }
@@ -37,7 +39,7 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
             return None
 
         # Get historical location record from the time of measurement
-        historical_location = self.location.history.as_of(self.measured_at)
+        historical_location = self.location_vist.location.history.as_of(self.location_visit.date)
 
         # Get TOC from historical detail field
         historical_detail = historical_location.detail or []
