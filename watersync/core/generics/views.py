@@ -13,6 +13,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.contrib.messages.views import SuccessMessageMixin
+from django.utils.translation import gettext_lazy as _
+from django.contrib import messages
+
 import re
 
 from django.views.generic import (
@@ -24,7 +28,7 @@ from django.views.generic import (
 )
 from watersync.core.generics.context import ListContext
 from watersync.core.permissions import ApprovalRequiredMixin
-from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin, is_htmx_request
+from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
 from watersync.core.models import Project
 from watersync.core.generics.mixins import ExportCsvMixin
 from watersync.core.generics.context import DetailContext
@@ -138,21 +142,6 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
         if project and self.model_name != "project":
             base_kwargs["project_pk"] = project.pk
         return base_kwargs
-    
-    def get_base_template(self, htmx_context: str) -> str:
-        """Determine the appropriate base template based on context.
-        
-        For now we only check if htmx_context is "block". Then we return the blank template.
-        In other cases, we check if projects is present in the URL. If it is, we return the project_base_template.
-        Otherwise, we return the base_template.
-        """
-        if htmx_context == "block":
-            return self.blank_template
-
-        if "projects" in self.request.path:
-            return self.project_base_template
-
-        return self.base_template
 
 
 class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, ExportCsvMixin, ListView):
@@ -213,6 +202,7 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
             return "list.html"
         return "list_page.html"
 
+
     def get(self, request, *args, **kwargs):
         if request.headers.get("HX-Download"):
             queryset = self.get_queryset()
@@ -228,13 +218,6 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
         Base template is essentially the layout of the page.
         """
         context = super().get_context_data(**kwargs)
-
-        project = self.get_project()
-
-        if project:
-            context["project"] = project
-
-        htmx_context = self.request.headers.get("HX-Context")
 
         list_context = ListContext(
             add_url=self.get_add_url()(kwargs=self.get_base_url_kwargs()),
@@ -262,7 +245,6 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
                 kwargs={**self.get_base_url_kwargs(), **self.item}
             )
 
-        context["base_template"] = self.get_base_template(htmx_context)
         context["list_context"] = list_context
 
         return context
@@ -336,19 +318,17 @@ class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
             kwargs.pop('instance', None)
         return kwargs
 
-    # def handle_bulk_form(self, form):
-
     def get(self, request, *args, **kwargs):
         # Check if this is a request for the detail form
         # This had to be done here because the swap of the form is handled by
         # HTMX and via the hx-get attribute in the form field
-        if is_htmx_request(request) and request.GET.get("type"):
+        if request.htmx and request.GET.get("type"):
             return self.swap_detail_form(request)
         
         return super().get(request, *args, **kwargs)
 
 
-class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, DeleteView):
+class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGenericViewProperties, SuccessMessageMixin, DeleteView):
     """Delete logic for watersync DeleteViews.
 
     The largest chunk here is about redirecting after the delete. After the delete,
@@ -358,7 +338,6 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
 
     template_name = "confirm_delete.html"
     htmx_template = "confirm_delete.html"
-
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
@@ -373,7 +352,7 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         """
         list_kwargs = self.get_base_url_kwargs()
 
-        current_url = request.headers.get("HX-Current-Url")
+        current_url = request.htmx.current_url
 
         is_detail_view = (
             current_url.endswith(f'/{self.object.pk}/')
@@ -391,14 +370,13 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
             return self.get_list_url()(kwargs=list_kwargs)
 
 
-
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
 
         redirect_url = self.get_redirect_url(request)
 
-        if request.headers.get("HX-Request"):
-
+        if request.htmx:
+            messages.add_message(request, messages.SUCCESS, "WOHOO! You deleted something!")
             self.object.delete()
 
             headers = {
@@ -418,7 +396,7 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         return super().delete(request, *args, **kwargs)
 
 
-class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, UpdateView):
+class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericViewProperties, CreateUpdateDetailMixin, SuccessMessageMixin, UpdateView):
     
     template_name = "shared/form.html"
     htmx_render_template = "shared/form.html"
@@ -428,7 +406,7 @@ class WatersyncUpdateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
     
     def get(self, request, *args, **kwargs):
         # Check if this is a request for the detail form
-        if is_htmx_request(request) and request.GET.get("type"):
+        if request.htmx and request.GET.get("type"):
             return self.swap_detail_form(request, initial=self.get_object().detail)
             
         return super().get(request, *args, **kwargs)
@@ -442,45 +420,16 @@ class WatersyncDetailView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
-    
-    def get_base_template(self, htmx_context: str) -> str:
-        """Determine the appropriate base template based on context.
-        
-        For now we only check if htmx_context is "block". Then we return the blank template.
-        In other cases, we check if projects is present in the URL. If it is, we return the project_base_template.
-        Otherwise, we return the base_template.
-        """
-        if htmx_context == "block" or self.detail_type == "modal":
-            return self.blank_template
-
-        if "projects" in self.request.path:
-            return self.project_base_template
-
-        return self.base_template
 
     def get_context_data(self, **kwargs):
-        """Add common context data to the template.
 
-        Resolves which base template is used for a given view and adds it to the context.
-        Here we also add the project object, which is necessary to many views of models linked to the project.
-
-        Base template is essentially the layout of the page.
-        """
         context = super().get_context_data(**kwargs)
-
-        project = self.get_project()
-        
-        if project:
-            context["project"] = project
-
-        htmx_context = self.request.headers.get("HX-Context")
 
         detail_context = DetailContext(
             delete_url=self.get_delete_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
             update_url=self.get_update_url()(kwargs={**self.get_base_url_kwargs(), **self.item}),
         )
 
-        context["base_template"] = self.get_base_template(htmx_context)
         context["detail_context"] = detail_context
-        
+
         return context

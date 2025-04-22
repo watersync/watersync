@@ -165,28 +165,25 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
         ("unknown", "Unknown"),
     ]
 
-    location = models.ForeignKey(
-        Location, related_name="visits", on_delete=models.CASCADE
-    )
-    date = models.DateField()
     fieldwork = models.ForeignKey(
         "Fieldwork",
         related_name="visits",
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
+        on_delete=models.CASCADE
+    )
+    location = models.ForeignKey(
+        Location, related_name="visits", on_delete=models.CASCADE
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
     description = models.TextField(blank=True, null=True)
 
     _list_view_fields = {
+        "Fieldwork": "fieldwork",
         "Location": "location",
         "Status": "status",
-        "Date": "created",
     }
 
     def __str__(self) -> str:
-        return f"{self.location} - {self.created:%Y-%m-%d}"
+        return f"{self.location} - {self.fieldwork.date:%Y-%m-%d}"
 
 
 class Fieldwork(TimeStampedModel, ModelTemplateInterface):

@@ -95,9 +95,9 @@ THIRD_PARTY_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "drf_spectacular",
-    "dynamic_breadcrumbs",
     "simple_history",
     "leaflet",
+    "django_htmx",
 ]
 
 LOCAL_APPS = [
@@ -165,6 +165,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 # STATIC
@@ -211,7 +212,10 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "watersync.users.context_processors.allauth_settings",
-                "dynamic_breadcrumbs.context_processors.breadcrumbs",
+                "watersync.core.context_processors.current_project",
+                "watersync.core.context_processors.current_location",
+                "watersync.core.context_processors.base_template",
+                "watersync.core.context_processors.model_documentation",
             ],
         },
     },

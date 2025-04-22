@@ -202,14 +202,11 @@ class LocationOverviewView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        context["location"] = location
-        context["project"] = project
+
         context.update(self.get_resource_counts(location))
         context.update(self.get_resource_list_context())
         context["hx_vals"] = json.dumps({"location_pk": str(location.pk)})
-
 
         return context
 

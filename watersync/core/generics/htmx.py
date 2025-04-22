@@ -5,15 +5,10 @@ from django.template.loader import render_to_string
 from watersync.core.models import Location
 
 
-def is_htmx_request(request):
-    """Utility to detect HTMX requests."""
-    return request.headers.get("HX-Request")
-
-
 class RenderToResponseMixin:
     """Mixin for rendering HTMX responses."""
     def render_to_response(self, context, **response_kwargs):
-        if self.request.headers.get("HX-Request"):
+        if self.request.htmx:
             html = render_to_string(self.htmx_template, context, request=self.request)
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
@@ -27,10 +22,10 @@ class UpdateFormMixin:
         initial = super().get_initial()
         if 'project_pk' in self.kwargs and self.model_name != 'project':
             initial['project'] = self.kwargs['project_pk']
-        if 'location_pk' in self.kwargs and self.model_name != 'location':
-            initial['location'] = self.kwargs['location_pk']
-        if 'user_pk' in self.kwargs:
-            initial['user'] = self.kwargs['user_pk']
+        if 'location_pk' in self.kwargs:
+            initial['location'] = get_object_or_404(
+                Location, pk=self.kwargs['location_pk']
+            )
 
         return initial
 
@@ -101,7 +96,6 @@ class HTMXFormMixin(UpdateFormMixin):
         logic. Do not call super().handle_bulk_create(form) and do not call
         form.save() in this method. This is handled in the form_valid method further.
         """
-        pass
 
     def form_valid(self, form):
         """Handle a valid form submission."""
@@ -126,7 +120,7 @@ class HTMXFormMixin(UpdateFormMixin):
         # Update user AFTER saving m2m relationships
         self.update_user(instance)
 
-        if is_htmx_request(self.request):
+        if self.request.htmx:
             headers = (
                 {"Hx-Trigger": self.htmx_trigger}
                 if self.htmx_trigger
@@ -137,7 +131,7 @@ class HTMXFormMixin(UpdateFormMixin):
         return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
 
     def form_invalid(self, form):
-        if is_htmx_request(self.request):
+        if self.request.htmx:
             self.update_form_instance(form)
             context = self.get_context_data(form=form)
             html = render_to_string(
@@ -147,17 +141,3 @@ class HTMXFormMixin(UpdateFormMixin):
                 html, status=self.htmx_invalid_status, content_type="text/html"
             )
         return super().form_invalid(form)
-
-
-class DeleteHTMX:
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        if request.headers.get("HX-Request"):
-            headers = {"HX-Trigger": "configRequest"}
-            if hasattr(self, "htmx_redirect"):
-                headers["HX-Redirect"] = self.htmx_redirect
-
-            return HttpResponse(status=204, headers=headers)
-        return super().delete(request, *args, **kwargs)
