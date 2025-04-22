@@ -9,7 +9,8 @@
         {% if list_context.detail_url %}
         <button type="button" class="btn btn-sm btn-info m-1"
             hx-get="{{ list_context.detail_url|replace_placeholder:obj.pk }}" hx-target="#ofc-dialog"
-            hx-trigger="click">
+            hx-trigger="click"
+            hx-headers='{"HX-Context": "block"}' title="Detail">
             <i class="fa-solid fa-circle-info"></i>
         </button>
         {% endif %}
