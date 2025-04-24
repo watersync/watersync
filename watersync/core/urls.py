@@ -10,7 +10,13 @@ from watersync.core.views import (
 from watersync.core.views import (
     project_list_view,
 )
-
+from watersync.core.views import (
+    unit_create_view,
+    unit_delete_view,
+    unit_detail_view,
+    unit_update_view,
+    unit_list_view
+)
 
 app_name = "core"
 
@@ -54,6 +60,14 @@ location_visit_urlpatterns = [
     ),
 ]
 
+unit_urlpatterns = [
+    path("", unit_list_view, name="units"),
+    path("add/", unit_create_view, name="add-unit"),
+    path("<str:unit_pk>/", unit_detail_view, name="detail-unit"),
+    path("<str:unit_pk>/update/", unit_update_view, name="update-unit"),
+    path("<str:unit_pk>/delete/", unit_delete_view, name="delete-unit"),
+]
+
 urlpatterns = [
     path("projects/", include(project_urlpatterns)),
     path(
@@ -68,4 +82,5 @@ urlpatterns = [
         "projects/<str:project_pk>/locationvisits/",
         include(location_visit_urlpatterns),
     ),
+    path("units/", include(unit_urlpatterns)),
 ]

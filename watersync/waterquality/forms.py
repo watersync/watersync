@@ -1,10 +1,8 @@
 from django import forms
 from django.forms import Textarea
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Submit, Div
 
-from watersync.waterquality.models import Measurement, Protocol, Sample
-
+from watersync.waterquality.models import Measurement, Protocol, Sample, Parameter, ParameterGroup
+from watersync.core.models import Unit
 
 class ProtocolForm(forms.ModelForm):
     title = "Add Protocol"
@@ -21,6 +19,20 @@ class ProtocolForm(forms.ModelForm):
             "description",
         ]
 
+class ParameterForm(forms.ModelForm):
+    title = "Add Parameter"
+
+    class Meta:
+        model = Parameter
+        fields = ["name", "group"]
+
+class TargetParameterGroupForm(forms.ModelForm):
+    title = "Add Target Parameter Group"
+
+    class Meta:
+        model = ParameterGroup
+        fields = ["name", "code", "description"]
+
 
 class SampleForm(forms.ModelForm):
     title = "Add Sample"
@@ -30,7 +42,7 @@ class SampleForm(forms.ModelForm):
             "location_visit",
             "measured_at",
             "protocol",
-            "target_parameters",
+            "parameter_group",
             "container_type",
             "volume_collected",
             "replica_number",
@@ -54,16 +66,16 @@ class MeasurementBulkForm(forms.Form):
         label="Sample",
         help_text="Select the sample to which these measurements belong.",
     )
-    unit = forms.CharField(
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.all(),
         label="Unit",
-        help_text="Enter the unit of measurement (e.g., mg/L, µg/L).",
-        max_length=10,
+        help_text="Select the unit of measurement",
         required=False,
     )
     data = forms.CharField(
         label="Data",
         help_text="Paste tab-separated or comma-separated data with the following columns: "
-        "parameter, value, unit, measured_on",
+        "parameter, value",
         widget=Textarea(attrs={"rows": 5}),
     )
 

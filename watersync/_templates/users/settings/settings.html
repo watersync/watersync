@@ -4,17 +4,17 @@
 {% load static %}
 
 {% block content %}
-<div class="accordion accordion-flush" id="accordionFlushExample">
+<div class="accordion accordion-flush" id="accordionSettings">
     <div class="accordion-item">
-      <h2 class="accordion-header" id="flush-headingOne">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+      <h2 class="accordion-header" id="flush-protocols">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapsProtocols" aria-expanded="false" aria-controls="flush-collapsProtocols">
           Sampling protocols
         </button>
       </h2>
-      <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-bs-parent="#accordionFlushExample">
+      <div id="flush-collapsProtocols" class="accordion-collapse collapse" aria-labelledby="flush-protocols" data-bs-parent="#accordionSettings">
         <div class="accordion-body">
           <div id="protocols" class="container p-4">
-            {% with list_context=protocols.list_context htmx_context="block" base_template="layouts/blank.html" %}
+            {% with list_context=protocols.list_context htmx_context="block" %}
                 {% include "list.html"%}
             {% endwith %}
         </div>
@@ -22,23 +22,45 @@
       </div>
     </div>
     <div class="accordion-item">
-      <h2 class="accordion-header" id="flush-headingTwo">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+      <h2 class="accordion-header" id="flush-units">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseUnits" aria-expanded="false" aria-controls="flush-collapseUnits">
           Units
         </button>
       </h2>
-      <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="flush-headingTwo" data-bs-parent="#accordionFlushExample">
-        <div class="accordion-body">Placeholder content for this accordion, which is intended to demonstrate the <code>.accordion-flush</code> class. This is the second item's accordion body. Let's imagine this being filled with some actual content.</div>
+      <div id="flush-collapseUnits" class="accordion-collapse collapse" aria-labelledby="flush-units" data-bs-parent="#accordionSettings">
+        <div id="units" class="container p-4">
+          {% with list_context=units.list_context htmx_context="block"%}
+              {% include "list.html"%}
+          {% endwith %}
+      </div>      
+    </div>
+    </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="flush-parameterGroups">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseParameterGroups" aria-expanded="false" aria-controls="flush-collapseParameterGroups">
+          Parameter Groups
+        </button>
+      </h2>
+      <div id="flush-collapseParameterGroups" class="accordion-collapse collapse" aria-labelledby="flush-parameterGroups" data-bs-parent="#accordionSettings">
+        <div id="units" class="container p-4">
+          {% with list_context=parameter_groups.list_context htmx_context="block" %}
+            {% include "list.html"%}
+          {% endwith %}
+        </div>
       </div>
     </div>
     <div class="accordion-item">
-      <h2 class="accordion-header" id="flush-headingThree">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
-          Measurement types
+      <h2 class="accordion-header" id="flush-parameters">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseParameters" aria-expanded="false" aria-controls="flush-collapseParameters">
+          Parameters
         </button>
       </h2>
-      <div id="flush-collapseThree" class="accordion-collapse collapse" aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
-        <div class="accordion-body">Placeholder content for this accordion, which is intended to demonstrate the <code>.accordion-flush</code> class. This is the third item's accordion body. Nothing more exciting happening here in terms of content, but just filling up the space to make it look, at least at first glance, a bit more representative of how this would look in a real-world application.</div>
+      <div id="flush-collapseParameters" class="accordion-collapse collapse" aria-labelledby="flush-parameters" data-bs-parent="#accordionSettings">
+        <div id="units" class="container p-4">
+          {% with list_context=parameters.list_context htmx_context="block" %}
+            {% include "list.html"%}
+          {% endwith %}
+        </div>
       </div>
     </div>
   </div>

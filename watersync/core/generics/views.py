@@ -251,6 +251,12 @@ class WatersyncListView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGene
 
 
 class CreateUpdateDetailMixin:
+    """Handle swapping the detail form based on the selected type.
+    
+    When a form has a type field that user can select from, the form will
+    have a detail section. That section is swapped by the HTMX request
+    to the appropriate detail form based on the selected type.
+    """
     partial_form_template = "shared/form_detail.html"
 
     def get_detail_form_class(self, request):
@@ -263,9 +269,20 @@ class CreateUpdateDetailMixin:
         return self.form_class.detail_forms.get(item_type) or HttpResponse("")
 
     def add_hx_get(self, response):
-        """Add hx-get attribute to the form field from the request."""
+        """Add hx-get attribute to the form field from the request.
+        
+        This is needed to automate the form rendering. It allows to configure the
+        form in a standard way, with crispy forms, and then just alter the type field
+        to contain hx-get attribute triggering a get request for the right detail form.
+        """
+
         if isinstance(response, TemplateResponse) and not response.is_rendered:
-            if 'form' in response.context_data and 'detail' in response.context_data['form'].fields and 'type' in response.context_data['form'].fields:
+            context_is_right = (
+                "form" in response.context_data and
+                "detail" in response.context_data['form'].fields and
+                "type" in response.context_data['form'].fields
+            )
+            if context_is_right:
                 # Set hx-get to the current path with a query parameter to acocunt for both updates and creates
                 response.context_data['form'].fields['type'].widget.attrs['hx-get'] = f"{self.request.path}"
 
@@ -301,10 +318,10 @@ class WatersyncCreateView(LoginRequiredMixin, HTMXFormMixin, WatersyncGenericVie
     htmx_render_template = "shared/form.html"
 
     def get_form_class(self):
-        """
-        Return the form class to use based on the request parameters.
+        """Return the form class to use based on the request parameters.
         If 'bulk' is in the request parameters or POST data, return the bulk form class.
         """
+
         if 'bulk' in self.request.GET or self.request.POST.get('bulk') == 'true':
             return self.bulk_form_class
         return self.form_class
@@ -369,14 +386,11 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
         else:
             return self.get_list_url()(kwargs=list_kwargs)
 
-
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
-
         redirect_url = self.get_redirect_url(request)
 
         if request.htmx:
-            messages.add_message(request, messages.SUCCESS, "WOHOO! You deleted something!")
             self.object.delete()
 
             headers = {
@@ -390,8 +404,6 @@ class WatersyncDeleteView(LoginRequiredMixin, RenderToResponseMixin, WatersyncGe
                 status=204,
                 headers=headers,
             )
-
-        self.object.delete()
 
         return super().delete(request, *args, **kwargs)
 

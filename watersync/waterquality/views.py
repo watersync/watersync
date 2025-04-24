@@ -1,7 +1,6 @@
-from django.http import HttpResponseRedirect
-from watersync.waterquality.models import Protocol, Sample, Measurement
+from watersync.waterquality.models import Protocol, Sample, Measurement, Parameter, ParameterGroup
 from watersync.core.models import Project
-from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm, MeasurementBulkForm
+from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm, MeasurementBulkForm, TargetParameterGroupForm, ParameterForm
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -11,8 +10,6 @@ from watersync.core.generics.views import (
 )
 from django.views.generic import TemplateView
 import json
-from django.http import JsonResponse
-from django.urls import reverse
 from watersync.core.generics.decorators import filter_by_location, filter_by_conditions
 from django.shortcuts import get_object_or_404
 from watersync.core.generics.utils import get_resource_list_context
@@ -52,7 +49,73 @@ protocol_delete_view = ProtocolDeleteView.as_view()
 protocol_list_view = ProtocolListView.as_view()
 protocol_detail_view = ProtocolDetailView.as_view()
 
+## ============================List views============================
+class ParameterGroupCreateView(WatersyncCreateView):
+    model = ParameterGroup
+    form_class = TargetParameterGroupForm
 
+
+class ParameterGroupUpdateView(WatersyncUpdateView):
+    model = ParameterGroup
+    form_class = TargetParameterGroupForm
+
+
+class ParameterGroupDeleteView(WatersyncDeleteView):
+    model = ParameterGroup
+
+
+class ParameterGroupListView(WatersyncListView):
+    model = ParameterGroup
+    detail_type = "popover"
+
+    def get_queryset(self):
+        return ParameterGroup.objects.all().order_by("name")
+
+
+class ParameterGroupDetailView(WatersyncDetailView):
+    model = ParameterGroup
+    detail_type = "popover"
+
+
+parameter_group_create_view = ParameterGroupCreateView.as_view()
+parameter_group_detail_view = ParameterGroupDetailView.as_view()
+parameter_group_list_view = ParameterGroupListView.as_view()
+parameter_group_delete_view = ParameterGroupDeleteView.as_view()
+parameter_group_update_view = ParameterGroupUpdateView.as_view()
+
+## ============================List views============================
+class ParameterCreateView(WatersyncCreateView):
+    model = Parameter
+    form_class = ParameterForm
+
+
+class ParameterUpdateView(WatersyncUpdateView):
+    model = Parameter
+    form_class = ParameterForm
+
+
+class ParameterDeleteView(WatersyncDeleteView):
+    model = Parameter
+
+
+class ParameterListView(WatersyncListView):
+    model = Parameter
+    detail_type = "popover"
+
+    def get_queryset(self):
+        return Parameter.objects.all().order_by("name")
+
+
+class ParameterDetailView(WatersyncDetailView):
+    model = Parameter
+    detail_type = "popover"
+
+
+parameter_create_view = ParameterCreateView.as_view()
+parameter_detail_view = ParameterDetailView.as_view()
+parameter_list_view = ParameterListView.as_view()
+parameter_delete_view = ParameterDeleteView.as_view()
+parameter_update_view = ParameterUpdateView.as_view()
 # ================ Sample views ========================
 class SampleCreateView(WatersyncCreateView):
     model = Sample
@@ -122,17 +185,16 @@ class MeasurementCreateView(WatersyncCreateView):
     def handle_bulk_create(self, form):
         if isinstance(form, self.bulk_form_class):
             
-            # Use the processed_data from the form
             processed_data = form.cleaned_data.get('processed_data', [])
-            measurements = []
-            
-            for data in processed_data:
-                measurements.append(Measurement(
+            measurements = [
+                Measurement(
                     sample=data["sample"],
-                    parameter=data["parameter"],
+                    parameter=Parameter.objects.get(name=data["parameter"]),
                     value=data["value"],
-                    unit=data["unit"],
-                ))
+                    unit=data["unit"]
+                )
+                for data in processed_data
+            ]
 
             Measurement.objects.bulk_create(measurements)
 

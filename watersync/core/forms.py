@@ -16,7 +16,7 @@ from django.forms import (
 
 from watersync.core.generics.forms import FormWithDetailMixin
 from watersync.core.generics.forms import HTMXChoiceField
-from watersync.core.models import Location, LocationVisit, Project, Fieldwork
+from watersync.core.models import Location, LocationVisit, Project, Fieldwork, Unit
 from watersync.users.models import User
 
 
@@ -58,6 +58,13 @@ class LocationVisitForm(ModelForm):
     class Meta:
         model = LocationVisit
         fields = ["location", "fieldwork", "status", "description"]
+
+class UnitForm(ModelForm):
+    title = "Add Unit"
+
+    class Meta:
+        model = Unit
+        fields = ["symbol", "description"]
 
 
 class FieldworkForm(ModelForm):

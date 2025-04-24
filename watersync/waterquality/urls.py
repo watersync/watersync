@@ -39,6 +39,20 @@ sample_detail_view,
 sample_overview_view
 )
 
+from watersync.waterquality.views import (
+    parameter_create_view,
+    parameter_update_view,
+    parameter_delete_view,
+    parameter_list_view,
+)
+
+from watersync.waterquality.views import (
+    parameter_group_create_view,
+    parameter_group_update_view,
+    parameter_group_delete_view,
+    parameter_group_list_view,
+)
+
 
 app_name = "waterquality"
 
@@ -55,6 +69,36 @@ protocol_patterns = [
         "<str:protocol_pk>/delete/",
         protocol_delete_view,
         name="delete-protocol",
+    ),
+]
+
+parameter_group_patterns = [
+    path("", parameter_group_list_view, name="parametergroups"),
+    path("add/", parameter_group_create_view, name="add-parametergroup"),
+    path(
+        "<str:parametergroup_pk>/update/",
+        parameter_group_update_view,
+        name="update-parametergroup",
+    ),
+    path(
+        "<str:parametergroup_pk>/delete/",
+        parameter_group_delete_view,
+        name="delete-parametergroup",
+    ),
+]
+
+parameter_patterns = [
+    path("", parameter_list_view, name="parameters"),
+    path("add/", parameter_create_view, name="add-parameter"),
+    path(
+        "<str:parameter_pk>/update/",
+        parameter_update_view,
+        name="update-parameter",
+    ),
+    path(
+        "<str:parameter_pk>/delete/",
+        parameter_delete_view,
+        name="delete-parameter",
     ),
 ]
 
@@ -97,4 +141,6 @@ urlpatterns = [
         "projects/<str:project_pk>/measurements/",
         include(measurement_patterns),
     ),
+    path("parameter-groups/", include(parameter_group_patterns)),
+    path("parameters/", include(parameter_patterns))
 ]
