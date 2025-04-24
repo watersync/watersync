@@ -3,19 +3,19 @@ from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from watersync.core.managers import LocationManager
+from watersync.core.managers import LocationManager, WatersyncManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
 from watersync.users.models import User
 
-class Unit(models.Model):
+class Unit(models.Model, ModelTemplateInterface):
     """Unit of measurement for parameters.
 
     Each parameter can have a specific unit of measurement. This model defines
     the units that can be used for parameters.
 
     Attributes:
-        name (CharField): The name of the unit.
-        symbol (CharField): The symbol of the unit.
+        symbol (CharField): The name of the unit.
+        description (CharField): The symbol of the unit.
     """
 
     symbol = models.CharField(max_length=10)
@@ -23,7 +23,11 @@ class Unit(models.Model):
 
 
     def __str__(self):
-        return self.name
+        return self.symbol
+    
+    _list_view_fields = {
+        "Symbol": "symbol",
+    }
 
 class Project(TimeStampedModel, ModelTemplateInterface):
     """List of projects.
@@ -119,6 +123,7 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
+    watersync = WatersyncManager()
     history = HistoricalRecords()
 
     _detail_view_fields = {
@@ -130,6 +135,8 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     _list_view_fields = {
         "Name": "name",
     }
+
+    _csv_columns = {"Name": "name", "Type": "type", "Created": "project__created", "Visits": "locvisits"}
 
     class Meta:
         unique_together = ("project", "name")

@@ -4,9 +4,9 @@ from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom
 from watersync.groundwater.views import GWLListView
-from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm
+from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm, UnitForm
 from watersync.core.generics.htmx import RenderToResponseMixin
-from watersync.core.models import Fieldwork, Location, LocationVisit, Project
+from watersync.core.models import Fieldwork, Location, LocationVisit, Project, Unit
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from watersync.sensor.views import DeploymentListView
 from watersync.waterquality.views import SampleListView
@@ -92,6 +92,11 @@ class LocationListView(WatersyncListView):
     detail_type = "page"
 
     def get_queryset(self):
+        stats = {
+            "locvisits": Count("visits"),
+            "locsamples": Count("visits__samples"),
+        }
+        print("CUSTOM MANAGER: ", self.model.watersync.get_full_queryset(stats=stats, for_export=True))
         project = self.get_project()
         return project.locations.all()
 
@@ -211,3 +216,37 @@ class LocationOverviewView(TemplateView):
         return context
 
 location_overview_view = LocationOverviewView.as_view()
+
+## ============================List views============================
+class UnitCreateView(WatersyncCreateView):
+    model = Unit
+    form_class = UnitForm
+
+
+class UnitUpdateView(WatersyncUpdateView):
+    model = Unit
+    form_class = UnitForm
+
+
+class UnitDeleteView(WatersyncDeleteView):
+    model = Unit
+
+
+class UnitListView(WatersyncListView):
+    model = Unit
+    detail_type = "popover"
+
+    def get_queryset(self):
+        return Unit.objects.all().order_by("symbol")
+
+
+class UnitDetailView(WatersyncDetailView):
+    model = Unit
+    detail_type = "popover"
+
+
+unit_create_view = UnitCreateView.as_view()
+unit_detail_view = UnitDetailView.as_view()
+unit_list_view = UnitListView.as_view()
+unit_delete_view = UnitDeleteView.as_view()
+unit_update_view = UnitUpdateView.as_view()
