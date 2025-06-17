@@ -11,6 +11,7 @@ document.addEventListener('htmx:afterSwap', function (e) {
 
         modal.show();
 
+
         // Wait for modal to be fully visible before initializing map
         modalElement.addEventListener('shown.bs.modal', function () {
             const mapContainer = modalElement.querySelector("#map");
@@ -20,9 +21,34 @@ document.addEventListener('htmx:afterSwap', function (e) {
                     initializeModalMap(mapContainer);
                 }, 100);
             }
+        initializeDatePickers();
+        initializeTimePickers();
         }, { once: true });
     }
 });
+
+function initializeDatePickers() {
+    $('.datepickerinput').each(function() {
+        // Prevent double initialization
+        if (!$(this).data('DateTimePicker')) {
+            $(this).datetimepicker({
+                format: 'YYYY-MM-DD' // Adjust format as needed
+            });
+        }
+    });
+}
+
+function initializeTimePickers() {
+    $('.timepickerinput').each(function() {
+        // Prevent double initialization
+        if (!$(this).data('DateTimePicker')) {
+            $(this).datetimepicker({
+                format: 'HH:mm:ss' // Adjust format as needed
+            });
+        }
+    });
+}
+
 
 function cleanupModalMap() {
     // Only target the modal map instance

@@ -9,6 +9,7 @@
         <form hx-post="{{ request.path }}" hx-target="#dialog">
             {% csrf_token %}
             <div id="id_type2">
+                {{ form.media }}
                 {{ form.type|crispy }}
             </div>
             {{ form|crispy }}
