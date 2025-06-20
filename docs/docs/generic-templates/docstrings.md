@@ -1,10 +1,7 @@
 # Docstrings
 
-Good code has docstrings. Period. Great code has well written docstrings! If you are already there, why not use those docstrings within the application as well?
+In Watersync all classes have docstrings written in Google format. This is particularly important for models, because the docstrings from models are used in the application to display hints throughout the UI. Short and long descriptions are used in the 
 
-We reuse docstrings to display explanation about data in the templates. In the generics, the docstring is split into segments to obtain the relevant information. The first part which normally is a succinct description of the model becomes the main explanation. The second part, normally verbose, explaining what the class is doing in more datail becomes the detail explanation.
-
-Parts are split be double newlines ("\n\n"). Therefore, it is necessary that the dosctring keep the right structure:
 
 """Short description.
 
