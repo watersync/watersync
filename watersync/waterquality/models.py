@@ -93,7 +93,6 @@ class Protocol(models.Model, ModelTemplateInterface):
     data_postprocessing = models.TextField(blank=True, null=True)
     standard_reference = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(max_length=256, blank=True, null=True)
-    user = models.ManyToManyField(User, related_name="protocols")
 
     _list_view_fields = {
         "Method Name": "method_name",
@@ -138,7 +137,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
         LocationVisit, on_delete=models.CASCADE, related_name="samples",
         blank=True, null=True
     )
-    measured_at = models.DateField(blank=True, null=True)
+    measured_on = models.DateField(blank=True, null=True)
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     parameter_group = models.ForeignKey(ParameterGroup, on_delete=models.PROTECT)
     container_type = models.CharField(max_length=50, blank=True, null=True)
@@ -154,7 +153,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
 
     _detail_view_fields = {
         "Location Visit": "location_visit",
-        "Measured At": "measured_at",
+        "Measured At": "measured_on",
         "Target Parameters": "parameter_group",
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",

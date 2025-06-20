@@ -35,7 +35,7 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
         
         TODO: still need to implement handling of the timezone
         """
-        if not self.measured_at:
+        if not self.measured_on:
             return None
 
         # Get historical location record from the time of measurement
