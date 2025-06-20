@@ -2,7 +2,7 @@
 {
     "name": "watersync_dev",
     "features": {
-        "ghcr.io/devcontainers-contrib/features/poetry:2": {},
+        // "ghcr.io/devcontainers-contrib/features/poetry:2": {}, // This started breaking. isn't really used anyway. 
         "ghcr.io/jungaretti/features/make:1": {}
     },
     "dockerComposeFile": [
