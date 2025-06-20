@@ -4,6 +4,9 @@ from django.forms import Textarea
 from watersync.waterquality.models import Measurement, Protocol, Sample, Parameter, ParameterGroup
 from watersync.core.models import Unit
 
+from bootstrap_datepicker_plus.widgets import DatePickerInput
+
+
 class ProtocolForm(forms.ModelForm):
     title = "Add Protocol"
     class Meta:
@@ -36,11 +39,20 @@ class TargetParameterGroupForm(forms.ModelForm):
 
 class SampleForm(forms.ModelForm):
     title = "Add Sample"
+    measured_on = forms.DateField(
+        label="Measured On",
+        widget=DatePickerInput(
+            attrs={"placeholder": "Select date", "autocomplete": "off"},
+            format="%Y-%m-%d",
+        ),
+        help_text="The date when the sample was analysed.",
+    )
+    
     class Meta:
         model = Sample
         fields = (
             "location_visit",
-            "measured_at",
+            "measured_on",
             "protocol",
             "parameter_group",
             "container_type",

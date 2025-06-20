@@ -3,7 +3,15 @@ from django import forms
 from django.forms import HiddenInput
 
 from watersync.core.generics.forms import FormWithDetailMixin
-from watersync.sensor.models import Deployment, Sensor
+from watersync.sensor.models import Deployment, Sensor, SensorVariable
+
+
+class SensorVariableForm(forms.ModelForm):
+    title = "Add Sensor Variable"
+
+    class Meta:
+        model = SensorVariable
+        fields = ["name", "code", "description"]
 
 
 class SensorDetailForm(forms.Form):

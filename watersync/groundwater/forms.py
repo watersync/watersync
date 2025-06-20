@@ -1,10 +1,10 @@
-from django.forms import DateTimeInput, ModelForm
+from django.forms import ModelForm
 
 from watersync.groundwater.models import GWLManualMeasurement
 
 
 class GWLForm(ModelForm):
-    title = "Add Groundwater Level Measurement"
+    title = "Groundwater Level Measurement"
 
     class Meta:
         model = GWLManualMeasurement

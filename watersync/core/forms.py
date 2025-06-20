@@ -1,9 +1,7 @@
 from django.forms import (
     CharField,
     CheckboxSelectMultiple,
-    TimeInput,
     TimeField,
-    DateInput,
     DateField,
     FloatField,
     IntegerField,
@@ -14,20 +12,42 @@ from django.forms import (
     ChoiceField,
 )
 
+from bootstrap_datepicker_plus.widgets import TimePickerInput, DatePickerInput
+
 from watersync.core.generics.forms import FormWithDetailMixin
 from watersync.core.generics.forms import HTMXChoiceField
 from watersync.core.models import Location, LocationVisit, Project, Fieldwork, Unit
 from watersync.users.models import User
+from django.db import models
+
 
 
 class ProjectForm(ModelForm):
     """Temporarily there will be no geometry field in the form."""
 
-    title = "Add Project"
+    title = "Project Form"
+
+    start_date = DateField(
+        required=True,
+        label="Start Date",
+        widget=DatePickerInput(
+            attrs={"placeholder": "Select start date", "autocomplete": "off"}
+        ),
+    )
+    end_date = DateField(
+        required=False,
+        label="End Date",
+        widget=DatePickerInput(
+            attrs={"placeholder": "Select end date", "autocomplete": "off"},
+            range_from="start_date",
+        ),
+    )
+
     user = ModelMultipleChoiceField(
         queryset=User.objects.all(),
         widget=CheckboxSelectMultiple,
         required=True,
+        label="Project Members"
     )
 
     class Meta:
@@ -45,7 +65,6 @@ class ProjectForm(ModelForm):
         instance = super().save(commit=False)
 
         # Here comes the logic to create geometry in non-standard way
-
         if commit:
             instance.save()
             self.save_m2m()
@@ -53,14 +72,14 @@ class ProjectForm(ModelForm):
 
 
 class LocationVisitForm(ModelForm):
-    title = "Add Location Status"
+    title = "Location Status"
 
     class Meta:
         model = LocationVisit
-        fields = ["location", "fieldwork", "status", "description"]
+        fields = ["fieldwork", "location", "status", "description"]
 
 class UnitForm(ModelForm):
-    title = "Add Unit"
+    title = "Unit Form"
 
     class Meta:
         model = Unit
@@ -68,36 +87,84 @@ class UnitForm(ModelForm):
 
 
 class FieldworkForm(ModelForm):
-    title = "Fieldwork"
+    title = "Fieldwork Form"
+
+    date = DateField(
+        required=True,
+        label="Date",
+        widget=DatePickerInput(
+            attrs={"placeholder": "Select date", "autocomplete": "off"}
+        ),
+    )
+
+    start_time = TimeField(
+        required=True,
+        label="Start Time",
+        widget=TimePickerInput(
+            attrs={"placeholder": "Select start time", "autocomplete": "off"}
+        ),
+    )
+
+    end_time = TimeField(
+        required=True,
+        label="End Time",
+        widget=TimePickerInput(
+            attrs={"placeholder": "Select end time", "autocomplete": "off"}
+        ),
+    )
+
     user = ModelMultipleChoiceField(
         queryset=User.objects.all(),
         widget=CheckboxSelectMultiple,
         required=True,
-    )
-    date = DateField(
-        widget=DateInput(attrs={"type": "date"}),
-        required=True,
-    )
-    start_time = TimeField(
-        widget=TimeInput(attrs={"type": "time"}),
-        required=False,
-    )
-    end_time = TimeField(
-        widget=TimeInput(attrs={"type": "time"}),
-        required=False,
+        label="Fieldwork Members",
     )
 
     class Meta:
         model = Fieldwork
-        exclude = ["project"]
+        fields = [
+            "date",
+            "start_time",
+            "end_time",
+            "weather",
+            "description",
+            "user"
+        ]
 
 
 class PiezometerDetailForm(Form):
-    # Define fields based on your schema
-    depth = FloatField(required=False, label="Depth (m)")
-    diameter = FloatField(required=False, label="Diameter (mm)")
+    """Form for Piezometer details.
+    
+    Total length can be obtained by adding the top of piezometer and total depth.
+    Screen length is the length of the perforated section of the piezometer.
+    """
+    class PiezometerMaterialTypes(models.TextChoices):
+        PVC = "pvc", "PVC"
+        STEEL = "steel", "Steel"
+        OTHER = "other", "Other"
+
+    class PiezometerDrillTypes(models.TextChoices):
+        HAND_DRILL = "hand_drill", "Hand Drill"
+        GEOPROBE = "geoprobe", "Geoprobe"
+        SONIC_RIG = "sonic_rig", "Sonic Rig"
+        OTHER = "other", "Other"
+
+    depth = FloatField(required=True, label="Total depth below ground (m)")
+    top_of_piezometer = FloatField(
+        required=True, label="Top of Piezometer below (-)/above ground (+) (m)"
+    )
+    top_of_screen = FloatField(
+        required=True, label="Top of Screen below ground (+) (m)"
+    )
+    bottom_of_screen = FloatField(
+        required=True, label="Bottom of Screen below ground (+) (m)"
+    )
+    drill_type = ChoiceField(
+        required=True, choices=PiezometerDrillTypes.choices, label="Drill Type"
+    )
+    diameter = FloatField(required=True, label="Diameter (mm)")
     material = ChoiceField(
-        required=False, choices=[("pvc", "PVC"), ("steel", "Steel"), ("other", "Other")]
+        required=True, choices=PiezometerMaterialTypes.choices, label="Material"
     )
 
 
