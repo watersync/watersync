@@ -201,6 +201,13 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     project and users. Should also contain information on weather conditions and other
     relevant information about what happened during the fieldwork.
     """
+    class WeatherConditions(models.TextChoices):
+        SUNNY = "sunny", "Sunny"
+        CLOUDY = "cloudy", "Cloudy"
+        RAINY = "rainy", "Rainy"
+        SNOWY = "snowy", "Snowy"
+        WINDY = "windy", "Windy"
+        STORMY = "stormy", "Stormy"
 
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="fieldworks"
@@ -209,7 +216,11 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     date = models.DateField()
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
-    weather = models.JSONField(null=True, blank=True)
+    weather =  models.CharField(
+        max_length=20,
+        choices=WeatherConditions.choices,
+        default=WeatherConditions.SUNNY
+    )
     description = models.TextField(blank=True, null=True)
 
     _list_view_fields = {
