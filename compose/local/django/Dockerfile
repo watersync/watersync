@@ -49,6 +49,8 @@ RUN groupadd --gid 1000 dev-user \
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg dependencies
   libpq-dev \
+  # psql client
+  postgresql-client \
   # Translations dependencies
   gettext \
   binutils libproj-dev gdal-bin \
