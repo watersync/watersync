@@ -7,6 +7,7 @@ from django.views.generic import DetailView, RedirectView, TemplateView, UpdateV
 
 from watersync.users.models import User
 from watersync.waterquality.views import ProtocolListView, ParameterListView, ParameterGroupListView
+from watersync.sensor.views import SensorVariableListView
 from watersync.core.views import UnitListView
 from watersync.core.generics.utils import get_resource_list_context
 from watersync.core.permissions import ApprovalRequiredMixin
@@ -55,7 +56,8 @@ class SettingsView(LoginRequiredMixin, ApprovalRequiredMixin, TemplateView):
         views = {"protocols": ProtocolListView,
                  "units": UnitListView,
                  "parameter_groups": ParameterGroupListView,
-                 "parameters": ParameterListView}
+                 "parameters": ParameterListView,
+                 "sensorvariables": SensorVariableListView}
         return get_resource_list_context(self.request, self.kwargs, views)
 
     def get_context_data(self, **kwargs):

@@ -19,11 +19,40 @@ from django.views.generic import (
 )
 from watersync.core.generics.views import WatersyncListView
 from watersync.core.models import Location, Project
-from watersync.sensor.models import Deployment, Sensor, SensorRecord
+from watersync.sensor.models import Deployment, Sensor, SensorRecord, SensorVariable
 from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
 from watersync.core.generics.decorators import filter_by_location
-from .forms import DeploymentForm, SensorForm, SensorRecordForm
+from .forms import DeploymentForm, SensorForm, SensorRecordForm, SensorVariableForm
 from .plotting import create_sensor_graph
+
+class SensorVariableCreateView(WatersyncCreateView):
+    model = SensorVariable
+    form_class = SensorForm
+
+
+class SensorVariableUpdateView(WatersyncUpdateView):
+    model = SensorVariable
+    form_class = SensorVariableForm
+
+
+class SensorVariableListView(WatersyncListView):
+    model = SensorVariable
+    detail_type = "modal"
+
+
+class SensorVariableDeleteView(WatersyncDeleteView):
+    model = SensorVariable
+
+class SensorVariableDetailView(WatersyncDetailView):
+    model = SensorVariable
+    detail_type = "popover"
+
+sensor_variable_create_view = SensorVariableCreateView.as_view()
+sensor_variable_update_view = SensorVariableUpdateView.as_view()
+sensor_variable_list_view = SensorVariableListView.as_view()
+sensor_variable_delete_view = SensorVariableDeleteView.as_view()
+sensor_variable_detail_view = SensorVariableDetailView.as_view()
+# ================ Sensor views ========================
 
 
 class SensorCreateView(WatersyncCreateView):
