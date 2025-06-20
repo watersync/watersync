@@ -86,6 +86,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
+    "bootstrap_datepicker_plus",
     "allauth",
     "allauth.account",
     "allauth.mfa",
