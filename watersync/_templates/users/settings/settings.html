@@ -63,6 +63,20 @@
         </div>
       </div>
     </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="flush-sensorvariables">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseSensorVariables" aria-expanded="false" aria-controls="flush-collapseSensorVariables">
+          Sensor Variables
+        </button>
+      </h2>
+      <div id="flush-collapseSensorVariables" class="accordion-collapse collapse" aria-labelledby="flush-sensorvariables" data-bs-parent="#accordionSettings">
+        <div id="units" class="container p-4">
+          {% with list_context=sensorvariables.list_context htmx_context="block" %}
+            {% include "list.html"%}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
   </div>
 
 {% endblock %}

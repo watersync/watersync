@@ -6,6 +6,40 @@ from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
 
+class SensorVariable(models.Model, ModelTemplateInterface):
+    """Variables that sensors can measure.
+    
+    This model stores the different types of variables/parameters that
+    sensors are capable of measuring, such as temperature, pH, dissolved oxygen, etc.
+    
+    Attributes:
+        name: The name of the variable (e.g., "Temperature", "pH", "Dissolved Oxygen")
+        code: A short code for the variable (e.g., "TEMP", "PH", "DO")
+        description: Detailed description of what this variable measures
+    """
+    
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    
+    _list_view_fields = {
+        "Name": "name",
+        "Code": "code",
+    }
+    
+    _detail_view_fields = {
+        "Name": "name",
+        "Code": "code",
+        "Description": "description",
+    }
+    
+    class Meta:
+        ordering = ["name"]
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
 class Sensor(models.Model, ModelTemplateInterface):
     """Sensing devices.
 
@@ -30,16 +64,24 @@ class Sensor(models.Model, ModelTemplateInterface):
         default="other",
     )
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
+    variables = models.ManyToManyField(
+        SensorVariable,
+        blank=True,
+        help_text="Variables that this sensor can measure"
+    )
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
     _list_view_fields = {
         "Identifier": "identifier",
+        "Type": "type",
         "Available": "available"
     }
 
     _detail_view_fields = {
         "Identifier": "identifier",
+        "Type": "type",
+        "Variables": "variables",
         "Available": "available"
     }
 
@@ -70,7 +112,7 @@ class Deployment(models.Model, ModelTemplateInterface):
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="deployments")
     sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT, related_name="deployments")
     variable = models.CharField(max_length=20)
-    unit = models.CharField(max_length=10)
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
     deployed_at = models.DateTimeField(auto_now_add=True)
     decommissioned_at = models.DateTimeField(null=True, blank=True)
     detail = models.JSONField(null=True, blank=True)
