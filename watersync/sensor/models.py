@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from watersync.core.models import Location
+from watersync.core.models import Location, Unit
 from watersync.core.generics.mixins import ModelTemplateInterface
 from watersync.users.models import User
 
@@ -42,6 +42,10 @@ class SensorVariable(models.Model, ModelTemplateInterface):
 
 class Sensor(models.Model, ModelTemplateInterface):
     """Sensing devices.
+
+    Sensors are devices that can be deployed in a location to measure
+    various parameters. Often one sensor can measure multiple parameters,
+
 
     Attributes:
         identifier: The unique identifier of the sensor.
