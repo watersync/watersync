@@ -1,0 +1,354 @@
+[
+  {
+    "model": "waterquality.parameter",
+    "pk": 1,
+    "fields": {
+      "name": "Temperature",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 2,
+    "fields": {
+      "name": "Turbidity",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 3,
+    "fields": {
+      "name": "Electrical Conductivity",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 4,
+    "fields": {
+      "name": "Total Suspended Solids",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 5,
+    "fields": {
+      "name": "pH",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 6,
+    "fields": {
+      "name": "Dissolved Oxygen",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 7,
+    "fields": {
+      "name": "Oxidation Reduction Potential",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 8,
+    "fields": {
+      "name": "Total Dissolved Solids",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 9,
+    "fields": {
+      "name": "Alkalinity",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 10,
+    "fields": {
+      "name": "Hardness",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 11,
+    "fields": {
+      "name": "Nitrate",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 12,
+    "fields": {
+      "name": "Nitrite",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 13,
+    "fields": {
+      "name": "Ammonia",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 14,
+    "fields": {
+      "name": "Total Nitrogen",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 15,
+    "fields": {
+      "name": "Orthophosphate",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 16,
+    "fields": {
+      "name": "Total Phosphorus",
+      "group": 1
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 17,
+    "fields": {
+      "name": "Lead",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 18,
+    "fields": {
+      "name": "Copper",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 19,
+    "fields": {
+      "name": "Zinc",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 20,
+    "fields": {
+      "name": "Cadmium",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 21,
+    "fields": {
+      "name": "Mercury",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 22,
+    "fields": {
+      "name": "Arsenic",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 23,
+    "fields": {
+      "name": "Chromium",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 24,
+    "fields": {
+      "name": "Nickel",
+      "group": 2
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 25,
+    "fields": {
+      "name": "E. coli",
+      "group": 3
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 26,
+    "fields": {
+      "name": "Total Coliforms",
+      "group": 3
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 27,
+    "fields": {
+      "name": "Enterococci",
+      "group": 3
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 28,
+    "fields": {
+      "name": "Fecal Coliforms",
+      "group": 3
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 29,
+    "fields": {
+      "name": "Atrazine",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 30,
+    "fields": {
+      "name": "Glyphosate",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 31,
+    "fields": {
+      "name": "PFOA",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 32,
+    "fields": {
+      "name": "PFOS",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 33,
+    "fields": {
+      "name": "Benzene",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 34,
+    "fields": {
+      "name": "Toluene",
+      "group": 4
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 35,
+    "fields": {
+      "name": "Calcium",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 36,
+    "fields": {
+      "name": "Magnesium",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 37,
+    "fields": {
+      "name": "Sodium",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 38,
+    "fields": {
+      "name": "Potassium",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 39,
+    "fields": {
+      "name": "Chloride",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 40,
+    "fields": {
+      "name": "Sulfate",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 41,
+    "fields": {
+      "name": "Bicarbonate",
+      "group": 5
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 42,
+    "fields": {
+      "name": "Water Depth",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 43,
+    "fields": {
+      "name": "Secchi Depth",
+      "group": 6
+    }
+  },
+  {
+    "model": "waterquality.parameter",
+    "pk": 44,
+    "fields": {
+      "name": "DO Saturation",
+      "group": 6
+    }
+  }
+]

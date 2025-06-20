@@ -1,0 +1,122 @@
+[
+  {
+    "model": "core.unit",
+    "pk": 1,
+    "fields": {
+      "symbol": "mg/L",
+      "description": "Milligrams per liter - concentration unit for dissolved substances"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 2,
+    "fields": {
+      "symbol": "μg/L",
+      "description": "Micrograms per liter - concentration unit for trace elements"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 3,
+    "fields": {
+      "symbol": "pH",
+      "description": "pH units - measure of acidity/alkalinity"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 4,
+    "fields": {
+      "symbol": "μS/cm",
+      "description": "Microsiemens per centimeter - electrical conductivity"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 5,
+    "fields": {
+      "symbol": "°C",
+      "description": "Degrees Celsius - temperature"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 6,
+    "fields": {
+      "symbol": "NTU",
+      "description": "Nephelometric Turbidity Units - measure of water clarity"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 7,
+    "fields": {
+      "symbol": "%",
+      "description": "Percentage - saturation or composition"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 8,
+    "fields": {
+      "symbol": "CFU/100mL",
+      "description": "Colony forming units per 100 milliliters - bacterial count"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 9,
+    "fields": {
+      "symbol": "mg/L as N",
+      "description": "Milligrams per liter as nitrogen - nitrogen compounds"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 10,
+    "fields": {
+      "symbol": "mg/L as P",
+      "description": "Milligrams per liter as phosphorus - phosphorus compounds"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 11,
+    "fields": {
+      "symbol": "mg/L CaCO₃",
+      "description": "Milligrams per liter as calcium carbonate - hardness and alkalinity"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 12,
+    "fields": {
+      "symbol": "m",
+      "description": "Meters - depth or distance measurement"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 13,
+    "fields": {
+      "symbol": "mV",
+      "description": "Millivolts - oxidation reduction potential"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 14,
+    "fields": {
+      "symbol": "ng/L",
+      "description": "Nanograms per liter - concentration for trace organic compounds"
+    }
+  },
+  {
+    "model": "core.unit",
+    "pk": 15,
+    "fields": {
+      "symbol": "MPN/100mL",
+      "description": "Most probable number per 100 milliliters - microbial enumeration"
+    }
+  }
+]
