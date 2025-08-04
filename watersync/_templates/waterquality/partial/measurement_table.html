@@ -7,16 +7,16 @@
     <td>
         <div class="button-container">
             <button type="button" class="btn btn-sm btn-info m-1"
-                hx-get="{% url 'waterquality:detail-measurement' user.id project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
+                hx-get="{% url 'waterquality:detail-measurement' project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
                 hx-target="#ofc-dialog" hx-trigger="click">
                 <i class="fa-solid fa-circle-info"></i>
                 <button type="button" class="btn btn-sm btn-warning"
-                    hx-get="{% url 'waterquality:update-measurement' user.id project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
+                    hx-get="{% url 'waterquality:update-measurement' project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
                     hx-target="#dialog" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
                 <button type="button" class="btn btn-sm btn-danger"
-                    hx-get="{% url 'waterquality:delete-measurement' user.id project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
+                    hx-get="{% url 'waterquality:delete-measurement' project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
                     hx-target="#dialog" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>

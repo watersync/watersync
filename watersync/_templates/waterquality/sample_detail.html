@@ -3,19 +3,19 @@
 
 {% block breadcrumb %}
 <li class="breadcrumb-item">
-    <a href="{% url 'core:projects' user.id %}">Projects</a>
+    <a href="{% url 'core:projects' %}">Projects</a>
 </li>
 <li class="breadcrumb-item">
-    <a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a>
+    <a href="{% url 'core:detail-project' project.pk %}">{{ project.name }}</a>
 </li>
 <li class="breadcrumb-item">
-    <a href="{% url 'core:locations' user.id project.pk %}">Locations</a>
+    <a href="{% url 'core:locations' project.pk %}">Locations</a>
 </li>
 <li class="breadcrumb-item">
-    <a href="{% url 'core:detail-location' user.id project.pk location.pk %}">{{ location.name }}</a>
+    <a href="{% url 'core:detail-location' project.pk location.pk %}">{{ location.name }}</a>
 </li>
 <li class="breadcrumb-item"><a
-        href="{% url 'waterquality:detail-samplingevent' user.id project.pk location.pk samplingevent.pk %}">Sampling
+        href="{% url 'waterquality:detail-samplingevent' project.pk location.pk samplingevent.pk %}">Sampling
         Event</a></li>
 <li class="breadcrumb-item active" aria-current="page">{{ sample }}</li>
 {% endblock breadcrumb %}

@@ -2,11 +2,11 @@
 {% load static %}
 
 <button type="button" class="btn btn-success mb-3"
-  hx-get="{% url 'waterquality:add-measurement' user.id project.pk location.pk samplingevent.pk sample.pk %}"
+  hx-get="{% url 'waterquality:add-measurement' project.pk location.pk samplingevent.pk sample.pk %}"
   hx-target="#dialog" hx-trigger="click">
   Add measurement</button>
 <button type="button" class="btn btn-success mb-3"
-  hx-get="{% url 'waterquality:add_bulk-measurement' user.id project.pk location.pk samplingevent.pk sample.pk %}"
+  hx-get="{% url 'waterquality:add_bulk-measurement' project.pk location.pk samplingevent.pk sample.pk %}"
   hx-target="#dialog" hx-trigger="click">
   Add bulk measurement</button>
 
@@ -20,7 +20,7 @@
       <th scope="col"></th>
     </tr>
   </thead>
-  <tbody hx-get="{% url 'waterquality:measurements' user.id project.pk location.pk samplingevent.pk sample.pk %}"
+  <tbody hx-get="{% url 'waterquality:measurements' project.pk location.pk samplingevent.pk sample.pk %}"
     hx-trigger="revealed, configRequest from:body, measurementChanged from:body">
     <tr id="loading-spinner-row" class="bg-white">
       <td colspan="4" class="text-center">

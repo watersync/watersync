@@ -9,14 +9,14 @@
             <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                 <li>
                     <a class="dropdown-item" style="cursor: pointer;"
-                        hx-get="{% url 'waterquality:delete-measurement' user.id project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
+                        hx-get="{% url 'waterquality:delete-measurement' project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
                         hx-target="#dialog" title="Delete">
                         Delete measurement
                     </a>
                 </li>
                 <li>
                     <a class="dropdown-item" style="cursor: pointer;"
-                        hx-get="{% url 'waterquality:update-measurement' user.id project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
+                        hx-get="{% url 'waterquality:update-measurement' project.pk location.pk samplingevent.pk sample.pk measurement.pk %}"
                         hx-target="#dialog" title="Edit">
                         Edit measurement
                     </a>

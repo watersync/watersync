@@ -30,7 +30,7 @@
             <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'core:projects' user.id %}">{% translate "Dashboard" %}</a>
+            <a class="nav-link" href="{% url 'core:projects' %}">{% translate "Dashboard" %}</a>
           </li>
           {% else %}
           {% if ACCOUNT_ALLOW_REGISTRATION %}

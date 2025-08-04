@@ -1,21 +1,21 @@
 {% extends 'layouts/project_dashboard.html' %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:projects' user.id %}">Projects</a></li>
-<li class="breadcrumb-item"><a href="{% url 'core:detail-project' user.id project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item"><a href="{% url 'sensor:deployments' user.id project.pk %}">Deployed sensors</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:projects' %}">Projects</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:detail-project' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sensor:deployments' project.pk %}">Deployed sensors</a></li>
 <li class="breadcrumb-item active" aria-current="page">{{ deployment }}</li>
 {% endblock breadcrumb %}
 
 {% block content %}
-<div id="deployment-detail" hx-get="{% url 'sensor:detail-deployment' user.id project.pk deployment.pk %}"
+<div id="deployment-detail" hx-get="{% url 'sensor:detail-deployment' project.pk deployment.pk %}"
     hx-trigger="revealed, configRequest from:body, locationChanged from:body" hx-target="#deployment-detail"
     hx-headers='{"HX-Context": "block"}'>
     <div class="spinner-grow" role="status">
         <span class="visually-hidden">Loading...</span>
     </div>
 </div>
-<form action="{% url 'sensor:decommission-deployment' user.id project.pk deployment.pk %}" method="post" style="display:inline;">
+<form action="{% url 'sensor:decommission-deployment' project.pk deployment.pk %}" method="post" style="display:inline;">
     {% csrf_token %}
     <button type="submit" class="btn btn-warning" {% if deployment.decommissioned_at is not None %}disabled style="pointer-events: none; opacity: 0.5;"{% endif %}>
         <i class="fas fa-trash"></i> Decommission

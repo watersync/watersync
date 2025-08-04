@@ -4,7 +4,7 @@
   <td>{{protocol.method_name}}</td>
   <td>
     <button type="button" class="btn btn-sm btn-info m-1"
-      hx-get="{% url 'waterquality:detail-protocol' user.id protocol.pk %}" hx-target="#ofc-dialog" hx-trigger="click">
+      hx-get="{% url 'waterquality:detail-protocol' protocol.pk %}" hx-target="#ofc-dialog" hx-trigger="click">
       <i class="fa-solid fa-circle-info"></i>
   </td>
   {% endfor %}

@@ -9,7 +9,7 @@
           <li>
               <a class="dropdown-item"
               style="cursor: pointer;" 
-              hx-get="{% url 'waterquality:delete-protocol' user.id protocol.pk %}"
+              hx-get="{% url 'waterquality:delete-protocol' protocol.pk %}"
               hx-target="#dialog"
               title="Delete">
               Delete protocol
@@ -18,7 +18,7 @@
           <li>
               <a class="dropdown-item"
               style="cursor: pointer;" 
-              hx-get="{% url 'waterquality:update-protocol' user.id protocol.pk %}"
+              hx-get="{% url 'waterquality:update-protocol' protocol.pk %}"
               hx-target="#dialog"
               title="Edit">
               Edit protocol

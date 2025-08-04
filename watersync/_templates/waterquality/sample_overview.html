@@ -1,7 +1,7 @@
 {% extends 'layouts/project_dashboard.html' %}
 
 {% block content %}
-<div id="sample-detail" hx-get="{% url 'waterquality:detail-sample' user.id project.pk sample.pk %}"
+<div id="sample-detail" hx-get="{% url 'waterquality:detail-sample' project.pk sample.pk %}"
     hx-trigger="revealed, configRequest from:body, sampleChanged from:body" hx-target="#sample-detail"
     hx-headers='{"HX-Context": "block"}'>
     <div class="spinner-grow" role="status">

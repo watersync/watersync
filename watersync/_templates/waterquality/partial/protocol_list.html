@@ -1,7 +1,7 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-<button type="button" class="btn btn-success mb-3" hx-get="{% url 'waterquality:add-protocol' user.id %}"
+<button type="button" class="btn btn-success mb-3" hx-get="{% url 'waterquality:add-protocol' %}"
   hx-target="#dialog" hx-trigger="click">
   Add protocol</button>
 
@@ -14,7 +14,7 @@
 
     </tr>
   </thead>
-  <tbody hx-get="{% url 'waterquality:protocols' user.id %}"
+  <tbody hx-get="{% url 'waterquality:protocols' %}"
     hx-trigger="revealed, configRequest from:body, protocolChanged from:body">
     <tr id="loading-spinner-row" class="bg-white">
       <td colspan="4" class="text-center">

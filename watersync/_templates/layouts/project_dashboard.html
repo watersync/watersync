@@ -21,42 +21,42 @@
                     <ul class="nav nav-pills flex-column mb-sm-auto mb-0 align-items-center align-items-sm-start text-white"
                         id="menu">
                         <li class="nav-item">
-                            <a href="{% url 'core:locations' user.id project.pk %}"
+                            <a href="{% url 'core:locations' project.pk %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-location-dot p-2"></i> <span
                                     class="ms-1 d-none d-sm-inline">Locations</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'core:fieldworks' user.id project.pk  %}"
+                            <a href="{% url 'core:fieldworks' project.pk  %}"
                                 class="custom-nav-link align-middle px-0">
                                 <img src="{% static 'icons/tree-alt.svg' %}" alt="CSV Icon" width="32" height="32" class="text-white" style="filter: invert(1);"> <span
                                     class="ms-1 d-none d-sm-inline">Fieldwork</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'waterquality:samples' user.id project.pk  %}"
+                            <a href="{% url 'waterquality:samples' project.pk  %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-flask-vial p-2"></i> <span
                                     class="ms-1 d-none d-sm-inline">Samples</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'waterquality:measurements' user.id project.pk  %}"
+                            <a href="{% url 'waterquality:measurements' project.pk  %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-flask-vial p-2"></i> <span
                                     class="ms-1 d-none d-sm-inline">WQ Measurements</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'sensor:deployments' user.id project.pk %}"
+                            <a href="{% url 'sensor:deployments' project.pk %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-tower-broadcast p-2"></i> <span
                                     class="ms-1 d-none d-sm-inline">Deployed sensors</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'core:detail-project' user.id project.pk %}"
+                            <a href="{% url 'core:detail-project' project.pk %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-circle-info p-2"></i> <span
                                     class="ms-1 d-none d-sm-inline">Project details</span>
