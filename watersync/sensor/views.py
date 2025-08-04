@@ -196,20 +196,17 @@ class SensorRecordCreateView(LoginRequiredMixin, FormView):
         return reverse_lazy(
             "sensor:deployments",
             kwargs={
-                "user_id": self.kwargs["user_id"],
                 "project_pk": self.kwargs["project_pk"],
             },
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.request.user.id
         project_pk = self.kwargs.get("project_pk")
 
         # Optionally, you might want to fetch these objects to pass more details:
         context["project"] = get_object_or_404(Project, pk=project_pk)
 
-        context["user_id"] = user_id
         context["project_pk"] = project_pk
 
         return context
