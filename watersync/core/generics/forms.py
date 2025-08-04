@@ -57,15 +57,14 @@ class FormWithDetailMixin(forms.ModelForm):
                     if field_name in self.data:
                         detail_data[field_name] = self.data.get(field_name)
                 self.detail_form = detail_form_class(data=detail_data or None)
-        
+
         # Validate detail form if we have one
         detail_valid = self.detail_form.is_valid() if self.detail_form else True
 
-        
         return main_valid and detail_valid
 
     def save(self, commit=True):
-        """Save the main form and convert detail form to JSON"""
+        """Save the main form and convert the detail form to JSON"""
         instance = super().save(commit=False)
 
         # Convert detail form data to JSON

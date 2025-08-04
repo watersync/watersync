@@ -35,9 +35,32 @@ from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
 from watersync.core.generics.mixins import ExportCsvMixin
 from watersync.core.models import Project
 from watersync.core.permissions import ApprovalRequiredMixin
+from django.utils import timezone
 
-class WatersyncGenericViewProperties(ApprovalRequiredMixin):
-    """Mixin to add shortcuts to the views."""
+
+class StandardURLMixin(ApprovalRequiredMixin):
+    """Provide standardized URL handling for views and templates.
+
+    The properties included in this mixin are used in automated controll mostly over the
+    templates and the URLs interaction. This should in principle reduce boilerplate code
+    in the views and allow to focus on important customization of the views.
+
+    Attributes:
+        blank_template: The template used for the blank layout.
+        base_template: The template used for the base layout (i.e. the base dashboard,
+            before selecting the project).
+        project_base_template: The template used for the project dashboard.
+
+    Properties:
+        model_name: The name of the model.
+        model_name_plural: The plural name of the model with spaces removed.
+        app_label: The app label of the model.
+        model_verbose_name_plural: The verbose name plural of the model.
+
+    Methods:
+        _get_model_meta: Get model metadata safely.
+        _get_list_view_fields: Get list view fields safely.
+    """
 
     blank_template = "layouts/blank.html"
     base_template = "layouts/base_dashboard.html"
@@ -50,10 +73,6 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
         """Get model metadata safely."""
         return getattr(self.model, "_meta", None)
 
-    def _get_list_view_fields(self):
-        """Get list view fields safely."""
-        return getattr(self.model, "_list_view_fields", {})
-
     @property
     def model_name(self):
         """Shortcut to get the model name."""
@@ -62,11 +81,23 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
 
     @property
     def model_name_plural(self):
-        """Shortcut to get the plural model name."""
+        """Shortcut to get the plural model name.
+
+        As this is used further to get the list URL.
+        """
         meta = self._get_model_meta()
         if meta:
             return meta.verbose_name_plural.replace(" ", "")
         return ""
+
+    @property
+    def model_verbose_name_plural(self):
+        """Get the verbose name plural of the model.
+
+        This is used as title in the list view and other places.
+        """
+        meta = self._get_model_meta()
+        return meta.verbose_name_plural if meta else ""
 
     @property
     def app_label(self):
@@ -75,55 +106,64 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
         return meta.app_label if meta else ""
 
     @property
-    def model_verbose_name_plural(self):
-        """Get the verbose name plural of the model."""
-        meta = self._get_model_meta()
-        return meta.verbose_name_plural if meta else ""
-
-    @property
     def htmx_trigger(self):
-        """Get the HTMX action name of the view."""
+        """Compose the HTMX change action name for the view."""
         return f"{self.model_name}Changed"
 
     def _get_url_name(self, action):
-        """Generate URL name for a given action."""
+        """Compose the URL pattern for a given action.
+
+        Standardized URL naming convention:
+        - For listing: `app_label:model_name_plural`, e.g., `sensors:sensors`
+        - For other actions: `app_label:action-model_name`, e.g., `sensors:add-sensor`
+
+        Standardizing URL names helps in maintaining consistency across the application
+        and reduces boilerplate code in the views. The urls are passed in the
+        ListContext object to the templates and are then assigned to the right buttons.
+        """
         if action == "list":
             return f"{self.app_label}:{self.model_name_plural}"
         return f"{self.app_label}:{action}-{self.model_name}"
 
     @property
     def list_url(self):
-        """Url name for the list view."""
+        """Url for the list view."""
         return self._get_url_name("list")
 
     @property
     def add_url(self):
-        """Url name for the add view."""
+        """Url for the add view."""
         return self._get_url_name("add")
 
     @property
     def update_url(self):
-        """Url name for the update view."""
+        """Url for the update view."""
         return self._get_url_name("update")
 
     @property
     def delete_url(self):
-        """Url name for the delete view."""
+        """Url for the delete view."""
         return self._get_url_name("delete")
 
     @property
     def detail_url(self):
-        """Url name for the detail view."""
+        """Url for the detail view."""
         return self._get_url_name("detail")
-    
+
     @property
     def overview_url(self):
-        """Url name for the overview view."""
+        """Url for the overview view."""
         return self._get_url_name("overview")
 
     @property
     def item_pk_name(self):
-        """Get the primary key of the item."""
+        """Compose item's url parameter name.
+
+        As part of standardization, the model names are singular, and can be used
+        to compose the url parameter name representing the primary keys of item.
+        The convention here is to use the tag for an item as `model_name_pk`,
+        e.g., `sensor_pk` for the Sensor model records.
+        """
         return f"{self.model_name}_pk"
 
     @property
@@ -154,7 +194,7 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
 
     def get_detail_url(self):
         return self._get_url_reverse(self.detail_url)
-    
+
     def get_overview_url(self):
         return self._get_url_reverse(self.overview_url)
 
@@ -165,19 +205,20 @@ class WatersyncGenericViewProperties(ApprovalRequiredMixin):
             if "projects" in self.request.path
             else None
         )
-        
+
     def get_base_url_kwargs(self):
-        base_kwargs = {"user_id": self.request.user.id}
+        # base_kwargs = {"user_id": self.request.user.id}
+        base_kwargs = {}
         project = self.get_project()
         if project and self.model_name != "project":
             base_kwargs["project_pk"] = project.pk
         return base_kwargs
-
+    
 
 class WatersyncListView(
     LoginRequiredMixin,
     RenderToResponseMixin,
-    WatersyncGenericViewProperties,
+    StandardURLMixin,
     ExportCsvMixin,
     ListView,
 ):
@@ -235,7 +276,10 @@ class WatersyncListView(
         form = super().get_form(form_class)
         form.fields["type"].widget.attrs["hx-get"] = self.request.path
         return form
-        
+    
+    def _get_list_view_fields(self):
+        """Get list view fields safely."""
+        return getattr(self.model, "_list_view_fields", {})
 
     def determine_template_name(self):
         """Determine the template name dynamically.
@@ -354,13 +398,12 @@ class CreateUpdateDetailMixin:
         response = super().get(request, *args, **kwargs)
         self.add_hx_get(response)
         return response
-    
 
-    
+
 class WatersyncCreateView(
     LoginRequiredMixin,
     HTMXFormMixin,
-    WatersyncGenericViewProperties,
+    StandardURLMixin,
     CreateUpdateDetailMixin,
     CreateView,
 ):
@@ -406,7 +449,7 @@ class WatersyncCreateView(
 class WatersyncDeleteView(
     LoginRequiredMixin,
     RenderToResponseMixin,
-    WatersyncGenericViewProperties,
+    StandardURLMixin,
     SuccessMessageMixin,
     DeleteView,
 ):
@@ -475,7 +518,7 @@ class WatersyncDeleteView(
 class WatersyncUpdateView(
     LoginRequiredMixin,
     HTMXFormMixin,
-    WatersyncGenericViewProperties,
+    StandardURLMixin,
     CreateUpdateDetailMixin,
     SuccessMessageMixin,
     UpdateView,
@@ -498,7 +541,7 @@ class WatersyncUpdateView(
 class WatersyncDetailView(
     LoginRequiredMixin,
     RenderToResponseMixin,
-    WatersyncGenericViewProperties,
+    StandardURLMixin,
     DetailView,
 ):
     
@@ -507,7 +550,35 @@ class WatersyncDetailView(
     detail_type: str | None = None
 
     def get_object(self):
-        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+        # If the model has 'history', return the object as_of now()
+        obj = get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+        if hasattr(obj, "history"):
+            return obj.history.as_of(timezone.now())
+        return obj
+
+    def handle_history(self):
+        """Handle the history of the object and compute diffs between records.
+        
+        For now only the Location has implemented history overview. For examples, the location height above the ground can change, and therefore it's  
+        """
+        if not hasattr(self.object, "history"):
+            return []
+
+        history = list(self.object.history.all())
+        history_with_diffs = []
+
+        for i, record in enumerate(history):
+            prev_record = history[i + 1] if i + 1 < len(history) else None
+            changes = None
+            if prev_record:
+                changes = record.diff_against(prev_record).changes
+            history_with_diffs.append({
+                'record': record,
+                'prev_record': prev_record,
+                'changes': changes,
+            })
+
+        return history_with_diffs
 
     def get_context_data(self, **kwargs):
 
@@ -522,5 +593,5 @@ class WatersyncDetailView(
         )
 
         context["detail_context"] = detail_context
-
+        context["history_with_diffs"] = self.handle_history()
         return context

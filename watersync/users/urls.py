@@ -11,7 +11,7 @@ urlpatterns = [
 
 urlpatterns += [
     path(
-        "<int:user_id>/settings/",
+        "settings/",
         SettingsView.as_view(template_name="users/settings/settings.html"),
         name="settings",
     ),

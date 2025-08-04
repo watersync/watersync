@@ -22,6 +22,7 @@ class UpdateFormMixin:
         initial = super().get_initial()
         if 'project_pk' in self.kwargs and self.model_name != 'project':
             initial['project'] = self.kwargs['project_pk']
+            print(f"Initial project set to {initial['project']}")
         if 'location_pk' in self.kwargs:
             initial['location'] = get_object_or_404(
                 Location, pk=self.kwargs['location_pk']
@@ -30,11 +31,16 @@ class UpdateFormMixin:
         return initial
 
     def update_user(self, instance):
-        """Updating user field in forms."""
-        # If the instance doesn't have a user field or the requesting user is None
+        """Update user field in forms, if applicable.
+
+        If the instance has a many-to-many user field, use the add method, otherwise
+        set the user field directly. If the user field is not present, do nothing.
+        """
+        # If the instance is None, we don't need to do anything
         if not instance:
             return
-        
+
+        # If the instance doesn't have a user field or the requesting user is None do nothing
         if not hasattr(instance, 'user') or not self.request.user:
             return
 

@@ -134,9 +134,8 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     """
 
     location_visit = models.ForeignKey(
-        LocationVisit, on_delete=models.CASCADE, related_name="samples",
-        blank=True, null=True
-    )
+        LocationVisit, on_delete=models.CASCADE, related_name="samples"
+        )
     measured_on = models.DateField(blank=True, null=True)
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     parameter_group = models.ForeignKey(ParameterGroup, on_delete=models.PROTECT)
@@ -163,7 +162,7 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     }
 
     def __str__(self):
-        return f"{self.location_visit.fieldwork.date:%Y%m%d}/{slugify(self.location_visit.location.name)}/{self.parameter_group}/{self.replica_number}"
+        return f"{self.location_visit.fieldwork.date:%Y%m%d}/{slugify(self.location_visit.location.name)}/{self.parameter_group.code}/{self.replica_number}"
 
 
 class Measurement(TimeStampedModel, ModelTemplateInterface):

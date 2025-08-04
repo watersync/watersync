@@ -3,9 +3,10 @@ from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from watersync.core.managers import LocationManager, WatersyncManager
+from watersync.core.managers import LocationManager, ProjectManager, WatersyncManager
 from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
 from watersync.users.models import User
+
 
 class Unit(models.Model, ModelTemplateInterface):
     """Unit of measurement for parameters.
@@ -163,12 +164,11 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
             created.
     """
 
-    STATUS_CHOICES = [
-        ("operational", "Operational"),
-        ("needs-maintenance", "Needs maintenance"),
-        ("decommissioned", "Decommissioned"),
-        ("unknown", "Unknown"),
-    ]
+    class StatusChoices(models.TextChoices):
+        OPERATIONAL = "operational", "Operational"
+        NEEDS_MAINTENANCE = "needs-maintenance", "Needs Maintenance"
+        DECOMMISSIONED = "decommissioned", "Decommissioned"
+        UNKNOWN = "unknown", "Unknown"
 
     fieldwork = models.ForeignKey(
         "Fieldwork",
@@ -178,7 +178,7 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     location = models.ForeignKey(
         Location, related_name="visits", on_delete=models.CASCADE
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="unknown")
+    status = models.CharField(max_length=20, choices=StatusChoices.choices, default=StatusChoices.UNKNOWN)
     description = models.TextField(blank=True, null=True)
 
     _list_view_fields = {
@@ -190,14 +190,14 @@ class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     def __str__(self) -> str:
         return f"{self.location} - {self.fieldwork.date:%Y-%m-%d}"
 
-
 class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
     user can take multiple measurements at different locations. The fieldwork is related to a
     project and users. Should also contain information on weather conditions and other
-    relevant information about what happened during the fieldwork.
+    relevant information about what happened during the fieldwork. There can be only one
+    fieldwork per day.
     """
     class WeatherConditions(models.TextChoices):
         SUNNY = "sunny", "Sunny"
@@ -211,7 +211,7 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
         Project, on_delete=models.PROTECT, related_name="fieldworks"
     )
     user = models.ManyToManyField(User, related_name="fieldworks")
-    date = models.DateField()
+    date = models.DateField(unique=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     weather =  models.CharField(
@@ -230,6 +230,7 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
         "Date": "date",
         "Start time": "start_time",
         "End time": "end_time",
+        "Weather": "weather",
         "Created at": "created",
         "Modified at": "modified",
     }
