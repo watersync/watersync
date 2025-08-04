@@ -29,7 +29,7 @@ class Unit(models.Model, ModelTemplateInterface):
         "Symbol": "symbol",
     }
 
-class Project(TimeStampedModel, ModelTemplateInterface):
+class Project(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -60,14 +60,18 @@ class Project(TimeStampedModel, ModelTemplateInterface):
     end_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
+    objects = ProjectManager()
+    history = HistoricalRecords()
+
     _detail_view_fields = {
         "Started": "start_date",
         "Ended": "end_date",
-        "Created at": "created",
-        "Modified at": "modified",
         "Active": "is_active",
     }
 
+    def natural_key(self):
+        return (self.name,)
+    
     def __str__(self):
         return self.name
 
