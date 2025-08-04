@@ -3,6 +3,9 @@ from django.forms import ChoiceField
 
 
 class FormWithDetailMixin(forms.ModelForm):
+    """A mixin for Django ModelForms that allows for a detail form
+    to be dynamically created based on the type of the instance.
+    """
     detail_forms: dict = {}
 
     def __init__(self, *args, **kwargs):
@@ -72,9 +75,13 @@ class FormWithDetailMixin(forms.ModelForm):
             instance.save()
         return instance
 
-
 class HTMXChoiceField(ChoiceField):
-    """Custom ChoiceField to handle HTMX requests."""
+    """Custom ChoiceField to handle HTMX requests.
+    
+    This is a choice field that will trigger HTMX requests
+    when the selection changes, allowing for dynamic updates
+    of the form based on the selected choice.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
