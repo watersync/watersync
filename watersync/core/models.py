@@ -75,8 +75,7 @@ class Project(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     def __str__(self):
         return self.name
 
-
-class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
+class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     """List of locations.
 
     Locations are attached to projects and most of other types of data in projects like
@@ -86,7 +85,6 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     casing change, but old measurement still refer to the old location height.
 
     Attributes:
-        user (ForeignKey): The user that created the location.
         project (ForeignKey): The project to which the location is attached.
         name (CharField): The name of the location.
         geom (PointField): The geographic coordinates of the location.
@@ -115,7 +113,6 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
         "precipitation": "Precipitation",
     }
 
-    user = models.ForeignKey(User, on_delete=models.PROTECT, blank=True, null=True)
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="locations"
     )
@@ -132,15 +129,13 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
 
     _detail_view_fields = {
         "Type": "type",
-        "Altitude": "altitude",
-        "Created at": "created",
-        "Modified at": "modified",
+        "Altitude": "altitude"
     }
     _list_view_fields = {
         "Name": "name",
     }
 
-    _csv_columns = {"Name": "name", "Type": "type", "Created": "project__created", "Visits": "locvisits"}
+    _csv_columns = {"Name": "name", "Type": "type", "Visits": "locvisits", "Depth": "detail__depth"}
 
     class Meta:
         unique_together = ("project", "name")
@@ -151,7 +146,6 @@ class Location(TimeStampedModel, ModelTemplateInterface, SimpleHistorySetup):
     @property
     def latest_status(self):
         return self.visits.latest("created").status
-
 
 class LocationVisit(TimeStampedModel, ModelTemplateInterface):
     """Status of locations at the given time.
