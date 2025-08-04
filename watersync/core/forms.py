@@ -14,7 +14,7 @@ from django.forms import (
 
 from bootstrap_datepicker_plus.widgets import TimePickerInput, DatePickerInput
 
-from watersync.core.generics.forms import FormWithDetailMixin
+from watersync.core.generics.forms import FormWithDetailMixin, FormWithHistory
 from watersync.core.generics.forms import HTMXChoiceField
 from watersync.core.models import Location, LocationVisit, Project, Fieldwork, Unit
 from watersync.users.models import User
@@ -191,7 +191,7 @@ class PrecipitationDetailForm(Form):
     intensity = FloatField(required=False, label="Intensity (mm/h)")
     duration = IntegerField(required=False, label="Duration (minutes)")
 
-class LocationForm(FormWithDetailMixin):
+class LocationForm(FormWithDetailMixin, FormWithHistory):
     """Temporary solution to the geometry not being properly created is to make the gemo field a CharField
     and not required. The latitude and longitude fields are used to create the geometry field in update_form_instance method."""
 

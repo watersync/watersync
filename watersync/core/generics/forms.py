@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import ChoiceField
+from django.utils import timezone
 
 
 class FormWithDetailMixin(forms.ModelForm):
@@ -72,6 +73,27 @@ class FormWithDetailMixin(forms.ModelForm):
             instance.detail = self.detail_form.cleaned_data
 
         if commit:
+            instance.save()
+        return instance
+
+
+class FormWithHistory(forms.ModelForm):
+    """Allows the user to explicitly set the modification date in the history table when updating an object."""
+    history_date = forms.DateTimeField(
+        label="Modification Date",
+        required=False,
+        initial=timezone.now,
+        help_text="Set the modification date for this change (optional).",
+    )
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        # Set _history_date if provided
+        history_date_value = self.cleaned_data.get("history_date")
+        if history_date_value:
+            # This was causing the instance to be saved twice and created
+            # two entries in the history table.
+            instance._history_date = history_date_value
             instance.save()
         return instance
 
