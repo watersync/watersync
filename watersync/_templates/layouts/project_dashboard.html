@@ -81,6 +81,7 @@
                             {% endif %}
                             {% block main %}
                             {% block content %}
+                            {{ context }}
                             {% comment %} This is where the routed content goes. {% endcomment %}
                             {% endblock content %}
                             {% endblock main %}

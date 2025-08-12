@@ -24,10 +24,4 @@ In projects, users will perform fieldwork. Fieldwork is an event when the user
 visits the project location on a date and collects data. Within the fieldwork,
 the user can visit one or more locations (points where measurements are taken). This
 model contains top-level information about the fieldwork day.
-
-### LocationVisit
-LocationVisit is a model that connects the fieldwork with the location. It used to be
-called LocationStatus, but has been renamed to better reflect its purpose. The model
-contains information about the location visit, such as the time of the visit and the
-status of the location. Measurements are referenced from this model.
 """

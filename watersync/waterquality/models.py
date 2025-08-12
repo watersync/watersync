@@ -9,11 +9,11 @@ from django.db import models
 from django.utils.text import slugify
 from django_extensions.db.models import TimeStampedModel
 
-from watersync.core.models import LocationVisit, Unit
-from watersync.core.generics.mixins import ModelTemplateInterface
+from watersync.core.models import Unit
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 from watersync.users.models import User
 
-class ParameterGroup(models.Model, ModelTemplateInterface):
+class ParameterGroup(models.Model, InterfaceModelTemplate):
     """Group of target parameters for analysis.
 
     These are groups of parameters like nutrients, metals, etc. that are
@@ -21,7 +21,7 @@ class ParameterGroup(models.Model, ModelTemplateInterface):
     sample form as select options.
 
     These items are available in the Settings panel in the app.
-    
+
     Attributes:
         name: The name of the target parameter group.
         description: A brief description of the group.
@@ -39,7 +39,7 @@ class ParameterGroup(models.Model, ModelTemplateInterface):
     def __str__(self):
         return self.name
 
-class Parameter(models.Model, ModelTemplateInterface):
+class Parameter(models.Model, InterfaceModelTemplate):
     """Parameter for analysis.
 
     Each parameter is a specific measurement that can be taken from a sample.
@@ -54,6 +54,7 @@ class Parameter(models.Model, ModelTemplateInterface):
     """
 
     name = models.CharField(max_length=50)
+    code = models.CharField(max_length=10, unique=True)
     group = models.ForeignKey(ParameterGroup, on_delete=models.CASCADE)
 
     _list_view_fields = {
@@ -64,7 +65,7 @@ class Parameter(models.Model, ModelTemplateInterface):
     def __str__(self):
         return self.name
 
-class Protocol(models.Model, ModelTemplateInterface):
+class Protocol(models.Model, InterfaceModelTemplate):
     """Protocols for sampling and analysis.
 
     Protocol describes the details of the sampling collection and analysis process,
@@ -117,25 +118,30 @@ class Protocol(models.Model, ModelTemplateInterface):
             self.slug = slugify(self.method_name)
         super().save(*args, **kwargs)
 
-
-class Sample(TimeStampedModel, ModelTemplateInterface):
+class Sample(TimeStampedModel, InterfaceModelTemplate):
     """Samples taken for analysis.
 
     Each sample represents a volume of water collected for analysis of specific parameters.
-    The sample is linked to a specific location visit and protocol.
+    The sample is linked to a specific location, fieldwork and protocol.
 
     Attributes:
-        location_visit: The location visit associated with the sample.
+        fieldwork: The fieldwork associated with the sample.
+        location: The location where the sample was taken.
         protocol: The protocol used for the sample.
         target_parameters: The parameters targeted for analysis in the sample.
         container_type: The type of container used for the sample.
         volume_collected: The volume of water collected in the
             sample.
     """
-
-    location_visit = models.ForeignKey(
-        LocationVisit, on_delete=models.CASCADE, related_name="samples"
-        )
+    # In case of internal samples, fieldwork is required
+    fieldwork = models.ForeignKey(
+        "core.Fieldwork", on_delete=models.CASCADE, related_name="samples",
+        blank=True, null=True
+    )
+    location = models.ForeignKey(
+        "core.Location", on_delete=models.CASCADE, related_name="samples",
+        blank=True, null=True
+    )
     measured_on = models.DateField(blank=True, null=True)
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
     parameter_group = models.ForeignKey(ParameterGroup, on_delete=models.PROTECT)
@@ -143,15 +149,22 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     volume_collected = models.FloatField(blank=True, null=True)
     replica_number = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)
+
+    # in case of external samples, provide the source, location and date
+    is_external = models.BooleanField(default=False)
+    source = models.CharField(max_length=100, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
     
     _list_view_fields = {
-        "Location visit": "location_visit",
+        "Location": "location",
+        "Fieldwork": "fieldwork",
         "Target Parameters": "parameter_group",
         "Replica Number": "replica_number",
     }
 
     _detail_view_fields = {
-        "Location Visit": "location_visit",
+        "Location": "location",
+        "Fieldwork": "fieldwork",
         "Measured At": "measured_on",
         "Target Parameters": "parameter_group",
         "Container Type": "container_type",
@@ -162,10 +175,9 @@ class Sample(TimeStampedModel, ModelTemplateInterface):
     }
 
     def __str__(self):
-        return f"{self.location_visit.fieldwork.date:%Y%m%d}/{slugify(self.location_visit.location.name)}/{self.parameter_group.code}/{self.replica_number}"
+        return f"{self.fieldwork.date:%Y%m%d}/{slugify(self.location.name)}/{self.parameter_group.code}/{self.replica_number}"
 
-
-class Measurement(TimeStampedModel, ModelTemplateInterface):
+class Measurement(TimeStampedModel, InterfaceModelTemplate):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and

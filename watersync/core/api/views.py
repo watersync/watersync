@@ -3,11 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from watersync.users.models import User
 
-from watersync.core.models import Location, LocationVisit, Project, Fieldwork
+from watersync.core.models import Location, Project, Fieldwork
 from watersync.core.api.serializers import (
     LocationSerializer,
     ProjectSerializer,
-    VisitSerializer,
     FieldworkSerializer,
 )
 
@@ -25,11 +24,6 @@ class LocationViewSet(BaseListViewSet):
 class FieldworkViewSet(BaseListViewSet):
     queryset = Fieldwork.objects.all()
     serializer_class = FieldworkSerializer
-
-
-class VisitViewSet(BaseListViewSet):
-    queryset = LocationVisit.objects.all()
-    serializer_class = VisitSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

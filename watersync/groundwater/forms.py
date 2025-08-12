@@ -8,4 +8,4 @@ class GWLForm(ModelForm):
 
     class Meta:
         model = GWLManualMeasurement
-        fields = ("location_visit", "depth", "description")
+        fields = ("location", "fieldwork", "depth", "description")

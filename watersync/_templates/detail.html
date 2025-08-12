@@ -1,9 +1,23 @@
 {% extends base_template %}
 {% load custom_tags %}
 {% load static %}
-
 {% block content %}
 <!-- Title and action dropdown -->
+{% if object.status %}
+    <span class="badge
+        {% if object.status == 'operational' %}
+            bg-success
+        {% elif object.status == 'needs_maintenance' %}
+            bg-warning text-dark
+        {% elif object.status == 'decommissioned' %}
+            bg-danger
+        {% else %}
+            bg-secondary
+        {% endif %}
+    ">
+        {{ object.status|capfirst }}
+    </span>
+{% endif %}
 <div class="d-flex justify-content-between align-items-center">
     <h3 class="text-muted mb-0">{{ object }}</h3>
     <div class="dropdown">

@@ -9,7 +9,7 @@ def filter_by_location(view_func):
             try:
                 queryset = queryset.filter(location__pk=self.request.GET.get("location_pk"))
             except FieldError:
-                queryset = queryset.filter(location_visit__location__pk=self.request.GET.get("location_pk"))
+                queryset = queryset.filter(location__pk=self.request.GET.get("location_pk"))
         return queryset
     return _wrapped_view
 

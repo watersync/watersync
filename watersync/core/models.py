@@ -3,12 +3,13 @@ from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
 
+from watersync.core.generics.model_setup import SetupSimpleHistory
 from watersync.core.managers import LocationManager, ProjectManager, WatersyncManager
-from watersync.core.generics.mixins import ModelTemplateInterface, SimpleHistorySetup
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 from watersync.users.models import User
 
 
-class Unit(models.Model, ModelTemplateInterface):
+class Unit(models.Model, InterfaceModelTemplate):
     """Unit of measurement for parameters.
 
     Each parameter can have a specific unit of measurement. This model defines
@@ -30,7 +31,7 @@ class Unit(models.Model, ModelTemplateInterface):
         "Symbol": "symbol",
     }
 
-class Project(models.Model, ModelTemplateInterface, SimpleHistorySetup):
+class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -76,7 +77,7 @@ class Project(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     def __str__(self):
         return self.name
 
-class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
+class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     """List of locations.
 
     Locations are attached to projects and most of other types of data in projects like
@@ -84,6 +85,12 @@ class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     history of the updates. The history is tracked by the simple_history package.
     It is useful in cases when the location parameters like height of the top of the
     casing change, but old measurement still refer to the old location height.
+
+    NOTE: Previously used LocationVisit model has been removed in favor of tracking the
+    status of the location in the Location model itself and with the HistoricalLocation
+    model from simple_history. Comment on status change is stored in the  history_change_reason 
+    field. Locations visited durinng the fieldwork will be tracked within the Fieldwork
+    model as M2M relation. Other items will be linked to Location and Fieldwork directly.
 
     Attributes:
         project (ForeignKey): The project to which the location is attached.
@@ -95,33 +102,35 @@ class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
         description (TextField): The description of the location.
         detail (JSONField): JSON field with station detail to provide flexible
             schema and avoid related models.
-        created (DateTimeField): The date and time when the location was
-            created. This field is handled by TimesStampedModel and will be populated
-            when created.
-        updated (DateTimeField): The date and time when the location was
-            updated. This field is handled by TimesStampedModel and will autoupdate
-            when updated.
-
-        Properties:
-            latest_status (str): The latest status of the location.
     """
 
-    LOCATION_TYPES = {
-        "well": "Well",
-        "river": "River",
-        "lake": "Lake",
-        "wastewater": "Wastewater",
-        "precipitation": "Precipitation",
-    }
+    class LocationTypes(models.TextChoices):
+        WELL = "pumping_well", "Pumping well"
+        PIEZOMETER = "piezometer", "Piezometer"
+        RIVER = "river", "River"
+        LAKE = "lake", "Lake"
+        WASTEWATER = "wastewater", "Wastewater"
+        PRECIPITATION = "precipitation", "Precipitation"
+
+    class StatusChoices(models.TextChoices):
+        OPERATIONAL = "operational", "Operational"
+        NEEDS_MAINTENANCE = "needs-maintenance", "Needs Maintenance"
+        DECOMMISSIONED = "decommissioned", "Decommissioned"
+        UNKNOWN = "unknown", "Unknown"
 
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="locations"
     )
     name = models.CharField(max_length=50)
-    geom = geomodels.PointField(srid=4326)
-    altitude = models.DecimalField(max_digits=8, decimal_places=2)
-    type = models.CharField(choices=LOCATION_TYPES)
+    geom = geomodels.PointField(dim=3,srid=4326)
+    type = models.CharField(choices=LocationTypes.choices, max_length=20)
+    installation_date = models.DateField(null=True, blank=True)
+    decommision_date = models.DateField(null=True, blank=True)
     description = models.TextField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20, choices=StatusChoices.choices,
+        default=StatusChoices.OPERATIONAL
+    )
     detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
@@ -130,13 +139,12 @@ class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
 
     _detail_view_fields = {
         "Type": "type",
-        "Altitude": "altitude"
     }
     _list_view_fields = {
         "Name": "name",
     }
 
-    _csv_columns = {"Name": "name", "Type": "type", "Visits": "locvisits", "Depth": "detail__depth"}
+    _csv_columns = {"Name": "name", "Type": "type", "Depth": "detail__depth"}
 
     class Meta:
         unique_together = ("project", "name")
@@ -144,53 +152,7 @@ class Location(models.Model, ModelTemplateInterface, SimpleHistorySetup):
     def __str__(self):
         return f"{self.name}"
 
-    @property
-    def latest_status(self):
-        return self.visits.latest("created").status
-
-class LocationVisit(TimeStampedModel, ModelTemplateInterface):
-    """Status of locations at the given time.
-
-    Normally when you go to the field, you visit one or more locations of interst and 
-    take measurements at them. First it is important to give an update on the status of
-    the location. Then measurements are taken. In the database, those measurements are
-    linked to location visits for easy retrieval.
-
-    Attributes:
-        location (ForeignKey): The location to which the status is attached.
-        status (CharField): Short status of the location.
-        description (Optional[CharField]): Descriptive comment about the status, if necessary.
-        timestamp (DateTimeField): The date and time when the status was
-            created.
-    """
-
-    class StatusChoices(models.TextChoices):
-        OPERATIONAL = "operational", "Operational"
-        NEEDS_MAINTENANCE = "needs-maintenance", "Needs Maintenance"
-        DECOMMISSIONED = "decommissioned", "Decommissioned"
-        UNKNOWN = "unknown", "Unknown"
-
-    fieldwork = models.ForeignKey(
-        "Fieldwork",
-        related_name="visits",
-        on_delete=models.CASCADE
-    )
-    location = models.ForeignKey(
-        Location, related_name="visits", on_delete=models.CASCADE
-    )
-    status = models.CharField(max_length=20, choices=StatusChoices.choices, default=StatusChoices.UNKNOWN)
-    description = models.TextField(blank=True, null=True)
-
-    _list_view_fields = {
-        "Fieldwork": "fieldwork",
-        "Location": "location",
-        "Status": "status",
-    }
-
-    def __str__(self) -> str:
-        return f"{self.location} - {self.fieldwork.date:%Y-%m-%d}"
-
-class Fieldwork(TimeStampedModel, ModelTemplateInterface):
+class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
     """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
@@ -210,7 +172,7 @@ class Fieldwork(TimeStampedModel, ModelTemplateInterface):
     project = models.ForeignKey(
         Project, on_delete=models.PROTECT, related_name="fieldworks"
     )
-    user = models.ManyToManyField(User, related_name="fieldworks")
+    user = models.ManyToManyField(User, null=True, blank=True, related_name="fieldworks")
     date = models.DateField(unique=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)

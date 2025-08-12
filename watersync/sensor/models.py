@@ -2,11 +2,11 @@ from django.db import models
 from django.utils import timezone
 
 from watersync.core.models import Location, Unit
-from watersync.core.generics.mixins import ModelTemplateInterface
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 from watersync.users.models import User
 
 
-class SensorVariable(models.Model, ModelTemplateInterface):
+class SensorVariable(models.Model, InterfaceModelTemplate):
     """Variables that sensors can measure.
     
     This model stores the different types of variables/parameters that
@@ -40,7 +40,7 @@ class SensorVariable(models.Model, ModelTemplateInterface):
         return f"{self.name} ({self.code})"
 
 
-class Sensor(models.Model, ModelTemplateInterface):
+class Sensor(models.Model, InterfaceModelTemplate):
     """Sensing devices.
 
     Sensors are devices that can be deployed in a location to measure
@@ -93,7 +93,7 @@ class Sensor(models.Model, ModelTemplateInterface):
         return self.identifier
 
 
-class Deployment(models.Model, ModelTemplateInterface):
+class Deployment(models.Model, InterfaceModelTemplate):
     """Timeseries from sensors.
 
     A sensor deployment happens when a sensor is placed in a particular location. Deployment

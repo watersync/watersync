@@ -36,7 +36,6 @@ class TargetParameterGroupForm(forms.ModelForm):
         model = ParameterGroup
         fields = ["name", "code", "description"]
 
-
 class SampleForm(forms.ModelForm):
     title = "Add Sample"
     measured_on = forms.DateField(
@@ -51,7 +50,8 @@ class SampleForm(forms.ModelForm):
     class Meta:
         model = Sample
         fields = (
-            "location_visit",
+            "location",
+            "fieldwork",
             "measured_on",
             "protocol",
             "parameter_group",

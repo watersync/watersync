@@ -30,8 +30,8 @@ class GWLListView(WatersyncListView):
         project = self.get_project()
         locations = project.locations.all()
         return GWLManualMeasurement.objects.filter(
-            location_visit__location__in=locations
-        ).order_by("-location_visit__fieldwork__date")
+            location__in=locations
+        ).order_by("-fieldwork__date")
 
 
 

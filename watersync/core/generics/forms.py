@@ -1,6 +1,9 @@
 from django import forms
 from django.forms import ChoiceField
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FormWithDetailMixin(forms.ModelForm):
@@ -85,15 +88,31 @@ class FormWithHistory(forms.ModelForm):
         help_text="Set the modification date for this change (optional).",
     )
 
+    history_change_reason = forms.CharField(
+        label="Change Reason",
+        required=False,
+        initial="",
+        widget=forms.Textarea(attrs={"rows": 2}),
+        max_length=255,
+        help_text="Reason for the change (optional).",
+    )
+
     def save(self, commit=True):
-        instance = super().save(commit=commit)
-        # Set _history_date if provided
+        """Save the instance with custom history metadata."""
+        instance = super().save(commit=False)
+
         history_date_value = self.cleaned_data.get("history_date")
+        history_change_reason = self.cleaned_data.get("history_change_reason")
+
         if history_date_value:
-            # This was causing the instance to be saved twice and created
-            # two entries in the history table.
             instance._history_date = history_date_value
+
+        if history_change_reason:
+            instance._change_reason = history_change_reason
+
+        if commit:
             instance.save()
+
         return instance
 
 class HTMXChoiceField(ChoiceField):

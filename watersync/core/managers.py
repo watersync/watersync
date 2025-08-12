@@ -12,7 +12,7 @@ class WatersyncManager(models.Manager):
     
     This manager offers methods to:
     - Filter objects by user ownership.
-    - Annotate querysets with calculated statistics (e.g., visit/sample counts).
+    - Annotate querysets with calculated statistics (e.g., gwlmeasurement/sample counts).
     - Dynamically filter querysets based on provided parameters.
     - Combine filtering, annotation, and export logic in a single method.
     
@@ -20,8 +20,8 @@ class WatersyncManager(models.Manager):
         with_user_data(user):
             Returns a queryset filtered by the given user (created_by=user).
         with_stats():
-            Returns a queryset annotated with 'locvisits' (number of related visits)
-            and 'locsamples' (number of related samples through visits).
+            Returns a queryset annotated with and 'locsamples'
+            (number of related samples).
         with_filters(**filters):
             Returns a queryset filtered by non-empty keyword arguments.
         get_full_queryset(user=None, filters=None, stats=None, for_export=False):
@@ -38,8 +38,7 @@ class WatersyncManager(models.Manager):
     def with_stats(self):
         """Add calculated fields to the queryset"""
         return self.get_queryset().annotate(
-            locvisits=Count('visits'),
-            locsamples=Count('visits__samples')
+            locsamples=Count('samples')
         )
     
     def with_filters(self, **filters):

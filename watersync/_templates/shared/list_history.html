@@ -11,71 +11,48 @@
         </h2>
         <div id="collapse-history" class="accordion-collapse collapse" aria-labelledby="history-heading" data-bs-parent="#historyAccordion">
             <div class="accordion-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Changes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in history_with_diffs|slice:":10" %}
-                            <tr>
-                                <td>
-                                    <small>{{ item.record.history_date|date:"M d, Y H:i" }}</small>
-                                </td>
-                                <td>
-                                    {% if item.record.history_user %}
-                                        <span class="badge bg-secondary">{{ item.record.history_user.username }}</span>
-                                    {% else %}
-                                        <span class="text-muted">System</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if item.record.history_type == '+' %}
-                                        <span class="badge bg-success">Created</span>
-                                    {% elif item.record.history_type == '~' %}
-                                        <span class="badge bg-warning">Updated</span>
-                                    {% elif item.record.history_type == '-' %}
-                                        <span class="badge bg-danger">Deleted</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if item.prev_record %}
-                                        <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#changes-{{ item.record.history_id }}" aria-expanded="false">
-                                            <i class="fas fa-eye"></i> View Changes
-                                        </button>
-                                        <div class="collapse mt-2" id="changes-{{ item.record.history_id }}">
-                                            <div class="card card-body small">
-                                                {% if item.changes %}
-                                                    {% for field in item.changes %}
-                                                        <div class="row">
-                                                            <div class="col-3"><strong>{{ field.field }}:</strong></div>
-                                                            <div class="col-4">
-                                                                <span class="text-danger">{{ field.old|default:"-" }}</span>
-                                                            </div>
-                                                            <div class="col-1 text-center">→</div>
-                                                            <div class="col-4">
-                                                                <span class="text-success">{{ field.new|default:"-" }}</span>
-                                                            </div>
-                                                        </div>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    <span class="text-muted">No specific changes detected</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted">Initial creation</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+
+            </div>
+            <section class="py-5">
+            <ul class="timeline">
+                {% comment %} {% for item in history_with_diffs|slice:":10" %} {% endcomment %}
+                {% for item in history_with_diffs %}
+
+                <li class="timeline-item mb-5">
+                <td>
+                    {% if item.record.history_type == '+' %}
+                        <span class="badge bg-success">Created</span>
+                    {% elif item.record.history_type == '~' %}
+                        <span class="badge bg-warning">Updated</span>
+                    {% elif item.record.history_type == '-' %}
+                        <span class="badge bg-danger">Deleted</span>
+                    {% endif %}
+                </td>
+              <h5 class="fw-bold">{{ item.record.history_change_reason }}</h5>
+              <p class="text-muted mb-2 fw-bold">{{ item.record.history_date|date:"d F Y" }}</p>
+              <p class="text-muted">
+                <div class="card card-body small">
+                    {% if item.changes %}
+                        {% for field in item.changes %}
+                            <div class="row">
+                                <div class="col-3"><strong>{{ field.field }}:</strong></div>
+                                <div class="col-4">
+                                    <span class="text-danger">{{ field.old|default:"-" }}</span>
+                                </div>
+                                <div class="col-1 text-center">→</div>
+                                <div class="col-4">
+                                    <span class="text-success">{{ field.new|default:"-" }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">No specific changes detected</span>
+                    {% endif %}
+                </div>
+            </p>
+            </li>
+            {% endfor %}
+            </ul>
                     {% if history_with_diffs|length > 10 %}
                         <div class="text-center mt-2">
                             <small class="text-muted">
@@ -83,9 +60,9 @@
                             </small>
                         </div>
                     {% endif %}
-                </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
+
 {% endif %}

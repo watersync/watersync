@@ -1,0 +1,50 @@
+{% extends 'layouts/project_dashboard.html' %}
+
+{% block content %}
+<div id="fieldwork-detail" hx-get="{% url 'core:detail-fieldwork' project.pk fieldwork.pk %}"
+    hx-trigger="revealed, configRequest from:body, fieldworkChanged from:body" hx-target="#fieldwork-detail"
+    hx-headers='{"HX-Context": "block"}'>
+    <div class="spinner-grow" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+<hr>
+<h3 class="text-muted">Data collected during this fieldwork</h3>
+<p><em>Mind that you have to first delete all the resources linked to the fieldwork, before deleting the fieldwork
+        itself.</em></p>
+
+
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="gwlmeasurements-tab" data-bs-toggle="tab"
+            data-bs-target="#gwlmeasurements-tab-pane" type="button" role="tab" aria-controls="gwlmeasurements-tab-pane"
+            aria-selected="true">
+            GWL
+            <span class="badge rounded-pill bg-primary">{{ gwlmeasurementcount }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="sampling-tab" data-bs-toggle="tab" data-bs-target="#sampling-tab-pane"
+            type="button" role="tab" aria-controls="sampling-tab-pane" aria-selected="false">
+            Water Quality
+            <span class="badge rounded-pill bg-primary">{{ samplecount }}</span>
+        </button>
+    </li>
+</ul>
+<div class="tab-content" id="fieldwork-resources-tab-content">
+    <div class="tab-pane fade show active" id="gwlmeasurements-tab-pane" role="tabpanel" aria-labelledby="gwlmeasurements-tab">
+        <div id="gwlmeasurements" class="container p-4">
+            {% with list_context=gwlmeasurements.list_context htmx_context="block" %}
+            {% include "list.html"%}
+            {% endwith %}
+        </div>
+    </div>
+    <div class="tab-pane fade" id="sampling-tab-pane" role="tabpanel" aria-labelledby="sampling-tab">
+        <div id="sampling" class="container p-4">
+            {% with list_context=samples.list_context htmx_context="block" %}
+            {% include "list.html"%}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

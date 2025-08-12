@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from watersync.core.models import Location, LocationVisit, Project, Fieldwork
+from watersync.core.models import Location, Project, Fieldwork
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -14,12 +14,6 @@ class ProjectSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = "__all__"
-
-
-class VisitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LocationVisit
         fields = "__all__"
 
 

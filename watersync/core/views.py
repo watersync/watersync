@@ -2,11 +2,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import ModelForm
 from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
-from watersync.core.generics.utils import update_location_geom
+from watersync.core.generics.utils import update_location_geom, add_current_project
 from watersync.groundwater.views import GWLListView
-from watersync.core.forms import FieldworkForm, LocationForm, LocationVisitForm, ProjectForm, UnitForm
+from watersync.core.forms import FieldworkForm, LocationForm, ProjectForm, UnitForm
 from watersync.core.generics.htmx import RenderToResponseMixin
-from watersync.core.models import Fieldwork, Location, LocationVisit, Project, Unit
+from watersync.core.models import Fieldwork, Location, Project, Unit
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from watersync.sensor.views import DeploymentListView
 from watersync.waterquality.views import SampleListView
@@ -21,15 +21,12 @@ class FieldworkCreateView(WatersyncCreateView):
     form_class = FieldworkForm
 
     def update_form_instance(self, form):
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-
+        """Always set the current project for the fieldwork instance."""
+        add_current_project(self.kwargs, form)
 
 class FieldworkUpdateView(WatersyncUpdateView):
     model = Fieldwork
     form_class = FieldworkForm
-
-    def update_form_instance(self, form):
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
 
 class FieldworkDeleteView(WatersyncDeleteView):
@@ -38,7 +35,8 @@ class FieldworkDeleteView(WatersyncDeleteView):
 
 class FieldworkListView(WatersyncListView):
     model = Fieldwork
-    detail_type = "modal"
+    detail_type = "page"
+
 
     def get_queryset(self):
         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
@@ -49,7 +47,47 @@ class FieldworkDetailView(WatersyncDetailView):
     model = Fieldwork
     detail_type = "modal"
 
+class FieldworkOverviewView(TemplateView):
+    template_name = "core/fieldwork_overview.html"
 
+    def get_resource_counts(self, fieldwork):
+        """Keeping this for the pattern:
+            "samplecount": fieldwork.visits.aggregate(
+            total=Count('samples')
+                )['total'],
+        """
+
+        fieldwork = Fieldwork.objects.annotate(
+            gwlmeasurementcount=Count('gwlmeasurements'),
+            samplecount=Count('samples')
+        ).get(pk=fieldwork.pk)
+
+        views = {
+            "gwlmeasurementcount": fieldwork.gwlmeasurementcount,
+            "samplecount": fieldwork.samplecount
+        }
+
+        return views
+    
+    def get_resource_list_context(self):
+        views = {
+            "gwlmeasurements": GWLListView,
+            "samples": SampleListView,
+        }
+
+        return get_resource_list_context(self.request, self.kwargs, views)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fieldwork = get_object_or_404(Fieldwork, pk=self.kwargs["fieldwork_pk"])
+
+        context.update(self.get_resource_counts(fieldwork))
+        context.update(self.get_resource_list_context())
+        context["hx_vals"] = json.dumps({"fieldwork_pk": str(fieldwork.pk)})
+
+        return context
+
+fieldwork_overview_view = FieldworkOverviewView.as_view()
 fieldwork_create_view = FieldworkCreateView.as_view()
 fieldwork_detail_view = FieldworkDetailView.as_view()
 fieldwork_list_view = FieldworkListView.as_view()
@@ -63,6 +101,7 @@ class LocationCreateView(WatersyncCreateView):
 
     def update_form_instance(self, form: ModelForm):
         update_location_geom(form)
+        add_current_project(self.kwargs, form)
 
 
 class LocationUpdateView(WatersyncUpdateView):
@@ -71,6 +110,7 @@ class LocationUpdateView(WatersyncUpdateView):
 
     def update_form_instance(self, form: ModelForm):
         update_location_geom(form)
+        add_current_project(self.kwargs, form)
 
 
 class LocationDeleteView(WatersyncDeleteView):
@@ -93,8 +133,7 @@ class LocationListView(WatersyncListView):
 
     def get_queryset(self):
         stats = {
-            "locvisits": Count("visits"),
-            "locsamples": Count("visits__samples"),
+            "locsamples": Count("samples"),
         }
         print("CUSTOM MANAGER: ", self.model.watersync.get_full_queryset(stats=stats, for_export=True))
         project = self.get_project()
@@ -147,57 +186,32 @@ project_update_view = ProjectUpdateView.as_view()
 project_detail_view = ProjectDetailView.as_view()
 project_list_view = ProjectListView.as_view()
 
-class LocationVisitListView(WatersyncListView):
-    model = LocationVisit
-    detail_type = "popover"
-
-    @filter_by_location
-    def get_queryset(self):
-        project = self.get_project()
-        locations = project.locations.all()
-        return LocationVisit.objects.filter(location__in=locations).order_by("-created")
-
-
-class LocationVisitCreateView(WatersyncCreateView):
-    model = LocationVisit
-    form_class = LocationVisitForm
-
-
-class LocationVisitUpdateView(WatersyncUpdateView):
-    model = LocationVisit
-    form_class = LocationVisitForm
-
-
-class LocationVisitDeleteView(WatersyncDeleteView):
-    model = LocationVisit
-
-
-location_visit_create_view = LocationVisitCreateView.as_view()
-location_visit_list_view = LocationVisitListView.as_view()
-location_visit_delete_view = LocationVisitDeleteView.as_view()
-location_visit_update_view = LocationVisitUpdateView.as_view()
-
-
 class LocationOverviewView(TemplateView):
     template_name = "core/location_overview.html"
 
     def get_resource_counts(self, location):
-        views = {
-            "statuscount": location.visits.count(),
-            "gwlmeasurementcount": location.visits.aggregate(
-                    total=Count('gwlmeasurements')
-                )['total'],
-            "deploymentcount": location.deployments.count(),
+        """Keeping this for the pattern:
             "samplecount": location.visits.aggregate(
-                    total=Count('samples')
+            total=Count('samples')
                 )['total'],
+        """
+
+        location = Location.objects.annotate(
+            gwlmeasurementcount=Count('gwlmeasurements'),
+            deploymentcount=Count('deployments'),
+            samplecount=Count('samples')
+        ).get(pk=location.pk)
+
+        views = {
+            "gwlmeasurementcount": location.gwlmeasurementcount,
+            "deploymentcount": location.deploymentcount,
+            "samplecount": location.samplecount
         }
 
         return views
     
     def get_resource_list_context(self):
         views = {
-            "locationvisits": LocationVisitListView,
             "gwlmeasurements": GWLListView,
             "deployments": DeploymentListView,
             "samples": SampleListView,

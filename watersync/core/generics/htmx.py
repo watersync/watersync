@@ -1,9 +1,11 @@
+import re
+
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
-from watersync.core.models import Location
-
+from watersync.core.models import Location, Fieldwork
+from watersync.waterquality.models import Sample
 
 class RenderToResponseMixin:
     """Mixin for rendering HTMX responses."""
@@ -17,18 +19,61 @@ class RenderToResponseMixin:
 class UpdateFormMixin:
     """Mixin for updating form instances."""
 
+    def get_pk_from_hx_headers(self, current_url, parameter):
+        """Use the Hx-Current-Url header to determine the current URL.
+        Then extract the required parameters from the URL.
+
+        This is mostly used to make it easier to add items from the level
+        of overviews (location, fieldwork and sample).
+        """
+        match = re.search(f'/{parameter}/(\d+)/', current_url)
+        
+        if match:
+            return match.group(1)
+        
+        return None
+    
     def get_initial(self):
         """Get initial data for the form."""
         initial = super().get_initial()
-        if 'project_pk' in self.kwargs and self.model_name != 'project':
-            initial['project'] = self.kwargs['project_pk']
-            print(f"Initial project set to {initial['project']}")
-        if 'location_pk' in self.kwargs:
-            initial['location'] = get_object_or_404(
-                Location, pk=self.kwargs['location_pk']
-            )
+        current_url = self.request.headers.get("HX-Current-URL", "")
 
+        # User handling
+        if self.request.user.is_authenticated:
+            initial["user"] = self.request.user.pk
+
+        # Location handling
+        if current_url and "locations" in current_url:
+            location_pk = self.get_pk_from_hx_headers(current_url, "locations")
+            if location_pk:
+                initial["location"] = get_object_or_404(Location, pk=location_pk)
+
+        # Sample handling
+        if current_url and "samples" in current_url:
+            location_pk = self.get_pk_from_hx_headers(current_url, "samples")
+            if location_pk:
+                initial["sample"] = get_object_or_404(Sample, pk=location_pk)
+
+        # fieldwork handling
+        if current_url and "fieldworks" in current_url:
+            fieldwork_pk = self.get_pk_from_hx_headers(current_url, "fieldworks")
+            if fieldwork_pk:
+                initial["fieldwork"] = get_object_or_404(Fieldwork, pk=fieldwork_pk)
+        
         return initial
+
+    def get_form(self, form_class=None):
+        """
+        After the form is created, make the location field read-only if pre-filled.
+        """
+        form = super().get_form(form_class)
+        if form.initial.get("location") and hasattr(form.fields, "location"):
+            form.fields["location"].disabled = True
+        if form.initial.get("sample") and hasattr(form.fields, "sample"):
+            form.fields["sample"].disabled = True
+        if form.initial.get("fieldwork") and hasattr(form.fields, "fieldwork"):
+            form.fields["fieldwork"].disabled = True
+        return form
 
     def update_user(self, instance):
         """Update user field in forms, if applicable.
@@ -54,29 +99,6 @@ class UpdateFormMixin:
         elif not instance.user:
             instance.user = self.request.user
             instance.save()
-
-    def update_project(self, form):
-        """Hook for updating project in forms.
-
-        note: the project is never m2m so we don't need to check for add method. The
-        project is also not ambiguous, like location, because most of items have to be
-        linked to a project.
-        """
-        if not hasattr(form, 'instance'):
-            return
-        if not hasattr(form.instance, 'project'):
-            return
-
-        form.instance.project = self.get_project()
-
-    def update_location(self, form):
-        """Hook for updating location in subclasses."""
-        if not hasattr(form, 'instance'):
-            return
-        if "location_pk" in self.kwargs and self.model_name != "location":
-            form.instance.location = get_object_or_404(
-                Location, pk=self.kwargs["location_pk"]
-            )
 
 
 class HTMXFormMixin(UpdateFormMixin):
@@ -107,9 +129,6 @@ class HTMXFormMixin(UpdateFormMixin):
         """Handle a valid form submission."""
 
         self.update_form_instance(form)
-
-        self.update_project(form)
-        self.update_location(form)
 
         # Save the instance to the database
         if hasattr(form, "save"):            

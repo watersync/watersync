@@ -18,8 +18,8 @@ URL patterns are specified in the urls.py files for transparency. They follow th
 - Delete: `app_label:delete-model_name`, e.g., `sensors:delete-sensor`
 - Detail: `app_label:detail-model_name`, e.g., `sensors:detail-sensor`
 
-If the model is composed of two words (e.g., LocationVisit), both words are concatenated together in lowercase (no dashes, or underscores are added to the patterns.)
+If the model is composed of several words (e.g., GWLMeasurement), both words are concatenated together in lowercase (no dashes, or underscores are added to the patterns.)
 
 The models names are always in singular form (e.g., Location). In `watersync.core.generics.views.StandardURLMixin` we automate generation of those patterns for templates, which are passed thorugh `ListContext` object.
 
-The tag representing the detail of a specific record is always `<model_name_pk>`. `model_name` is handled consistently with the rest of url pattenrns (i.e., plain concatenation, e.g., `locationvisits` for lists and `locationvisit` for other actions).
+The tag representing the detail of a specific record is always `<model_name_pk>`. `model_name` is handled consistently with the rest of url pattenrns (i.e., plain concatenation, e.g., `gwlmeasurements` for lists and `gwlmeasurement` for other actions).

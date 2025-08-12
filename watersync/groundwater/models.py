@@ -2,19 +2,24 @@ from decimal import Decimal
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-from watersync.core.models import Location, LocationVisit
-from watersync.core.generics.mixins import ModelTemplateInterface
+from watersync.core.models import Location
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 
 
 
-class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
+class GWLManualMeasurement(TimeStampedModel, InterfaceModelTemplate):
     """Manual measurements of groundwater levels.
 
     The depth is measured from the top of the casing to the water level.
-    Should always be cprrected for the casing height before saving."""
+    Should always be corrected for the casing height before saving."""
 
-    location_visit = models.ForeignKey(
-        LocationVisit,
+    fieldwork = models.ForeignKey(
+        "core.Fieldwork",
+        on_delete=models.CASCADE,
+        related_name="gwlmeasurements",
+    )
+    location = models.ForeignKey(
+        Location,
         on_delete=models.PROTECT,
         related_name="gwlmeasurements",
         null=True,
@@ -24,7 +29,7 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
     description = models.TextField(null=True, blank=True)
 
     _list_view_fields = {
-        "Location visit": "location_visit",
+        "Location": "location",
         "Depth": "depth",
         "Elevation": "groundwater_elevation",
     }
@@ -37,7 +42,7 @@ class GWLManualMeasurement(TimeStampedModel, ModelTemplateInterface):
         """
 
         # Get historical location record from the time of measurement
-        historical_location = self.location_visit.location.history.as_of(self.location_visit.fieldwork.date)
+        historical_location = self.location.history.as_of(self.fieldwork.date)
 
         # Get TOC from historical detail field
         historical_detail = historical_location.detail or []
