@@ -15,8 +15,8 @@
         </button>
         {% endif %}
         {% if list_context.detail_page_url %}
-        <a class="btn btn-sm btn-info m-1" href="{{ list_context.detail_page_url|replace_placeholder:obj.pk }}">
-            <i class="fa-solid fa-circle-info"></i>
+        <a class="btn btn-sm btn-info" href="{{ list_context.detail_page_url|replace_placeholder:obj.pk }}">
+            Open<i class="fa-solid fa-arrow-right mx-2"></i>
         </a>
         {% endif %}
         {% if list_context.detail_popover %}
