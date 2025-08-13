@@ -1,0 +1,41 @@
+# Water Quality Units Definition File
+# This file defines custom units for water quality measurements
+# Compatible with Pint UnitRegistry.load_definitions()
+
+# Turbidity units
+NTU = [turbidity]
+FNU = [turbidity]  # Formazin Nephelometric Units
+FTU = [turbidity]  # Formazin Turbidity Units
+
+# Bacterial count units  
+CFU = [count]  # Colony Forming Units
+MPN = [count]  # Most Probable Number
+MPNU = [count]  # Most Probable Number Units
+
+# pH and chemical activity
+pH_unit = [acidity]
+pH = [acidity]
+
+# Additional water quality specific units
+ppm_as_CaCO3 = [mass] / [volume]  # Parts per million as calcium carbonate
+mg_CaCO3_per_L = milligram / liter  # Hardness as CaCO3
+equiv_per_L = [amount] / [volume]  # Chemical equivalents per liter
+meq_per_L = milli * equiv_per_L  # Milliequivalents per liter
+
+# Conductivity (already defined in Pint but adding aliases)
+uS_per_cm = microsiemens / centimeter
+mS_per_cm = millisiemens / centimeter
+
+# Dissolved oxygen
+mg_O2_per_L = milligram / liter  # Dissolved oxygen as O2
+percent_saturation = [dimensionless]  # Percent saturation
+
+# Chlorophyll
+ug_chl_a_per_L = microgram / liter  # Chlorophyll-a
+
+# Nitrogen and phosphorus compounds
+mg_N_per_L = milligram / liter  # Nitrogen compounds
+mg_P_per_L = milligram / liter  # Phosphorus compounds
+mg_NH3_N_per_L = milligram / liter  # Ammonia as nitrogen
+mg_NO3_N_per_L = milligram / liter  # Nitrate as nitrogen
+mg_PO4_P_per_L = milligram / liter  # Phosphate as phosphorus

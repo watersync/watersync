@@ -7,118 +7,12 @@ Once the measurements (MEASUREMENT) are completed, they are created and linked t
 
 from django.db import models
 from django.utils.text import slugify
-from django_extensions.db.models import TimeStampedModel
+from django.conf import settings
 
-from watersync.core.models import Unit
 from watersync.core.generics.interfaces import InterfaceModelTemplate
-from watersync.users.models import User
+from watersync.waterquality.models_setup import Parameter, ParameterGroup, Protocol
 
-class ParameterGroup(models.Model, InterfaceModelTemplate):
-    """Group of target parameters for analysis.
-
-    These are groups of parameters like nutrients, metals, etc. that are
-    normally analyzed together. These values will be used in the
-    sample form as select options.
-
-    These items are available in the Settings panel in the app.
-
-    Attributes:
-        name: The name of the target parameter group.
-        description: A brief description of the group.
-    """
-
-    name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10, unique=True)
-    description = models.TextField(blank=True, null=True)
-
-    _list_view_fields = {
-        "Name": "name",
-        "Code": "code",
-    }
-
-    def __str__(self):
-        return self.name
-
-class Parameter(models.Model, InterfaceModelTemplate):
-    """Parameter for analysis.
-
-    Each parameter is a specific measurement that can be taken from a sample.
-    Parameters are grouped into target parameter groups. When adding measurements,
-    the select options for the parameters will be restricted to the sample target group.
-
-    These items are available in the Settings panel in the app.
-    
-    Attributes:
-        name: The name of the parameter.
-        group: The target parameter group to which the parameter belongs.
-    """
-
-    name = models.CharField(max_length=50)
-    code = models.CharField(max_length=10, unique=True)
-    group = models.ForeignKey(ParameterGroup, on_delete=models.CASCADE)
-
-    _list_view_fields = {
-        "Name": "name",
-        "Group": "group",
-    }
-    
-    def __str__(self):
-        return self.name
-
-class Protocol(models.Model, InterfaceModelTemplate):
-    """Protocols for sampling and analysis.
-
-    Protocol describes the details of the sampling collection and analysis process,
-    starting form sample collection, preservation, storage, analysis and data
-    postprocessing.
-
-    Attributes:
-        slug: A unique identifier for the protocol, generated from the method name.
-        method_name: The name of the analytical method.
-        sample_collection: Details about sample collection.
-        sample_preservation: Details about sample preservation.
-        sample_storage: Details about sample storage.
-        analytical_method: Details about the analytical method used.
-        data_postprocessing: Details about data postprocessing.
-        standard_reference: Reference to a standard or guideline followed.
-        description: A brief description of the protocol.
-        user: The user associated with the protocol.
-    """
-
-    slug = models.SlugField(max_length=100, unique=True, editable=False)
-    method_name = models.CharField(max_length=100)
-    sample_collection = models.TextField(blank=True, null=True)
-    sample_preservation = models.TextField(blank=True, null=True)
-    sample_storage = models.TextField(blank=True, null=True)
-    analytical_method = models.TextField(blank=True, null=True)
-    data_postprocessing = models.TextField(blank=True, null=True)
-    standard_reference = models.CharField(max_length=100, blank=True, null=True)
-    description = models.TextField(max_length=256, blank=True, null=True)
-
-    _list_view_fields = {
-        "Method Name": "method_name",
-    }
-
-    _detail_view_fields = {
-        "Method Name": "method_name",
-        "Sample Collection": "sample_collection",
-        "Sample Preservation": "sample_preservation",
-        "Sample Storage": "sample_storage",
-        "Analytical Method": "analytical_method",
-        "Data Postprocessing": "data_postprocessing",
-        "Standard Reference": "standard_reference",
-        "Description": "description",
-    }
-
-    def __str__(self):
-        return self.method_name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.method_name)
-        super().save(*args, **kwargs)
-
-class Sample(TimeStampedModel, InterfaceModelTemplate):
+class Sample(models.Model, InterfaceModelTemplate):
     """Samples taken for analysis.
 
     Each sample represents a volume of water collected for analysis of specific parameters.
@@ -170,43 +64,165 @@ class Sample(TimeStampedModel, InterfaceModelTemplate):
         "Container Type": "container_type",
         "Volume Collected": "volume_collected",
         "Replica Number": "replica_number",
-        "Created": "created",
-        "Modified": "modified",
     }
 
     def __str__(self):
         return f"{self.fieldwork.date:%Y%m%d}/{slugify(self.location.name)}/{self.parameter_group.code}/{self.replica_number}"
 
-class Measurement(TimeStampedModel, InterfaceModelTemplate):
+class Measurement(models.Model, InterfaceModelTemplate):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and
     then add the measurements later when the analysis is done.
+    
+    This model uses a hybrid approach with JSONField to store Pint quantities,
+    providing flexibility while maintaining unit conversion capabilities.
     """
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="measurements"
     )
     parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT)
-    value = models.FloatField()
-    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
+    measurement_data = models.JSONField(
+        help_text="JSON field storing measurement value and unit information"
+    )
+    detection_limit_data = models.JSONField(
+        null=True, blank=True,
+        help_text="JSON field storing detection limit value and unit information"
+    )
 
     _list_view_fields = {
         "Sample": "sample",
         "Parameter": "parameter",
-        "Value": "value",
-        "Unit": "unit",
+        "Value1": "measurement",
+        "Detection Limit": "detection_limit",
     }
 
     _detail_view_fields = {
         "Sample": "sample",
         "Parameter": "parameter",
-        "Value": "value",
-        "Unit": "unit",
-        "Created": "created",
-        "Modified": "modified",
+        "Measurement": "measurement",
+        "Detection Limit": "detection_limit",
     }
 
     create_bulk = True
 
     def __str__(self):
-        return f"{self.sample} - {self.parameter}"
+        return f"{self.sample} - {self.parameter}: {self.measurement}"
+    
+    @property
+    def measurement(self):
+        """Get the measurement as a Pint Quantity object."""
+        if not self.measurement_data:
+            return None
+        
+        try:
+            magnitude = self.measurement_data.get("magnitude")
+            unit = self.measurement_data.get("unit")
+            
+            if magnitude is not None and unit:
+                return settings.UREG.Quantity(magnitude, unit)
+        except (ValueError, TypeError, KeyError):
+            pass
+        
+        return None
+    
+    @measurement.setter
+    def measurement(self, quantity):
+        """Set the measurement from a Pint Quantity object."""
+        print(f"Setting measurement: {quantity}")
+        if quantity is None:
+            self.measurement_data = None
+        else:
+            print(f"Setting measurement data: {quantity}")
+            self.measurement_data = {
+                "magnitude": float(quantity.magnitude),
+                "unit": str(quantity.units),
+                "dimensionality": str(quantity.dimensionality)
+            }
+            print(f"Measurement data set: {self.measurement_data}")
+    
+    @property
+    def detection_limit(self):
+        """Get the detection limit as a Pint Quantity object."""
+        if not self.detection_limit_data:
+            return None
+
+        try:
+            magnitude = self.detection_limit_data.get("magnitude")
+            unit_str = self.detection_limit_data.get("unit")
+
+            if magnitude is not None and unit_str:
+                return settings.UREG.Quantity(magnitude, unit_str)
+        except (ValueError, TypeError, KeyError):
+            pass
+            
+        return None
+    
+    @detection_limit.setter
+    def detection_limit(self, quantity):
+        """Set the detection limit from a Pint Quantity object."""
+        if quantity is None:
+            self.detection_limit_data = None
+        else:
+            self.detection_limit_data = {
+                "magnitude": float(quantity.magnitude),
+                "unit": str(quantity.units),
+                "dimensionality": str(quantity.dimensionality)
+            }
+
+    def convert_to(self, target_unit):
+        """Convert the measurement to a different unit."""
+        measurement = self.measurement
+        if not measurement:
+            return None
+            
+        try:
+            return measurement.to(target_unit)
+        except Exception as e:
+            raise ValueError(f"Cannot convert to '{target_unit}': {e}")
+    
+    def is_compatible_with(self, other_unit):
+        """Check if the measurement can be converted to another unit."""
+        measurement = self.measurement
+        if not measurement:
+            return False
+            
+        try:
+            test_unit = settings.UREG(other_unit)
+            return measurement.dimensionality == test_unit.dimensionality
+        except Exception:
+            return False
+    
+    def get_standard_unit_value(self):
+        """Get the measurement value in a standard unit for its type."""
+        measurement = self.measurement
+        if measurement is None:
+            return None
+            
+        # Define standard units based on dimensionality
+        dimensionality_standards = {
+            "[mass] / [length] ** 3": "milligram/liter",  # concentration
+            "[temperature]": "celsius",  # temperature
+            "[length]": "meter",  # length/depth
+            "[current] / [length] ** 2": "microsiemens/centimeter",  # conductivity
+            "[mass] * [length] ** 2 / [current] / [time] ** 3": "millivolt",  # voltage
+            "[turbidity]": "NTU",  # turbidity (custom dimension)
+            "[count]": "CFU",  # bacterial count (custom dimension)
+            "[acidity]": "pH_unit",  # pH (custom dimension)
+            "": "dimensionless"  # dimensionless quantities
+        }
+        
+        dim_str = str(measurement.dimensionality)
+        standard_unit = dimensionality_standards.get(dim_str)
+        
+        if standard_unit:
+            try:
+                return measurement.to(standard_unit)
+            except Exception:
+                pass
+                
+        return measurement  # Return as-is if no standard conversion available
+    
+    class Meta:
+        # Ensure only one measurement per sample/parameter combination
+        unique_together = ("sample", "parameter")

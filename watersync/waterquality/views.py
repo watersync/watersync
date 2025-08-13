@@ -1,6 +1,7 @@
-from watersync.waterquality.models import Protocol, Sample, Measurement, Parameter, ParameterGroup
+from watersync.waterquality.forms_setup import ParameterForm, ProtocolForm, TargetParameterGroupForm
+from watersync.waterquality.models import Sample, Measurement
 from watersync.core.models import Project
-from watersync.waterquality.forms import ProtocolForm, SampleForm, MeasurementForm, MeasurementBulkForm, TargetParameterGroupForm, ParameterForm
+from watersync.waterquality.forms import SampleForm, MeasurementForm, MeasurementBulkForm
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -9,10 +10,12 @@ from watersync.core.generics.views import (
     WatersyncUpdateView,
 )
 from django.views.generic import TemplateView
+from django.conf import settings
 import json
 from watersync.core.generics.decorators import filter_by_location, filter_by_conditions
 from django.shortcuts import get_object_or_404
 from watersync.core.generics.utils import get_resource_list_context
+from watersync.waterquality.models_setup import Parameter, ParameterGroup, Protocol
 
 
 # ================ Protocols ========================
@@ -138,7 +141,7 @@ class SampleListView(WatersyncListView):
         project = self.get_project()
         return Sample.objects.filter(
                 location__in=project.locations.all()
-            ).order_by("-created")
+            ).order_by("-fieldwork__date")
 
 
 class SampleDetailView(WatersyncDetailView):
@@ -227,7 +230,7 @@ class MeasurementListView(WatersyncListView):
 
         return Measurement.objects.filter(
             sample__in=samples
-        ).order_by("-created")
+        ).order_by("-sample__fieldwork__date")
 
 
 measurement_create_view = MeasurementCreateView.as_view()

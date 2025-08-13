@@ -110,7 +110,6 @@ class LocationUpdateView(WatersyncUpdateView):
 
     def update_form_instance(self, form: ModelForm):
         update_location_geom(form)
-        add_current_project(self.kwargs, form)
 
 
 class LocationDeleteView(WatersyncDeleteView):

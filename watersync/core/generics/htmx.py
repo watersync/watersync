@@ -63,9 +63,8 @@ class UpdateFormMixin:
         return initial
 
     def get_form(self, form_class=None):
-        """
-        After the form is created, make the location field read-only if pre-filled.
-        """
+        """Make certain fields read-only if pre-filled."""
+
         form = super().get_form(form_class)
         if form.initial.get("location") and hasattr(self.model, "location"):
             form.fields["location"].disabled = True
@@ -102,7 +101,10 @@ class UpdateFormMixin:
 
 
 class HTMXFormMixin(UpdateFormMixin):
-    """Mixin for handling HTMX forms."""
+    """Mixin for handling HTMX forms.
+    
+    Practically all views use this mixin to handle HTMX requests.
+    """
 
     htmx_response_status: int | None = 204
     htmx_invalid_status: int | None = 400
@@ -126,10 +128,11 @@ class HTMXFormMixin(UpdateFormMixin):
         """
 
     def form_valid(self, form):
-        """Handle a valid form submission."""
+        """Handle a valid form submission.
+        TODO: Review this method.
+        """
 
         self.update_form_instance(form)
-
         # Save the instance to the database
         if hasattr(form, "save"):            
             instance = form.save()
@@ -156,6 +159,12 @@ class HTMXFormMixin(UpdateFormMixin):
         return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
 
     def form_invalid(self, form):
+        """Handle an invalid form submission.
+
+        !!TODO!!: This method needs improvement to handle returning the form with errors
+        in a way that is compatible with HTMX.
+        """
+
         if self.request.htmx:
             self.update_form_instance(form)
             context = self.get_context_data(form=form)

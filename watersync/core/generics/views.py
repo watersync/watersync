@@ -31,7 +31,6 @@ from watersync.core.generics.context import DetailContext, ListContext
 from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
 from watersync.core.generics.mixins import CreateUpdateDetailMixin, ExportCsvMixin, StandardURLMixin
 from django.utils import timezone
-from watersync.core.models import Location
 
 
 class WatersyncListView(

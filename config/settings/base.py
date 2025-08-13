@@ -4,6 +4,7 @@
 from pathlib import Path
 
 import environ
+from pint import UnitRegistry
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # watersync/
@@ -370,6 +371,19 @@ SPECTACULAR_SETTINGS = {
 }
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+# Pint Units Configuration
+# ------------------------------------------------------------------------------
+# Make the unit registry available as a Django setting
+# The ureg variable is already initialized above and loaded with custom units
+
+WATER_QUALITY_UNITS_FILE = BASE_DIR / "config" / "units" / "water_quality_units.txt"
+
+UREG = UnitRegistry()
+
+if WATER_QUALITY_UNITS_FILE.exists():
+    UREG.load_definitions(str(WATER_QUALITY_UNITS_FILE))
+
 LEAFLET_CONFIG = {
     "SPATIAL_EXTENT": (-180.0, -90.0, 180.0, 90.0),
     "DEFAULT_CENTER": (0, 0),

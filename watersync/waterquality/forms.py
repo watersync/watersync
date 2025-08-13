@@ -1,40 +1,11 @@
 from django import forms
 from django.forms import Textarea
 
-from watersync.waterquality.models import Measurement, Protocol, Sample, Parameter, ParameterGroup
-from watersync.core.models import Unit
+from watersync.waterquality.models import Measurement, Sample
 
 from bootstrap_datepicker_plus.widgets import DatePickerInput
+from django.conf import settings
 
-
-class ProtocolForm(forms.ModelForm):
-    title = "Add Protocol"
-    class Meta:
-        model = Protocol
-        fields = [
-            "method_name",
-            "sample_collection",
-            "sample_preservation",
-            "sample_storage",
-            "analytical_method",
-            "data_postprocessing",
-            "standard_reference",
-            "description",
-        ]
-
-class ParameterForm(forms.ModelForm):
-    title = "Add Parameter"
-
-    class Meta:
-        model = Parameter
-        fields = ["name", "group"]
-
-class TargetParameterGroupForm(forms.ModelForm):
-    title = "Add Target Parameter Group"
-
-    class Meta:
-        model = ParameterGroup
-        fields = ["name", "code", "description"]
 
 class SampleForm(forms.ModelForm):
     title = "Add Sample"
@@ -65,9 +36,77 @@ class SampleForm(forms.ModelForm):
 class MeasurementForm(forms.ModelForm):
     title = "Add Measurement"
 
+    # Simple, clean fields for measurement input
+    value = forms.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        label="Measurement Value",
+        help_text="Enter the numeric measurement value",
+        required=True
+    )
+    unit = forms.CharField(
+        max_length=50,
+        label="Unit",
+        help_text="Enter the unit (e.g., mg/L, NTU, pH_unit, CFU/100mL, °C)",
+        required=True
+    )
+    detection_limit = forms.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        required=False,
+        label="Detection Limit (optional)",
+        help_text="Optional detection limit in the same unit as the measurement"
+    )
+
     class Meta:
         model = Measurement
-        fields = ("sample", "parameter", "value", "unit")
+        fields = ("sample", "parameter")
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        value = cleaned_data.get("value")
+        unit = cleaned_data.get("unit")
+
+        # Require both value and unit
+        if value is None or not unit:
+            raise forms.ValidationError("Both value and unit are required.")
+
+        # Validate unit with Pint
+        try:
+            settings.UREG.Quantity(1.0, unit)
+        except Exception as exc:
+            raise forms.ValidationError(f"Invalid unit '{unit}'.") from exc
+
+        # Optional detection limit validation
+        detection_limit = cleaned_data.get("detection_limit")
+        if detection_limit is not None and detection_limit < 0:
+            raise forms.ValidationError("Detection limit must be a non-negative number.")
+
+        # Populate instance JSON-backed fields BEFORE model validation runs
+        self.instance.measurement = settings.UREG.Quantity(float(value), unit)
+        if detection_limit is not None:
+            self.instance.detection_limit = settings.UREG.Quantity(float(detection_limit), unit)
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        value = self.cleaned_data.get("value")
+        unit = self.cleaned_data.get("unit")
+        detection_limit = self.cleaned_data.get("detection_limit")
+
+        # Redundant safety: ensure measurement/detection limit still set
+        if value is not None and unit:
+            instance.measurement = settings.UREG.Quantity(float(value), unit)
+        if detection_limit is not None and unit:
+            instance.detection_limit = settings.UREG.Quantity(float(detection_limit), unit)
+
+        if commit:
+            instance.save()
+        
+        return instance
 
 
 class MeasurementBulkForm(forms.Form):
@@ -78,12 +117,12 @@ class MeasurementBulkForm(forms.Form):
         label="Sample",
         help_text="Select the sample to which these measurements belong.",
     )
-    unit = forms.ModelChoiceField(
-        queryset=Unit.objects.all(),
-        label="Unit",
-        help_text="Select the unit of measurement",
-        required=False,
-    )
+    # unit = forms.ModelChoiceField(
+    #     queryset=Unit.objects.all(),
+    #     label="Unit",
+    #     help_text="Select the unit of measurement",
+    #     required=False,
+    # )
     data = forms.CharField(
         label="Data",
         help_text="Paste tab-separated or comma-separated data with the following columns: "
