@@ -67,11 +67,11 @@ class UpdateFormMixin:
         After the form is created, make the location field read-only if pre-filled.
         """
         form = super().get_form(form_class)
-        if form.initial.get("location") and hasattr(form.fields, "location"):
+        if form.initial.get("location") and hasattr(self.model, "location"):
             form.fields["location"].disabled = True
-        if form.initial.get("sample") and hasattr(form.fields, "sample"):
+        if form.initial.get("sample") and hasattr(self.model, "sample"):
             form.fields["sample"].disabled = True
-        if form.initial.get("fieldwork") and hasattr(form.fields, "fieldwork"):
+        if form.initial.get("fieldwork") and hasattr(self.model, "fieldwork"):
             form.fields["fieldwork"].disabled = True
         return form
 
