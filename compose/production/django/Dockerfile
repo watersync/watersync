@@ -1,96 +1,83 @@
+# =============================================================================
+# WaterSync Production Dockerfile
+# =============================================================================
+# Multi-stage build for smaller production image.
+# Uses Python 3.12 with uv for fast dependency installation.
 
-# define an alias for the specific python version used in this file.
-FROM docker.io/python:3.12.5-slim-bookworm AS python
+# --- Builder Stage ---
+FROM python:3.12-slim-bookworm AS builder
 
-# Python build stage
-FROM python AS python-build-stage
-
-ARG BUILD_ENVIRONMENT=production
-
-# Install apt packages
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  # dependencies for building Python packages
-  build-essential \
-  # psycopg dependencies
-  libpq-dev
-
-# Requirements are installed here to ensure they will be cached.
-COPY ./requirements .
-
-# Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
-
-
-# Python 'run' stage
-FROM python AS python-run-stage
-
-ARG BUILD_ENVIRONMENT=production
 ARG APP_HOME=/app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV BUILD_ENV=${BUILD_ENVIRONMENT}
+ENV UV_SYSTEM_PYTHON=1
 
 WORKDIR ${APP_HOME}
 
-RUN addgroup --system django \
-    && adduser --system --ingroup django django
-
-
-# Install required system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
-  # psycopg dependencies
-  libpq-dev \
-  # Translations dependencies
-  gettext \
-  # cleaning up unused files
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/*
+    build-essential \
+    libpq-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
-# copy python dependency wheels from python-build-stage
-COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
+# Install uv
+RUN pip install --no-cache-dir uv
 
-# use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+# Copy dependency files
+COPY pyproject.toml ${APP_HOME}/
 
+# Install production dependencies
+RUN uv pip install -e ".[prod]"
 
+# --- Runtime Stage ---
+FROM python:3.12-slim-bookworm AS runtime
+
+ARG APP_HOME=/app
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR ${APP_HOME}
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    # Runtime GIS libraries
+    gdal-bin \
+    libgdal32 \
+    libgeos-c1v5 \
+    libproj25 \
+    # Database client
+    libpq5 \
+    postgresql-client \
+    # Translations
+    gettext \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment variables
+ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
+
+# Create non-root user for security
+RUN groupadd --gid 1000 django \
+    && useradd --uid 1000 --gid django --shell /bin/bash --create-home django
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy entrypoint
 COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint
-RUN sed -i 's/\r$//g' /entrypoint
-RUN chmod +x /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint && chmod +x /entrypoint
 
-
-COPY --chown=django:django ./compose/production/django/start /start
-RUN sed -i 's/\r$//g' /start
-RUN chmod +x /start
-COPY --chown=django:django ./compose/production/django/celery/worker/start /start-celeryworker
-RUN sed -i 's/\r$//g' /start-celeryworker
-RUN chmod +x /start-celeryworker
-
-
-COPY --chown=django:django ./compose/production/django/celery/beat/start /start-celerybeat
-RUN sed -i 's/\r$//g' /start-celerybeat
-RUN chmod +x /start-celerybeat
-
-
-COPY --chown=django:django ./compose/production/django/celery/flower/start /start-flower
-RUN sed -i 's/\r$//g' /start-flower
-RUN chmod +x /start-flower
-
-
-# copy application code to WORKDIR
+# Copy application code
 COPY --chown=django:django . ${APP_HOME}
 
-# make django owner of the WORKDIR directory as well.
-RUN chown -R django:django ${APP_HOME}
-
+# Switch to non-root user
 USER django
-
-RUN DATABASE_URL="" \
-  CELERY_BROKER_URL="" \
-  DJANGO_SETTINGS_MODULE="config.settings.test" \
-  python manage.py compilemessages
 
 ENTRYPOINT ["/entrypoint"]

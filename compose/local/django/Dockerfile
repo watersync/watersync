@@ -1,94 +1,65 @@
-# define an alias for the specific python version used in this file.
-FROM docker.io/python:3.12.5-slim-bookworm AS python
+# =============================================================================
+# WaterSync Local Development Dockerfile
+# =============================================================================
+# Uses Python 3.12 with uv for fast dependency installation.
+# GDAL and GIS libraries are installed via apt.
 
-# Python build stage
-FROM python AS python-build-stage
+FROM python:3.12-slim-bookworm
 
-ARG BUILD_ENVIRONMENT=local
-
-# Install apt packages
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  # dependencies for building Python packages
-  build-essential \
-  # psycopg dependencies
-  libpq-dev
-
-# Requirements are installed here to ensure they will be cached.
-COPY ./requirements .
-
-# Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
-
-
-# Python 'run' stage
-FROM python AS python-run-stage
-
-ARG BUILD_ENVIRONMENT=local
 ARG APP_HOME=/app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV BUILD_ENV=${BUILD_ENVIRONMENT}
+ENV UV_SYSTEM_PYTHON=1
 
 WORKDIR ${APP_HOME}
 
-
-# devcontainer dependencies and utils
+# Install system dependencies including GIS libraries
 RUN apt-get update && apt-get install --no-install-recommends -y \
-  sudo git bash-completion nano ssh
+    # Build tools (for any packages that need compilation)
+    build-essential \
+    libpq-dev \
+    # GIS libraries
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    # Development tools
+    sudo \
+    git \
+    bash-completion \
+    nano \
+    # Database client
+    postgresql-client \
+    # Translations
+    gettext \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create devcontainer user and add it to sudoers
+# Set GDAL environment variables
+ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
+
+# Create devcontainer user for VS Code compatibility
 RUN groupadd --gid 1000 dev-user \
-  && useradd --uid 1000 --gid dev-user --shell /bin/bash --create-home dev-user \
-  && echo dev-user ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/dev-user \
-  && chmod 0440 /etc/sudoers.d/dev-user
+    && useradd --uid 1000 --gid dev-user --shell /bin/bash --create-home dev-user \
+    && echo dev-user ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/dev-user \
+    && chmod 0440 /etc/sudoers.d/dev-user
 
+# Install uv for fast package management
+RUN pip install --no-cache-dir uv
 
-# Install required system dependencies
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  # psycopg dependencies
-  libpq-dev \
-  # psql client
-  postgresql-client \
-  # Translations dependencies
-  gettext \
-  binutils libproj-dev gdal-bin \
-  # cleaning up unused files
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/*
+# Copy dependency files first for layer caching
+COPY pyproject.toml README.md ${APP_HOME}/
 
-# All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
-# copy python dependency wheels from python-build-stage
-COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
+# Install Python dependencies (dev = development extras)
+RUN uv pip install -e ".[dev]"
 
-# use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
-
+# Copy entrypoint
 COPY ./compose/production/django/entrypoint /entrypoint
-RUN sed -i 's/\r$//g' /entrypoint
-RUN chmod +x /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint && chmod +x /entrypoint
 
-COPY ./compose/local/django/start /start
-RUN sed -i 's/\r$//g' /start
-RUN chmod +x /start
-
-
-COPY ./compose/local/django/celery/worker/start /start-celeryworker
-RUN sed -i 's/\r$//g' /start-celeryworker
-RUN chmod +x /start-celeryworker
-
-COPY ./compose/local/django/celery/beat/start /start-celerybeat
-RUN sed -i 's/\r$//g' /start-celerybeat
-RUN chmod +x /start-celerybeat
-
-COPY ./compose/local/django/celery/flower/start /start-flower
-RUN sed -i 's/\r$//g' /start-flower
-RUN chmod +x /start-flower
-
-
-# copy application code to WORKDIR
+# Copy application code
 COPY . ${APP_HOME}
 
 ENTRYPOINT ["/entrypoint"]

@@ -21,8 +21,7 @@ services:
       - ./.envs/.local/.postgres
     ports:
       - '8000:8000'
-    command: /start
-    # command: sh -c "/start || tail -f /dev/null"
+    command: /bin/bash -c "python manage.py migrate && uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-include '*.html'"
 
   postgres:
     build:
@@ -45,7 +44,6 @@ services:
   redis:
     image: docker.io/redis:6
     container_name: watersync_local_redis
-
     volumes:
       - watersync_local_redis_data:/data
 
@@ -58,7 +56,7 @@ services:
       - postgres
       - mailpit
     ports: []
-    command: /start-celeryworker
+    command: watchfiles --filter python celery.__main__.main --args '-A config.celery_app worker -l INFO'
 
   celerybeat:
     <<: *django
@@ -69,7 +67,7 @@ services:
       - postgres
       - mailpit
     ports: []
-    command: /start-celerybeat
+    command: celery -A config.celery_app beat -l INFO
 
   flower:
     <<: *django
@@ -77,4 +75,4 @@ services:
     container_name: watersync_local_flower
     ports:
       - '5555:5555'
-    command: /start-flower
+    command: celery -A config.celery_app flower

@@ -23,7 +23,7 @@ services:
     env_file:
       - ./.envs/.production/.django
       - ./.envs/.production/.postgres
-    command: /start
+    command: /bin/bash -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:5000 --workers 4 -k uvicorn_worker.UvicornWorker"
 
   postgres:
     build:
@@ -52,25 +52,23 @@ services:
 
   redis:
     image: docker.io/redis:6
-    
     volumes:
       - production_redis_data:/data
-    
 
   celeryworker:
     <<: *django
     image: watersync_production_celeryworker
-    command: /start-celeryworker
+    command: celery -A config.celery_app worker -l INFO
 
   celerybeat:
     <<: *django
     image: watersync_production_celerybeat
-    command: /start-celerybeat
+    command: celery -A config.celery_app beat -l INFO
 
   flower:
     <<: *django
     image: watersync_production_flower
-    command: /start-flower
+    command: celery -A config.celery_app flower --basic_auth="${CELERY_FLOWER_USER}:${CELERY_FLOWER_PASSWORD}"
 
   nginx:
     build:
