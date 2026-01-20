@@ -5,14 +5,26 @@ Other samples (Sample) are defined, e.g., for nutrients (NUT), metals (MET), etc
 Once the measurements (MEASUREMENT) are completed, they are created and linked to the previously created samples.
 """
 
+from decimal import Decimal
+
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
-from django.conf import settings
 
-from watersync.core.generics.interfaces import InterfaceModelTemplate
-from watersync.waterquality.models_setup import Parameter, ParameterGroup, Protocol
+from watersync.core.config import (
+    get_all_wq_unit_choices,
+    get_parameter_choices,
+    get_parameter_group_choices,
+    get_parameter_label,
+    get_wq_unit_label,
+    is_valid_unit_for_parameter,
+)
+from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
+from watersync.waterquality.models_setup import Protocol
 
-class Sample(models.Model, InterfaceModelTemplate):
+
+class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Samples taken for analysis.
 
     Each sample represents a volume of water collected for analysis of specific parameters.
@@ -27,6 +39,11 @@ class Sample(models.Model, InterfaceModelTemplate):
         volume_collected: The volume of water collected in the
             sample.
     """
+
+    # URL configuration for ModelURLMixin
+    # Sample URLs are: /projects/<project_pk>/samples/<sample_pk>/
+    # We need to traverse: sample.location.project to get project_pk
+    _url_app_label = "waterquality"""
     # In case of internal samples, fieldwork is required
     fieldwork = models.ForeignKey(
         "core.Fieldwork", on_delete=models.CASCADE, related_name="samples",
@@ -38,7 +55,10 @@ class Sample(models.Model, InterfaceModelTemplate):
     )
     measured_on = models.DateField(blank=True, null=True)
     protocol = models.ForeignKey(Protocol, on_delete=models.CASCADE)
-    parameter_group = models.ForeignKey(ParameterGroup, on_delete=models.PROTECT)
+    parameter_group = models.CharField(
+        max_length=50,
+        help_text="The group of parameters targeted for analysis",
+    )
     container_type = models.CharField(max_length=50, blank=True, null=True)
     volume_collected = models.FloatField(blank=True, null=True)
     replica_number = models.IntegerField(default=0)
@@ -66,139 +86,164 @@ class Sample(models.Model, InterfaceModelTemplate):
         "Replica Number": "replica_number",
     }
 
-    def __str__(self):
-        return f"{self.fieldwork.date:%Y%m%d}/{slugify(self.location.name)}/{self.parameter_group.code}/{self.replica_number}"
+    def _get_url_kwargs(self):
+        """Build URL kwargs. Sample URLs need project_pk from location.project."""
+        kwargs = {"sample_pk": self.pk}
+        if self.location and self.location.project:
+            kwargs["project_pk"] = self.location.project.pk
+        return kwargs
 
-class Measurement(models.Model, InterfaceModelTemplate):
+    def __str__(self):
+        return f"{self.fieldwork.date:%Y%m%d}/{slugify(self.location.name)}/{self.parameter_group}/{self.replica_number}"
+
+class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and
     then add the measurements later when the analysis is done.
-    
-    This model uses a hybrid approach with JSONField to store Pint quantities,
-    providing flexibility while maintaining unit conversion capabilities.
+
+    Uses config-based parameter and unit definitions with Pint integration
+    for unit conversions.
     """
+
+    # URL configuration for ModelURLMixin
+    # Measurement URLs are: /projects/<project_pk>/measurements/<measurement_pk>/
+    _url_app_label = "waterquality"
+
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="measurements"
     )
-    parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT)
-    measurement_data = models.JSONField(
-        help_text="JSON field storing measurement value and unit information"
+    parameter = models.CharField(
+        max_length=50,
+        help_text="The parameter measured",
     )
-    detection_limit_data = models.JSONField(
-        null=True, blank=True,
-        help_text="JSON field storing detection limit value and unit information"
+    value = models.DecimalField(
+        max_digits=20,
+        decimal_places=10,
+        help_text="The measured value",
+    )
+    unit = models.CharField(
+        max_length=50,
+        help_text="The unit of measurement",
+    )
+    detection_limit = models.DecimalField(
+        max_digits=20,
+        decimal_places=10,
+        null=True,
+        blank=True,
+        help_text="The detection limit value (same unit as measurement)",
     )
 
     _list_view_fields = {
         "Sample": "sample",
-        "Parameter": "parameter",
-        "Value1": "measurement",
-        "Detection Limit": "detection_limit",
+        "Parameter": "parameter_display",
+        "Value": "formatted_value",
+        "Detection Limit": "formatted_detection_limit",
     }
 
     _detail_view_fields = {
         "Sample": "sample",
-        "Parameter": "parameter",
-        "Measurement": "measurement",
-        "Detection Limit": "detection_limit",
+        "Parameter": "parameter_display",
+        "Measurement": "formatted_value",
+        "Unit": "unit_display",
+        "Detection Limit": "formatted_detection_limit",
     }
 
-    create_bulk = True
+    _has_bulk_create = True
+    _detail_type = "modal"
+
+    def _get_url_kwargs(self):
+        """Build URL kwargs. Measurement URLs need project_pk from sample.location.project."""
+        kwargs = {"measurement_pk": self.pk}
+        if self.sample and self.sample.location and self.sample.location.project:
+            kwargs["project_pk"] = self.sample.location.project.pk
+        return kwargs
 
     def __str__(self):
-        return f"{self.sample} - {self.parameter}: {self.measurement}"
-    
+        return f"{self.sample} - {self.parameter_display}: {self.formatted_value}"
+
+    def clean(self):
+        """Validate that the unit is valid for the selected parameter."""
+        super().clean()
+        if self.parameter and self.unit:
+            if not is_valid_unit_for_parameter(self.parameter, self.unit):
+                raise ValidationError({
+                    "unit": f"'{self.unit}' is not a valid unit for parameter '{self.parameter_display}'"
+                })
+
+    @property
+    def parameter_display(self):
+        """Get human-readable parameter label."""
+        return get_parameter_label(self.parameter)
+
+    @property
+    def unit_display(self):
+        """Get human-readable unit label."""
+        return get_wq_unit_label(self.unit)
+
+    @property
+    def formatted_value(self):
+        """Get the measurement as a formatted string with unit."""
+        if self.value is None:
+            return None
+        return f"{self.value} {self.unit}"
+
+    @property
+    def formatted_detection_limit(self):
+        """Get the detection limit as a formatted string with unit."""
+        if self.detection_limit is None:
+            return None
+        return f"< {self.detection_limit} {self.unit}"
+
     @property
     def measurement(self):
         """Get the measurement as a Pint Quantity object."""
-        if not self.measurement_data:
+        if self.value is None:
             return None
-        
         try:
-            magnitude = self.measurement_data.get("magnitude")
-            unit = self.measurement_data.get("unit")
-            
-            if magnitude is not None and unit:
-                return settings.UREG.Quantity(magnitude, unit)
-        except (ValueError, TypeError, KeyError):
-            pass
-        
-        return None
-    
-    @measurement.setter
-    def measurement(self, quantity):
-        """Set the measurement from a Pint Quantity object."""
-        print(f"Setting measurement: {quantity}")
-        if quantity is None:
-            self.measurement_data = None
-        else:
-            print(f"Setting measurement data: {quantity}")
-            self.measurement_data = {
-                "magnitude": float(quantity.magnitude),
-                "unit": str(quantity.units),
-                "dimensionality": str(quantity.dimensionality)
-            }
-            print(f"Measurement data set: {self.measurement_data}")
-    
+            return settings.UREG.Quantity(float(self.value), self.unit)
+        except (ValueError, TypeError):
+            return None
+
     @property
-    def detection_limit(self):
+    def detection_limit_quantity(self):
         """Get the detection limit as a Pint Quantity object."""
-        if not self.detection_limit_data:
+        if self.detection_limit is None:
             return None
-
         try:
-            magnitude = self.detection_limit_data.get("magnitude")
-            unit_str = self.detection_limit_data.get("unit")
-
-            if magnitude is not None and unit_str:
-                return settings.UREG.Quantity(magnitude, unit_str)
-        except (ValueError, TypeError, KeyError):
-            pass
-            
-        return None
-    
-    @detection_limit.setter
-    def detection_limit(self, quantity):
-        """Set the detection limit from a Pint Quantity object."""
-        if quantity is None:
-            self.detection_limit_data = None
-        else:
-            self.detection_limit_data = {
-                "magnitude": float(quantity.magnitude),
-                "unit": str(quantity.units),
-                "dimensionality": str(quantity.dimensionality)
-            }
+            return settings.UREG.Quantity(float(self.detection_limit), self.unit)
+        except (ValueError, TypeError):
+            return None
 
     def convert_to(self, target_unit):
         """Convert the measurement to a different unit."""
         measurement = self.measurement
-        if not measurement:
+        if measurement is None:
             return None
-            
+
         try:
             return measurement.to(target_unit)
         except Exception as e:
             raise ValueError(f"Cannot convert to '{target_unit}': {e}")
-    
+
     def is_compatible_with(self, other_unit):
         """Check if the measurement can be converted to another unit."""
         measurement = self.measurement
-        if not measurement:
+        if measurement is None:
             return False
-            
+
         try:
             test_unit = settings.UREG(other_unit)
             return measurement.dimensionality == test_unit.dimensionality
         except Exception:
             return False
-    
+
     def get_standard_unit_value(self):
         """Get the measurement value in a standard unit for its type."""
         measurement = self.measurement
         if measurement is None:
             return None
-            
+
         # Define standard units based on dimensionality
         dimensionality_standards = {
             "[mass] / [length] ** 3": "milligram/liter",  # concentration
@@ -209,20 +254,20 @@ class Measurement(models.Model, InterfaceModelTemplate):
             "[turbidity]": "NTU",  # turbidity (custom dimension)
             "[count]": "CFU",  # bacterial count (custom dimension)
             "[acidity]": "pH_unit",  # pH (custom dimension)
-            "": "dimensionless"  # dimensionless quantities
+            "": "dimensionless",  # dimensionless quantities
         }
-        
+
         dim_str = str(measurement.dimensionality)
         standard_unit = dimensionality_standards.get(dim_str)
-        
+
         if standard_unit:
             try:
                 return measurement.to(standard_unit)
             except Exception:
                 pass
-                
+
         return measurement  # Return as-is if no standard conversion available
-    
+
     class Meta:
         # Ensure only one measurement per sample/parameter combination
         unique_together = ("sample", "parameter")
