@@ -1,5 +1,5 @@
 # =============================================================================
-# WaterSync Makefile - Docker-First Development
+# WaterSync Makefile
 # =============================================================================
 # All Python commands run inside Docker containers.
 # No local Python environment needed - just Docker and make.
@@ -144,6 +144,35 @@ flush: ## Flush the database (DANGER!)
 	@$(EXEC_IT) python manage.py flush
 
 # =============================================================================
+# Migration Cleanup
+# =============================================================================
+
+.PHONY: migrations-clean
+migrations-clean: ## Remove all app migrations (keeps sites)
+	@echo "$(YELLOW)⚠️  Removing migration files for app models...$(RESET)"
+	@rm -f watersync/core/migrations/0*.py
+	@rm -f watersync/sensor/migrations/0*.py
+	@rm -f watersync/waterquality/migrations/0*.py
+	@rm -f watersync/groundwater/migrations/0*.py
+	@rm -f watersync/users/migrations/0*.py
+	@echo "$(GREEN)✓ Migration files removed (sites migrations preserved)$(RESET)"
+
+.PHONY: migrations-reset
+migrations-reset: migrations-clean makemigrations ## Clean and recreate migrations
+	@echo "$(GREEN)✓ Fresh migrations created$(RESET)"
+
+.PHONY: db-reset
+db-reset: ## Nuclear option: wipe database and reapply all migrations (DANGER!)
+	@echo "$(YELLOW)⚠️  WARNING: This will DELETE ALL DATA!$(RESET)"
+	@echo "$(YELLOW)Press Ctrl+C within 5 seconds to cancel...$(RESET)"
+	@sleep 5
+	@echo "$(YELLOW)Resetting database schema...$(RESET)"
+	@$(DOCKER_COMPOSE) exec postgres psql -U debug -d watersync -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; CREATE EXTENSION IF NOT EXISTS postgis;"
+	@echo "$(GREEN)✓ Database schema reset$(RESET)"
+	@$(MAKE) migrate
+	@echo "$(GREEN)✓ Database reset complete. Run 'make superuser' to create admin user.$(RESET)"
+
+# =============================================================================
 # Testing
 # =============================================================================
 
@@ -239,14 +268,6 @@ db-up: ## Start database services only (postgres, redis)
 .PHONY: db-down
 db-down: ## Stop database services
 	@$(DOCKER_COMPOSE) stop postgres redis
-
-.PHONY: db-reset
-db-reset: ## Reset database (DANGER!)
-	@echo "$(YELLOW)⚠️  This will delete all data!$(RESET)"
-	@$(DOCKER_COMPOSE) down -v postgres
-	@$(DOCKER_COMPOSE) up -d postgres
-	@sleep 3
-	@$(MAKE) migrate
 
 # =============================================================================
 # Celery
