@@ -9,7 +9,7 @@
 
 {% block content %}
 <div id="deployment-detail" hx-get="{% url 'sensor:detail-deployment' project.pk deployment.pk %}"
-    hx-trigger="revealed, configRequest from:body, locationChanged from:body" hx-target="#deployment-detail"
+    hx-trigger="revealed, refreshList from:body" hx-target="#deployment-detail"
     hx-headers='{"HX-Context": "block"}'>
     <div class="spinner-grow" role="status">
         <span class="visually-hidden">Loading...</span>

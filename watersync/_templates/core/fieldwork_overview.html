@@ -2,7 +2,7 @@
 
 {% block content %}
 <div id="fieldwork-detail" hx-get="{% url 'core:detail-fieldwork' project.pk fieldwork.pk %}"
-    hx-trigger="revealed, configRequest from:body, fieldworkChanged from:body" hx-target="#fieldwork-detail"
+    hx-trigger="revealed, refreshList from:body" hx-target="#fieldwork-detail"
     hx-headers='{"HX-Context": "block"}'>
     <div class="spinner-grow" role="status">
         <span class="visually-hidden">Loading...</span>

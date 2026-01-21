@@ -22,7 +22,7 @@
     {% endif %}
     {% if list_config.has_bulk_create %}
     <button type="button" class="btn btn-success" 
-    hx-get="{{ list_config.add_url }}" 
+    hx-get="{{ request.path }}add/"
     hx-target="#dialog"
     hx-trigger="click"
     hx-vals='js:(function(){ var vals = {{ hx_vals|default:"{}" }}; vals.bulk = true; return vals; })()'>
@@ -30,14 +30,14 @@
     </button>
 {% endif %}
 <button type="button" class="btn btn-success" 
-        hx-get="{{ list_config.add_url }}" 
+        hx-get="{{ request.path }}add/"
         hx-target="#dialog"
         hx-trigger="click"
         hx-vals='js:{{ hx_vals|default:"{}" }}'>
         <i class="fa-solid fa-plus"></i>
     </button>
     <button class="btn btn-secondary"
-        hx-get="{{ list_config.list_url }}"
+        hx-get="{{ request.path }}"
         hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
         hx-headers='{"HX-Download": "true"}'
         hx-swap="none">
@@ -61,10 +61,10 @@
             {% endfor %}
         </tr>
     </thead>
-    <tbody hx-get="{{ list_config.list_url }}"
-        hx-trigger="{% if not htmx_context %}revealed, {% endif %}configRequest from:body, {{ list_config.htmx_trigger }} from:body"
-        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
-        {% if htmx_context %}hx-headers='{"HX-Context": "{{ htmx_context }}"}'{% endif %}>
+    <tbody id="{{ list_config.tbody_id }}"
+        hx-get="{{ request.path }}"
+        hx-trigger="{% if not htmx_context %}revealed, {% endif %}refreshList from:body"
+        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'>
         {% include "table.html" %}
     </tbody>
 </table>
