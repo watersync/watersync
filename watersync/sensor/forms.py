@@ -1,17 +1,19 @@
+import json
+
 import pandas as pd
 from django import forms
+from django.conf import settings
 from django.forms import HiddenInput
 
 from watersync.core.generics.forms import FormWithDetailMixin
-from watersync.sensor.models import Deployment, Sensor, SensorVariable
-
-
-class SensorVariableForm(forms.ModelForm):
-    title = "Add Sensor Variable"
-
-    class Meta:
-        model = SensorVariable
-        fields = ["name", "code", "description"]
+from watersync.sensor.models import Deployment, Sensor
+from watersync.core.config import (
+    get_variable_choices,
+    get_sensor_unit_choices,
+    get_variables_json,
+    is_valid_unit_for_variable,
+    get_variable_label,
+)
 
 
 class SensorDetailForm(forms.Form):
@@ -35,7 +37,7 @@ class SensorDetailForm(forms.Form):
 class SensorForm(FormWithDetailMixin):
     title = "Add Sensor"
     type = forms.ChoiceField(
-        choices=Sensor.SENSOR_TYPE_CHOICES,
+        choices={"vented": "Vented", "unvented": "Unvented", "other": "Other"},
         required=True,
         label="Type",
         widget=forms.ChoiceField.widget(
@@ -54,7 +56,7 @@ class SensorForm(FormWithDetailMixin):
 
     class Meta:
         model = Sensor
-        fields = ("identifier", "type", "user", "detail", "available")
+        fields = ("identifier", "user", "detail", "available")
         widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
 
 
@@ -69,8 +71,10 @@ class DeploymentVentedDetailForm(forms.Form):
     )
 
 class DeploymentForm(FormWithDetailMixin):
-    # I should make this auto-populate based on the sensor type. Can be done with htmx,
-    # but for now, I will just use a simple form.
+    """Form for creating/editing sensor deployments."""
+    
+    title = "Deployment Form"
+    
     sensor = forms.ModelChoiceField(
         queryset=Sensor.objects.filter(available=True),
         label="Sensor",
@@ -81,34 +85,63 @@ class DeploymentForm(FormWithDetailMixin):
                 "hx-target": "#id_type",
             }
         ),
-
     )
-    type = forms.ChoiceField(
-        choices=Sensor.SENSOR_TYPE_CHOICES,
-        label="Sensor type",
+    
+    variable = forms.ChoiceField(
+        choices=get_variable_choices(),
+        label="Variable",
         required=True,
-        widget=forms.ChoiceField.widget(
-            attrs={
-                "hx-trigger": "change, revealed",
-                "hx-target": "#detail_form",
-                "hx-swap": "innerHTML",
-            }
-        ),
+        help_text="The variable being measured",
+        widget=forms.Select(attrs={
+            "id": "id_variable",
+            "onchange": "updateUnitChoices(this.value)",
+        })
     )
-
-    detail_forms = {
-        "vented": DeploymentVentedDetailForm,
-        "unvented": forms.Form,
-        "other": forms.Form,
-    }
+    
+    unit = forms.ChoiceField(
+        choices=[],  # Will be populated by JavaScript based on variable
+        label="Unit",
+        required=True,
+        help_text="Unit of measurement (filtered by selected variable)",
+        widget=forms.Select(attrs={"id": "id_unit"})
+    )
 
     class Meta:
         model = Deployment
-        fields = ["sensor", "location", "detail"]
+        fields = ["sensor", "location", "variable", "unit", "detail"]
         widgets = {
             "decommissioned_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "detail": forms.HiddenInput(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial unit choices based on selected variable (for edit forms)
+        if self.instance and self.instance.pk:
+            variable = self.instance.variable
+            self.fields['unit'].choices = get_sensor_unit_choices(variable)
+        elif 'variable' in self.data:
+            variable = self.data.get('variable')
+            self.fields['unit'].choices = get_sensor_unit_choices(variable)
+        else:
+            # Default: show all units (JS will filter on client side)
+            self.fields['unit'].choices = get_sensor_unit_choices()
+
+    def get_units_json(self):
+        """Return JSON mapping of variables to their valid units for JavaScript."""
+        return json.dumps(get_variables_json())
+
+    def clean(self):
+        """Validate that the unit is valid for the selected variable."""
+        cleaned_data = super().clean()
+        variable = cleaned_data.get('variable')
+        unit = cleaned_data.get('unit')
+        
+        if variable and unit:
+            if not is_valid_unit_for_variable(variable, unit):
+                self.add_error('unit', f"Unit '{unit}' is not valid for '{get_variable_label(variable)}'.")
+        
+        return cleaned_data
 
 
 

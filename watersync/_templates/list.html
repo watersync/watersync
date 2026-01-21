@@ -4,7 +4,6 @@
 {% if htmx_context != "block" %}
 <h3 class="text-muted">{{ list_context.title|capfirst }}</h3>
 {% endif %}
-
 <p>
     <span class="text-muted">
         {{ list_context.explanation }}
@@ -64,7 +63,7 @@
     <tbody hx-get="{{ list_context.list_url }}"
         hx-trigger="revealed, configRequest from:body, {{ list_context.action }} from:body"
         hx-vals='js:{{ hx_vals|safe }}'
-        hx-headers='{"HX-Context": "{{ htmx_context }}"}'>
+        {% if htmx_context %}hx-headers='{"HX-Context": "{{ htmx_context }}"}'{% endif %}>
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">
                 <div class="spinner-grow" role="status">

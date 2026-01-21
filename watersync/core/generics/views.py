@@ -27,15 +27,14 @@ from django.views.generic import (
 
 from docstring_parser import parse_from_object
 
-from watersync.core.generics.context import DetailContext, ListContext
-from watersync.core.generics.htmx import HTMXFormMixin, RenderToResponseMixin
+from watersync.core.generics.context import ListContext
+from watersync.core.generics.htmx import HTMXFormMixin
 from watersync.core.generics.mixins import CreateUpdateDetailMixin, ExportCsvMixin, StandardURLMixin
 from django.utils import timezone
 
 
 class WatersyncListView(
     LoginRequiredMixin,
-    RenderToResponseMixin,
     StandardURLMixin,
     ExportCsvMixin,
     ListView,
@@ -51,19 +50,18 @@ class WatersyncListView(
     For now, it all works on the premise that all the views are under
     the project view.
 
-    I am not sure how to inject an additional url param to the reverse
-    function kwargs. Now it automatically adds the user_id, project and
-    item_pk to the kwargs. The item pk is normally called by the model
-    name + _pk. Here it's computed from the generic model name. Then,
-    a placeholder is added to the kwargs instead of the actual item pk.
-    This is replaced in the template by the actual item pk from objects.
+    Template selection is handled via context processor setting `base_template`:
+    - HTMX requests: base_template = 'layouts/partial.html' (no wrapper)
+    - Full page: base_template = appropriate dashboard layout
+    
+    Within the template, list_page.html uses conditional includes:
+    - HTMX without HX-Context: renders table.html (just table rows)
+    - All other cases: renders list.html (full list component)
 
     Attributes:
         detail_type: The type of the detail view. It can be either "page"
             or "modal".
         template_name: The name of the template used for the list view.
-        htmx_template: The name of the template used for the HTMX response.
-            (it's normally the same as the template_name)
 
     Properties:
         model_name: The model name of the object.
@@ -81,13 +79,11 @@ class WatersyncListView(
     """
 
     detail_type: str
-    template_name = "list.html"
-    htmx_template = "table.html"
+    template_name = "list_page.html"
     docstr: str | None = None
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        self.template_name = self.determine_template_name()
         self.docstr = parse_from_object(self.model)
 
     def get_form(self, form_class=None):
@@ -98,16 +94,6 @@ class WatersyncListView(
     def _get_list_view_fields(self):
         """Get list view fields safely."""
         return getattr(self.model, "_list_view_fields", {})
-
-    def determine_template_name(self):
-        """Determine the template name dynamically.
-
-        If it's a block list (HTMX), use list.html. Otherwise,
-        use list_page.html.
-        """
-        if self.request.headers.get("HX-Context") == "block":
-            return "list.html"
-        return "list_page.html"
 
     def get(self, request, *args, **kwargs):
         if request.headers.get("HX-Download"):
@@ -123,14 +109,19 @@ class WatersyncListView(
             self.docstr = parse_from_object(self.model)
 
         base_kwargs = self.get_base_url_kwargs()
-        item_kwargs = {**base_kwargs, **self.item}
+        
+        # Get config from model or fall back to view-level detail_type
+        detail_type = getattr(self.model, "_detail_type", None) or self.detail_type
 
         list_context = ListContext(
-            add_url=self.get_add_url()(kwargs=base_kwargs),
-            has_bulk_create=getattr(self.model, "create_bulk", False),
-            list_url=self.get_list_url()(kwargs=base_kwargs),
-            update_url=self.get_update_url()(kwargs=item_kwargs),
-            delete_url=self.get_delete_url()(kwargs=item_kwargs),
+            add_url=self.get_add_url(**base_kwargs),
+            has_bulk_create=getattr(self.model, "_has_bulk_create", False),
+            list_url=self.get_list_url(**base_kwargs),
+            has_update=getattr(self.model, "_has_update", True),
+            has_delete=getattr(self.model, "_has_delete", True),
+            has_detail=detail_type == "modal",
+            has_detail_page=detail_type == "page",
+            has_detail_popover=detail_type == "popover",
             action=self.htmx_trigger,
             columns=self._get_list_view_fields().keys(),
             explanation=self.docstr.short_description,
@@ -138,18 +129,8 @@ class WatersyncListView(
             title=self.model_verbose_name_plural,
         )
 
-        self._configure_detail_context(list_context, item_kwargs)
         context["list_context"] = list_context
         return context
-
-    def _configure_detail_context(self, list_context, item_kwargs):
-        """Configure detail-specific context based on detail_type."""
-        if self.detail_type == "page":
-            list_context.detail_page_url = self.get_overview_url()(kwargs=item_kwargs)
-        elif self.detail_type == "popover":
-            list_context.detail_popover = True
-        elif self.detail_type == "modal":
-            list_context.detail_url = self.get_detail_url()(kwargs=item_kwargs)
 
 
 class WatersyncCreateView(
@@ -193,7 +174,6 @@ class WatersyncCreateView(
 
 class WatersyncDeleteView(
     LoginRequiredMixin,
-    RenderToResponseMixin,
     StandardURLMixin,
     SuccessMessageMixin,
     DeleteView,
@@ -206,7 +186,6 @@ class WatersyncDeleteView(
     from elswhere."""
 
     template_name = "confirm_delete.html"
-    htmx_template = "confirm_delete.html"
 
     def get_object(self):
         return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
@@ -285,14 +264,11 @@ class WatersyncUpdateView(
 
 class WatersyncDetailView(
     LoginRequiredMixin,
-    RenderToResponseMixin,
     StandardURLMixin,
     DetailView,
 ):
     
     template_name = "detail.html"
-    htmx_template = "detail.html"
-    detail_type: str | None = None
 
     def get_object(self):
         # If the model has 'history', return the object as_of now()
@@ -300,44 +276,3 @@ class WatersyncDetailView(
         if hasattr(obj, "history"):
             return obj.history.as_of(timezone.now())
         return obj
-
-    def handle_history(self):
-        """Handle the history of the object and compute diffs between records.
-        
-        For now only the Location has implemented history overview. For examples, the location height above the ground can change, and therefore it's  
-        """
-        if not hasattr(self.object, "history"):
-            return []
-
-        history = list(self.object.history.all())
-        history_with_diffs = []
-
-        for i, record in enumerate(history):
-            prev_record = history[i + 1] if i + 1 < len(history) else None
-            changes = None
-            print(f"History record changes: {record.history_change_reason}")
-            if prev_record:
-                changes = record.diff_against(prev_record).changes
-            history_with_diffs.append({
-                'record': record,
-                'prev_record': prev_record,
-                'changes': changes,
-            })
-
-        return history_with_diffs
-
-    def get_context_data(self, **kwargs):
-
-        context = super().get_context_data(**kwargs)
-
-        base_kwargs = self.get_base_url_kwargs()
-        item_kwargs = {**base_kwargs, **self.item}
-
-        detail_context = DetailContext(
-            delete_url=self.get_delete_url()(kwargs=item_kwargs),
-            update_url=self.get_update_url()(kwargs=item_kwargs),
-        )
-
-        context["detail_context"] = detail_context
-        context["history_with_diffs"] = self.handle_history()
-        return context

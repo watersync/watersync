@@ -14,7 +14,7 @@ from bootstrap_datepicker_plus.widgets import TimePickerInput, DatePickerInput
 from watersync.core.forms_detail import LakeDetailForm, PiezometerDetailForm, PrecipitationDetailForm, PumpingWellDetailForm, RiverDetailForm, WastewaterDetailForm
 from watersync.core.generics.forms import FormWithDetailMixin, FormWithHistory
 from watersync.core.generics.forms import HTMXChoiceField
-from watersync.core.models import Location, Project, Fieldwork, Unit
+from watersync.core.models import Location, Project, Fieldwork
 from watersync.users.models import User
 
 
@@ -67,12 +67,6 @@ class ProjectForm(ModelForm):
             self.save_m2m()
         return instance
 
-class UnitForm(ModelForm):
-    title = "Unit Form"
-
-    class Meta:
-        model = Unit
-        fields = ["symbol", "description"]
 
 class FieldworkForm(ModelForm):
     title = "Fieldwork Form"
@@ -150,12 +144,14 @@ class LocationForm(FormWithDetailMixin, FormWithHistory):
         fields = (
             "name",
             "type",
+            "status",
             "description",
             "altitude",
             "latitude",
             "longitude",
             "detail",
             "geom",
+            "history_date",
         )
         widgets = {
             "detail": HiddenInput(),

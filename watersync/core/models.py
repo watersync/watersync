@@ -5,33 +5,11 @@ from simple_history.models import HistoricalRecords
 
 from watersync.core.generics.model_setup import SetupSimpleHistory
 from watersync.core.managers import LocationManager, ProjectManager, WatersyncManager
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
 from watersync.users.models import User
 
 
-class Unit(models.Model, InterfaceModelTemplate):
-    """Unit of measurement for parameters.
-
-    Each parameter can have a specific unit of measurement. This model defines
-    the units that can be used for parameters.
-
-    Attributes:
-        symbol (CharField): The name of the unit.
-        description (CharField): The symbol of the unit.
-    """
-
-    symbol = models.CharField(max_length=10)
-    description = models.TextField(blank=True, null=True)
-
-
-    def __str__(self):
-        return self.symbol
-    
-    _list_view_fields = {
-        "Symbol": "symbol",
-    }
-
-class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
+class Project(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleHistory):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -77,7 +55,7 @@ class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     def __str__(self):
         return self.name
 
-class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
+class Location(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleHistory):
     """List of locations.
 
     Locations are attached to projects and most of other types of data in projects like
@@ -103,6 +81,10 @@ class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
         detail (JSONField): JSON field with station detail to provide flexible
             schema and avoid related models.
     """
+
+    # URL configuration for ModelURLMixin
+    _url_parent_field = "project"
+    _url_parent_param = "project_pk"
 
     class LocationTypes(models.TextChoices):
         WELL = "pumping_well", "Pumping well"
@@ -152,7 +134,7 @@ class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     def __str__(self):
         return f"{self.name}"
 
-class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
+class Fieldwork(TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
     """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
@@ -161,6 +143,10 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
     relevant information about what happened during the fieldwork. There can be only one
     fieldwork per day.
     """
+
+    # URL configuration for ModelURLMixin
+    _url_parent_field = "project"
+    _url_parent_param = "project_pk"
     class WeatherConditions(models.TextChoices):
         SUNNY = "sunny", "Sunny"
         CLOUDY = "cloudy", "Cloudy"

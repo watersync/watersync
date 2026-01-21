@@ -3,15 +3,28 @@ from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
 from watersync.core.models import Location
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin, TimeSeriesModel
 
 
 
-class GWLManualMeasurement(TimeStampedModel, InterfaceModelTemplate):
+class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
     """Manual measurements of groundwater levels.
 
-    The depth is measured from the top of the casing to the water level.
-    Should always be corrected for the casing height before saving."""
+    The value field stores depth to water measured from the top of the casing.
+    Should always be corrected for the casing height before saving.
+    
+    Attributes:
+        value: Depth to water from top of casing (meters) - inherited from TimeSeriesModel
+        groundwater_elevation: Computed elevation of groundwater surface
+    """
+
+    # URL configuration for ModelURLMixin
+    # GWLManualMeasurement URLs are: /projects/<project_pk>/gwlmanualmeasurements/<gwlmanualmeasurement_pk>/
+    _url_app_label = "groundwater"
+
+    # TimeSeriesModel configuration
+    timestamp_field = "fieldwork__date"
+    location_field = "location"
 
     fieldwork = models.ForeignKey(
         "core.Fieldwork",
@@ -25,14 +38,23 @@ class GWLManualMeasurement(TimeStampedModel, InterfaceModelTemplate):
         null=True,
         blank=True,
     )
-    depth = models.DecimalField(max_digits=5, decimal_places=2)
     description = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-fieldwork__date"]
 
     _list_view_fields = {
         "Location": "location",
-        "Depth": "depth",
+        "Depth": "value",
         "Elevation": "groundwater_elevation",
     }
+
+    def _get_url_kwargs(self):
+        """Build URL kwargs. GWLManualMeasurement URLs need project_pk from location.project."""
+        kwargs = {"gwlmanualmeasurement_pk": self.pk}
+        if self.location and self.location.project:
+            kwargs["project_pk"] = self.location.project.pk
+        return kwargs
 
     @property
     def groundwater_elevation(self):
@@ -58,5 +80,5 @@ class GWLManualMeasurement(TimeStampedModel, InterfaceModelTemplate):
             return None
 
         # Calculate groundwater elevation
-        return historical_toc - self.depth
+        return historical_toc - self.value
 

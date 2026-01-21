@@ -1,57 +1,105 @@
 from watersync.core.models import Project, Location, Fieldwork
 
-def current_project(request):
-    """
-    Add the current project to the context if 'project' is available in the URL.
-    """
 
-    project = request.resolver_match.kwargs.get('project_pk') if request.resolver_match else None
-
-    if project:
+def url_context(request):
+    """
+    Unified context processor that extracts objects from URL kwargs and sets
+    template context for HTMX-aware rendering.
+    
+    Location: watersync/core/context_processors.py
+    Registered in: config/settings/base.py → TEMPLATES → OPTIONS → context_processors
+    
+    Provides:
+        - project: The current Project object (if project_pk in URL)
+        - location: The current Location object (if location_pk in URL)
+        - fieldwork: The current Fieldwork object (if fieldwork_pk in URL)
+        - base_template: The appropriate base template for the request
+        - base_url_kwargs: Dict with project_pk for URL building
+        - htmx_context: The HX-Context header value for conditional rendering
+        - is_htmx: Boolean indicating if this is an HTMX request
+    
+    base_template Selection Logic:
+        ┌─────────────────────────────────────────────────────────────────┐
+        │ Request Type          │ base_template                          │
+        ├─────────────────────────────────────────────────────────────────┤
+        │ HTMX request          │ 'layouts/partial.html'                 │
+        │ Full page + project   │ 'layouts/project_dashboard.html'       │
+        │ Full page (no proj)   │ 'layouts/base_dashboard.html'          │
+        │ No resolver match     │ 'layouts/base_dashboard.html'          │
+        └─────────────────────────────────────────────────────────────────┘
+    
+    HTMX Template Pattern:
+        Templates use {% extends base_template %} to automatically get the
+        correct wrapper. For HTMX requests, 'layouts/partial.html' outputs
+        just the content block with no HTML structure.
+        
+        View template selection is simple:
+            {% if is_htmx %}
+                {% include "table.html" %}    {# Just table rows #}
+            {% else %}
+                {% include "list.html" %}     {# Full list component #}
+            {% endif %}
+        
+        htmx_context is used for UI decisions within templates:
+            - htmx_context="block" → list is embedded in another page
+              (hide title, show "See all" link)
+            - htmx_context=None → standalone list page
+    """
+    context = {
+        'project': None,
+        'location': None,
+        'fieldwork': None,
+        'base_url_kwargs': {},
+        'htmx_context': None,
+        'is_htmx': False,
+    }
+    
+    # Check if HTMX request (django-htmx middleware sets this)
+    is_htmx = getattr(request, 'htmx', False)
+    context['is_htmx'] = bool(is_htmx)
+    
+    # Get HX-Context header, filtering out "None" string that can come from template
+    hx_context = request.headers.get("HX-Context")
+    if hx_context and hx_context.lower() != "none":
+        context['htmx_context'] = hx_context
+    else:
+        context['htmx_context'] = None
+    
+    if not request.resolver_match:
+        context['base_template'] = 'layouts/base_dashboard.html'
+        return context
+    
+    kwargs = request.resolver_match.kwargs
+    
+    # Extract project
+    if project_pk := kwargs.get('project_pk'):
         try:
-            project = Project.objects.get(pk=project)
+            context['project'] = Project.objects.get(pk=project_pk)
+            context['base_url_kwargs']['project_pk'] = project_pk
         except Project.DoesNotExist:
-            project = None
-
-    return {'project': project}
-
-def current_location(request):
-    """Add the current location to the context if 'location' is available in the URL.
-    """
-
-    location = request.resolver_match.kwargs.get('location_pk') if request.resolver_match else None
-
-    if location:
+            pass
+    
+    # Extract location
+    if location_pk := kwargs.get('location_pk'):
         try:
-            location = Location.objects.get(pk=location)
+            context['location'] = Location.objects.get(pk=location_pk)
         except Location.DoesNotExist:
-            location = None
-
-    return {'location': location}
-
-def current_fieldwork(request):
-    """Add the current fieldwork to the context if 'fieldwork' is available in the URL.
-    """
-
-    fieldwork = request.resolver_match.kwargs.get('fieldwork_pk') if request.resolver_match else None
-
-    if fieldwork:
+            pass
+    
+    # Extract fieldwork
+    if fieldwork_pk := kwargs.get('fieldwork_pk'):
         try:
-            fieldwork = Fieldwork.objects.get(pk=fieldwork)
+            context['fieldwork'] = Fieldwork.objects.get(pk=fieldwork_pk)
         except Fieldwork.DoesNotExist:
-            fieldwork = None
-
-    return {'fieldwork': fieldwork}
-
-def base_template(request):
-    """
-    A context processor to add the base template to the context.
-    This is useful for rendering the base template in HTMX requests.
-    """
-
-    if request.headers.get("HX-Context") == "block":
-        return {"base_template": "layouts/blank.html"}
-    if "projects" in request.path:
-        return {"base_template": "layouts/project_dashboard.html"}
-
-    return {"base_template": "layouts/base_dashboard.html"}
+            pass
+    
+    # Determine base template
+    # HTMX requests get partial template (no base HTML structure)
+    if is_htmx:
+        context['base_template'] = 'layouts/partial.html'
+    elif context['project']:
+        context['base_template'] = 'layouts/project_dashboard.html'
+    else:
+        context['base_template'] = 'layouts/base_dashboard.html'
+    
+    return context

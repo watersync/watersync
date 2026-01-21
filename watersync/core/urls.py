@@ -5,14 +5,15 @@ from watersync.core.views import (
     location_list_view,
 )
 from watersync.core.views import (
-    project_list_view,
+    location_history_delete_view,
+    location_history_list_view,
+    project_history_delete_view,
 )
 from watersync.core.views import (
-    unit_create_view,
-    unit_delete_view,
-    unit_detail_view,
-    unit_update_view,
-    unit_list_view
+    project_history_delete_view,
+)
+from watersync.core.views import (
+    project_list_view,
 )
 
 app_name = "core"
@@ -41,15 +42,7 @@ location_urlpatterns = [
     path("<str:location_pk>/overview/", location_overview_view, name="overview-location"),
     path("<str:location_pk>/update/", location_update_view, name="update-location"),
     path("<str:location_pk>/delete/", location_delete_view, name="delete-location"),
-]
-
-
-unit_urlpatterns = [
-    path("", unit_list_view, name="units"),
-    path("add/", unit_create_view, name="add-unit"),
-    path("<str:unit_pk>/", unit_detail_view, name="detail-unit"),
-    path("<str:unit_pk>/update/", unit_update_view, name="update-unit"),
-    path("<str:unit_pk>/delete/", unit_delete_view, name="delete-unit"),
+    path("<str:location_pk>/history/", location_history_list_view, name="list-historicallocation"),
 ]
 
 urlpatterns = [
@@ -62,5 +55,7 @@ urlpatterns = [
         "projects/<str:project_pk>/locations/",
         include(location_urlpatterns),
     ),
-    path("units/", include(unit_urlpatterns)),
+    # History deletion URLs at root level since history IDs are unique
+    path("history/location/<str:historicallocation_pk>/delete/", location_history_delete_view, name="delete-location-history"),
+    path("history/project/<str:historicallocation_pk>/delete/", project_history_delete_view, name="delete-project-history"),
 ]

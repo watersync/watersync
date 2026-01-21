@@ -32,7 +32,6 @@ LANGUAGE_CODE = "en-us"
 # LANGUAGES = [
 #     ('en', _('English')),
 #     ('fr-fr', _('French')),
-#     ('pt-br', _('Portuguese')),
 # ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
@@ -214,10 +213,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "watersync.users.context_processors.allauth_settings",
-                "watersync.core.context_processors.current_project",
-                "watersync.core.context_processors.current_location",
-                "watersync.core.context_processors.current_fieldwork",
-                "watersync.core.context_processors.base_template",
+                "watersync.core.context_processors.url_context",
             ],
         },
     },
@@ -375,14 +371,12 @@ SPECTACULAR_SETTINGS = {
 # Pint Units Configuration
 # ------------------------------------------------------------------------------
 # Make the unit registry available as a Django setting
-# The ureg variable is already initialized above and loaded with custom units
+# Custom unit definitions are loaded from config/parameters/water_quality.yaml
 
-WATER_QUALITY_UNITS_FILE = BASE_DIR / "config" / "units" / "water_quality_units.txt"
+from watersync.core.config import load_pint_definitions
 
 UREG = UnitRegistry()
-
-if WATER_QUALITY_UNITS_FILE.exists():
-    UREG.load_definitions(str(WATER_QUALITY_UNITS_FILE))
+load_pint_definitions(UREG)
 
 LEAFLET_CONFIG = {
     "SPATIAL_EXTENT": (-180.0, -90.0, 180.0, 90.0),

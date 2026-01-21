@@ -3,41 +3,37 @@ from dataclasses import dataclass
 
 @dataclass
 class ListContext:
-    """Custom object helping to provide the right information in the context objects of ListViews.
+    """Context for list views.
     
-    add_url: URL to add a new object.
-    has_bulk_create: Whether the view supports bulk creation of objects.
-    base_url_kwargs: Additional keyword arguments for the base URL.
-    list_url: URL for the list view.
-    update_url: URL for updating an object.
-    delete_url: URL for deleting an object.
-    columns: List of columns to display in the list view.
-    action: ???
-    detail_url: URL for the detail view of an object.
-    detail_popover: Whether the detail is shown in the form of a popover.
-    detail_page_url: URL for the detail page of an object (in case it's a page).
-    explanation: Explanation text for the list view - populated from the docstring.
-    explanation_detail: Detailed explanation text for the list view - populated from the docstring.
-    title: Title of the list view - populated from the model name.
+    Provides configuration and URLs for the list view template.
+    Most per-object URLs are now handled by ModelURLMixin on models.
+    
+    Attributes:
+        add_url: URL to add a new object.
+        list_url: URL for the list view.
+        has_bulk_create: Whether the model supports bulk creation.
+        has_update: Whether objects have an update action.
+        has_delete: Whether objects have a delete action.
+        has_detail: Whether objects have a modal detail view.
+        has_detail_page: Whether objects have a page-based detail view.
+        has_detail_popover: Whether detail is shown as a popover.
+        action: HTMX trigger action name.
+        columns: List of column names to display.
+        explanation: Short description from model docstring.
+        explanation_detail: Long description from model docstring.
+        title: Title for the list view.
     """
 
     add_url: str | None = None
-    has_bulk_create: bool | None = None
-    base_url_kwargs: dict | None = None
     list_url: str | None = None
-    update_url: str | None = None
-    delete_url: str | None = None
-    columns: list | None = None
+    has_bulk_create: bool = False
+    has_update: bool = True
+    has_delete: bool = True
+    has_detail: bool = False
+    has_detail_page: bool = False
+    has_detail_popover: bool = False
     action: str | None = None
-    detail_url: str | None = None
-    detail_popover: bool | None = None
-    detail_page_url: str | None = None
+    columns: list | None = None
     explanation: str | None = None
     explanation_detail: str | None = None
     title: str | None = None
-
-
-@dataclass
-class DetailContext:
-    delete_url: str
-    update_url: str

@@ -1,0 +1,83 @@
+<li class="timeline-item mb-5" id="history-item-{{ item.record.history_id }}">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            {% if item.record.history_type == '+' %}
+                <span class="badge bg-success">Created</span>
+            {% elif item.record.history_type == '~' %}
+                <span class="badge bg-warning">Updated</span>
+            {% elif item.record.history_type == '-' %}
+                <span class="badge bg-danger">Deleted</span>
+            {% endif %}
+        </div>
+        <div>
+            {% if item.record.history_type == '~' %}
+                <button type="button" class="btn btn-sm btn-danger m-1"
+                    hx-get="{% url 'core:delete-location-history' historicallocation_pk=item.record.history_id %}" 
+                    hx-target="#dialog" 
+                    title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-start">
+        <h5 class="fw-bold">{{ item.record.history_change_reason }}</h5>
+    </div>
+    <p class="text-muted mb-2 fw-bold">{{ item.record.history_date|date:"d F Y" }}</p>
+    <p class="text-muted">
+    <div class="card card-body small">
+        {% if item.changes %}
+
+        {% for change in item.changes %}
+            <div class="row mb-2">
+                <div class="col-3">
+                    <strong>{{ change.field }}:</strong>
+                </div>
+                <div class="col-4">
+                    <span class="text-danger">
+                        {% if change.old %}
+                            {% if change.old.items %}
+                                {% for key, value in change.old.items %}
+                                    {{ key }}: {{ value }}<br>
+                                {% endfor %}
+                            {% else %}
+                                {{ change.old }}
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="col-1 text-center">→</div>
+                <div class="col-4">
+                    <span class="text-success">
+                        {% if change.new %}
+                            {% if change.new.items %}
+                                {% for key, value in change.new.items %}
+                                    {{ key }}: {{ value }}<br>
+                                {% endfor %}
+                            {% else %}
+                                {{ change.new }}
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        {% endfor %}
+        {% elif item.record.history_type == "+" %}
+        
+            <div class="row mb-2">
+            {% for field, value in item.record.items %}
+                <div class="col-6 mb-2">
+                <strong>{{ field }}:</strong> {{ value }}
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <span class="text-muted">No specific changes detected</span>
+        {% endif %}
+    </div>
+</p>
+</li>

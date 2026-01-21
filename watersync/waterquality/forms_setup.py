@@ -1,13 +1,18 @@
-from watersync.waterquality.models_setup import Protocol
+"""
+Water Quality Setup Forms
 
+Forms for user-defined setup models. Parameter and ParameterGroup forms
+have been removed as those are now config-based (see config/parameters/water_quality.yaml).
+"""
 
 from django import forms
 
-from watersync.waterquality.models_setup import Parameter, ParameterGroup
+from watersync.waterquality.models_setup import Protocol
 
 
 class ProtocolForm(forms.ModelForm):
     title = "Add Protocol"
+
     class Meta:
         model = Protocol
         fields = [
@@ -20,19 +25,3 @@ class ProtocolForm(forms.ModelForm):
             "standard_reference",
             "description",
         ]
-
-
-class ParameterForm(forms.ModelForm):
-    title = "Add Parameter"
-
-    class Meta:
-        model = Parameter
-        fields = ["name", "group"]
-
-
-class TargetParameterGroupForm(forms.ModelForm):
-    title = "Add Target Parameter Group"
-
-    class Meta:
-        model = ParameterGroup
-        fields = ["name", "code", "description"]

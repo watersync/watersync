@@ -1,51 +1,25 @@
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from watersync.core.models import Location, Unit
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+from watersync.core.models import Location
+from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin, TimeSeriesModel
 from watersync.users.models import User
+from watersync.core.config import (
+    get_variable_choices,
+    get_all_sensor_unit_choices,
+    is_valid_unit_for_variable,
+    get_variable_label,
+    get_sensor_unit_label,
+)
 
 
-class SensorVariable(models.Model, InterfaceModelTemplate):
-    """Variables that sensors can measure.
-    
-    This model stores the different types of variables/parameters that
-    sensors are capable of measuring, such as temperature, pH, dissolved oxygen, etc.
-    
-    Attributes:
-        name: The name of the variable (e.g., "Temperature", "pH", "Dissolved Oxygen")
-        code: A short code for the variable (e.g., "TEMP", "PH", "DO")
-        description: Detailed description of what this variable measures
-    """
-    
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=20, unique=True)
-    description = models.TextField(blank=True)
-    
-    _list_view_fields = {
-        "Name": "name",
-        "Code": "code",
-    }
-    
-    _detail_view_fields = {
-        "Name": "name",
-        "Code": "code",
-        "Description": "description",
-    }
-    
-    class Meta:
-        ordering = ["name"]
-    
-    def __str__(self):
-        return f"{self.name} ({self.code})"
-
-
-class Sensor(models.Model, InterfaceModelTemplate):
+class Sensor(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Sensing devices.
 
     Sensors are devices that can be deployed in a location to measure
-    various parameters. Often one sensor can measure multiple parameters,
-
+    various parameters. Often one sensor can measure multiple parameters.
 
     Attributes:
         identifier: The unique identifier of the sensor.
@@ -55,37 +29,18 @@ class Sensor(models.Model, InterfaceModelTemplate):
             in a JSON format.
     """
 
-    SENSOR_TYPE_CHOICES = [
-        ("vented", "Vented"),
-        ("unvented", "Unvented"),
-        ("other", "Other"),
-    ]
-
     identifier = models.CharField(max_length=55, unique=True)
-    type = models.CharField(
-        max_length=20,
-        choices=SENSOR_TYPE_CHOICES,
-        default="other",
-    )
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
-    variables = models.ManyToManyField(
-        SensorVariable,
-        blank=True,
-        help_text="Variables that this sensor can measure"
-    )
     available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
 
     _list_view_fields = {
         "Identifier": "identifier",
-        "Type": "type",
         "Available": "available"
     }
 
     _detail_view_fields = {
         "Identifier": "identifier",
-        "Type": "type",
-        "Variables": "variables",
         "Available": "available"
     }
 
@@ -93,7 +48,7 @@ class Sensor(models.Model, InterfaceModelTemplate):
         return self.identifier
 
 
-class Deployment(models.Model, InterfaceModelTemplate):
+class Deployment(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Timeseries from sensors.
 
     A sensor deployment happens when a sensor is placed in a particular location. Deployment
@@ -104,19 +59,33 @@ class Deployment(models.Model, InterfaceModelTemplate):
     Attributes:
         location: Location of deployment.
         sensor: The sensor deployed.
+        variable: The variable being measured (from SENSOR_VARIABLES config).
+        unit: The unit of measurement (must be valid for the variable).
         deployed_at: The date and time the sensor was deployed.
         decommissioned_at: The date and time the sensor was decommissioned.
-        detail: Additional information about the deployment.
+        detail: Additional information relevant to the sensor deployment.
 
     Methods:
         decommission: Decommissions the sensor.
         find_deployment: retrieve a deployment by station, sensor and timesetamp.
     """
 
+    # URL configuration for ModelURLMixin
+    # Deployment URLs are: /projects/<project_pk>/deployments/<deployment_pk>/
+    _url_app_label = "sensor"
+
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="deployments")
     sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT, related_name="deployments")
-    variable = models.CharField(max_length=20)
-    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
+    variable = models.CharField(
+        max_length=50,
+        choices=get_variable_choices(),
+        help_text="The variable being measured by this deployment"
+    )
+    unit = models.CharField(
+        max_length=50,
+        choices=get_all_sensor_unit_choices(),
+        help_text="Unit of measurement (must be valid for the selected variable)"
+    )
     deployed_at = models.DateTimeField(auto_now_add=True)
     decommissioned_at = models.DateTimeField(null=True, blank=True)
     detail = models.JSONField(null=True, blank=True)
@@ -124,6 +93,8 @@ class Deployment(models.Model, InterfaceModelTemplate):
     _list_view_fields = {
             "Location": "location",
             "Sensor": "sensor",
+            "Variable": "get_variable_display",
+            "Unit": "get_unit_display",
             "Start": "deployed_at",
             "End": "decommissioned_at",
         }
@@ -131,6 +102,8 @@ class Deployment(models.Model, InterfaceModelTemplate):
     _detail_view_fields = {
             "Location": "location",
             "Sensor": "sensor",
+            "Variable": "get_variable_display",
+            "Unit": "get_unit_display",
             "Start": "deployed_at",
             "End": "decommissioned_at",
     }
@@ -141,8 +114,36 @@ class Deployment(models.Model, InterfaceModelTemplate):
 
         unique_together = ("sensor", "location", "variable", "unit", "deployed_at")
 
+    def _get_url_kwargs(self):
+        """Build URL kwargs. Deployment URLs need project_pk from location.project."""
+        kwargs = {"deployment_pk": self.pk}
+        if self.location and self.location.project:
+            kwargs["project_pk"] = self.location.project.pk
+        return kwargs
+
     def __str__(self) -> str:
-        return f"{self.sensor.identifier} at {self.location.name}"
+        return f"{self.sensor.identifier} at {self.location.name} ({self.get_variable_display()})"
+
+    def clean(self):
+        """Validate that the unit is valid for the selected variable."""
+        super().clean()
+        errors = {}
+        
+        # Validate variable-unit combination
+        if self.variable and self.unit:
+            if not is_valid_unit_for_variable(self.variable, self.unit):
+                errors['unit'] = (
+                    f"Unit '{self.unit}' is not valid for variable '{get_variable_label(self.variable)}'. "
+                    f"Please select a compatible unit."
+                )
+        
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        """Run full_clean before saving to ensure validation."""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def deploy(self):
         """
@@ -196,7 +197,7 @@ class Deployment(models.Model, InterfaceModelTemplate):
             return None
 
 
-class SensorRecord(models.Model):
+class SensorRecord(TimeSeriesModel):
     """Measurements from sensors.
 
     This table stores the measurements taken by all sensors. Deployment model acts
@@ -205,14 +206,17 @@ class SensorRecord(models.Model):
 
     Attributes:
         deployment: link to the particular logger deployment.
-        value: Measured magnitude.
+        value: Measured magnitude (inherited from TimeSeriesModel).
         timestamp: The date and time the measurement was taken.
     """
+
+    # TimeSeriesModel configuration
+    timestamp_field = "timestamp"
+    location_field = "deployment__location"
 
     deployment = models.ForeignKey(
         Deployment, on_delete=models.CASCADE, related_name="records", db_index=True
     )
-    value = models.DecimalField(max_digits=8, decimal_places=3)
     timestamp = models.DateTimeField(db_index=True)
 
     class Meta:

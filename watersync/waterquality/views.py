@@ -1,7 +1,11 @@
-from watersync.waterquality.forms_setup import ParameterForm, ProtocolForm, TargetParameterGroupForm
-from watersync.waterquality.models import Sample, Measurement
-from watersync.core.models import Project
-from watersync.waterquality.forms import SampleForm, MeasurementForm, MeasurementBulkForm
+import json
+
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from django.views.generic import TemplateView
+
+from watersync.core.generics.decorators import filter_by_conditions, filter_by_location
+from watersync.core.generics.utils import get_resource_list_context
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -9,13 +13,11 @@ from watersync.core.generics.views import (
     WatersyncListView,
     WatersyncUpdateView,
 )
-from django.views.generic import TemplateView
-from django.conf import settings
-import json
-from watersync.core.generics.decorators import filter_by_location, filter_by_conditions
-from django.shortcuts import get_object_or_404
-from watersync.core.generics.utils import get_resource_list_context
-from watersync.waterquality.models_setup import Parameter, ParameterGroup, Protocol
+from watersync.core.models import Project
+from watersync.waterquality.forms import MeasurementBulkForm, MeasurementForm, SampleForm
+from watersync.waterquality.forms_setup import ProtocolForm
+from watersync.waterquality.models import Measurement, Sample
+from watersync.waterquality.models_setup import Protocol
 
 
 # ================ Protocols ========================
@@ -52,73 +54,7 @@ protocol_delete_view = ProtocolDeleteView.as_view()
 protocol_list_view = ProtocolListView.as_view()
 protocol_detail_view = ProtocolDetailView.as_view()
 
-## ============================List views============================
-class ParameterGroupCreateView(WatersyncCreateView):
-    model = ParameterGroup
-    form_class = TargetParameterGroupForm
 
-
-class ParameterGroupUpdateView(WatersyncUpdateView):
-    model = ParameterGroup
-    form_class = TargetParameterGroupForm
-
-
-class ParameterGroupDeleteView(WatersyncDeleteView):
-    model = ParameterGroup
-
-
-class ParameterGroupListView(WatersyncListView):
-    model = ParameterGroup
-    detail_type = "popover"
-
-    def get_queryset(self):
-        return ParameterGroup.objects.all().order_by("name")
-
-
-class ParameterGroupDetailView(WatersyncDetailView):
-    model = ParameterGroup
-    detail_type = "popover"
-
-
-parameter_group_create_view = ParameterGroupCreateView.as_view()
-parameter_group_detail_view = ParameterGroupDetailView.as_view()
-parameter_group_list_view = ParameterGroupListView.as_view()
-parameter_group_delete_view = ParameterGroupDeleteView.as_view()
-parameter_group_update_view = ParameterGroupUpdateView.as_view()
-
-## ============================List views============================
-class ParameterCreateView(WatersyncCreateView):
-    model = Parameter
-    form_class = ParameterForm
-
-
-class ParameterUpdateView(WatersyncUpdateView):
-    model = Parameter
-    form_class = ParameterForm
-
-
-class ParameterDeleteView(WatersyncDeleteView):
-    model = Parameter
-
-
-class ParameterListView(WatersyncListView):
-    model = Parameter
-    detail_type = "popover"
-
-    def get_queryset(self):
-        return Parameter.objects.all().order_by("name")
-
-
-class ParameterDetailView(WatersyncDetailView):
-    model = Parameter
-    detail_type = "popover"
-
-
-parameter_create_view = ParameterCreateView.as_view()
-parameter_detail_view = ParameterDetailView.as_view()
-parameter_list_view = ParameterListView.as_view()
-parameter_delete_view = ParameterDeleteView.as_view()
-parameter_update_view = ParameterUpdateView.as_view()
 # ================ Sample views ========================
 class SampleCreateView(WatersyncCreateView):
     model = Sample
@@ -129,8 +65,10 @@ class SampleUpdateView(WatersyncUpdateView):
     model = Sample
     form_class = SampleForm
 
+
 class SampleDeleteView(WatersyncDeleteView):
     model = Sample
+
 
 class SampleListView(WatersyncListView):
     model = Sample
@@ -140,8 +78,8 @@ class SampleListView(WatersyncListView):
     def get_queryset(self):
         project = self.get_project()
         return Sample.objects.filter(
-                location__in=project.locations.all()
-            ).order_by("-fieldwork__date")
+            location__in=project.locations.all()
+        ).order_by("-fieldwork__date")
 
 
 class SampleDetailView(WatersyncDetailView):
@@ -187,14 +125,13 @@ class MeasurementCreateView(WatersyncCreateView):
 
     def handle_bulk_create(self, form):
         if isinstance(form, self.bulk_form_class):
-            
-            processed_data = form.cleaned_data.get('processed_data', [])
+            processed_data = form.cleaned_data.get("processed_data", [])
             measurements = [
                 Measurement(
                     sample=data["sample"],
-                    parameter=Parameter.objects.get(name=data["parameter"]),
+                    parameter=data["parameter"],
                     value=data["value"],
-                    unit=data["unit"]
+                    unit=data["unit"],
                 )
                 for data in processed_data
             ]

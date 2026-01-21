@@ -4,9 +4,8 @@ from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom, add_current_project
 from watersync.groundwater.views import GWLListView
-from watersync.core.forms import FieldworkForm, LocationForm, ProjectForm, UnitForm
-from watersync.core.generics.htmx import RenderToResponseMixin
-from watersync.core.models import Fieldwork, Location, Project, Unit
+from watersync.core.forms import FieldworkForm, LocationForm, ProjectForm
+from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from watersync.sensor.views import DeploymentListView
 from watersync.waterquality.views import SampleListView
@@ -134,10 +133,9 @@ class LocationListView(WatersyncListView):
         stats = {
             "locsamples": Count("samples"),
         }
-        print("CUSTOM MANAGER: ", self.model.watersync.get_full_queryset(stats=stats, for_export=True))
+
         project = self.get_project()
         return project.locations.all()
-
 
 
 class LocationDetailView(WatersyncDetailView):
@@ -165,11 +163,15 @@ class ProjectDeleteView(WatersyncDeleteView):
     model = Project
 
 
-class ProjectListView(LoginRequiredMixin, RenderToResponseMixin, ListView):
-    """For now this view has its own template."""
+class ProjectListView(LoginRequiredMixin, ListView):
+    """Project list view using template-based HTMX handling.
+    
+    Template selection via base_template context variable:
+    - HTMX without context: returns project_table.html (just cards)
+    - Other requests: returns full page with card container
+    """
     model = Project
     template_name = "core/partial/project_list.html"
-    htmx_template = "core/partial/project_table.html"
 
     def get_queryset(self):
         return self.request.user.projects.all()
@@ -230,36 +232,43 @@ class LocationOverviewView(TemplateView):
 
 location_overview_view = LocationOverviewView.as_view()
 
-## ============================List views============================
-class UnitCreateView(WatersyncCreateView):
-    model = Unit
-    form_class = UnitForm
+class LocationHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalLocation
 
 
-class UnitUpdateView(WatersyncUpdateView):
-    model = Unit
-    form_class = UnitForm
-
-
-class UnitDeleteView(WatersyncDeleteView):
-    model = Unit
-
-
-class UnitListView(WatersyncListView):
-    model = Unit
+class LocationHistoryListView(WatersyncListView):
+    model = HistoricalLocation
+    template_name = "shared/list_history.html"
+    htmx_template = "shared/list_history.html"
     detail_type = "popover"
 
     def get_queryset(self):
-        return Unit.objects.all().order_by("symbol")
+        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
+        history = list(location.history.all().order_by("-history_date"))
+        history_with_diffs = []
+
+        for i, record in enumerate(history):
+            prev_record = history[i + 1] if i + 1 < len(history) else None
+            changes = None
+
+            if prev_record:
+                changes = record.diff_against(prev_record).changes
+            history_with_diffs.append({
+                'record': record,
+                'prev_record': prev_record,
+                'changes': changes,
+            })
+
+        return history_with_diffs
+
+    def get_context_data(self, **kwargs):
+        return ListView.get_context_data(self, **kwargs)
 
 
-class UnitDetailView(WatersyncDetailView):
-    model = Unit
-    detail_type = "popover"
+location_history_list_view = LocationHistoryListView.as_view()
+location_history_delete_view = LocationHistoryDeleteView.as_view()
 
+class ProjectHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalProject
 
-unit_create_view = UnitCreateView.as_view()
-unit_detail_view = UnitDetailView.as_view()
-unit_list_view = UnitListView.as_view()
-unit_delete_view = UnitDeleteView.as_view()
-unit_update_view = UnitUpdateView.as_view()
+project_history_delete_view = ProjectHistoryDeleteView.as_view()

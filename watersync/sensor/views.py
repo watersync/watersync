@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pandas as pd
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -19,39 +19,31 @@ from django.views.generic import (
 )
 from watersync.core.generics.views import WatersyncListView
 from watersync.core.models import Location, Project
-from watersync.sensor.models import Deployment, Sensor, SensorRecord, SensorVariable
+from watersync.sensor.models import Deployment, Sensor, SensorRecord
 from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
 from watersync.core.generics.decorators import filter_by_location
-from .forms import DeploymentForm, SensorForm, SensorRecordForm, SensorVariableForm
+from watersync.core.config import get_sensor_unit_choices, get_variables_json
+from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
 
-class SensorVariableCreateView(WatersyncCreateView):
-    model = SensorVariable
-    form_class = SensorForm
+
+# ================ Variable/Unit API View ========================
+
+class VariableUnitsAPIView(View):
+    """API endpoint to get valid units for a given variable."""
+    
+    def get(self, request, *args, **kwargs):
+        variable = request.GET.get('variable')
+        if variable:
+            units = get_sensor_unit_choices(variable)
+            return JsonResponse({'units': dict(units)})
+        # Return all units mapping
+        return JsonResponse({'units': get_variables_json()})
 
 
-class SensorVariableUpdateView(WatersyncUpdateView):
-    model = SensorVariable
-    form_class = SensorVariableForm
+variable_units_api_view = VariableUnitsAPIView.as_view()
 
 
-class SensorVariableListView(WatersyncListView):
-    model = SensorVariable
-    detail_type = "modal"
-
-
-class SensorVariableDeleteView(WatersyncDeleteView):
-    model = SensorVariable
-
-class SensorVariableDetailView(WatersyncDetailView):
-    model = SensorVariable
-    detail_type = "popover"
-
-sensor_variable_create_view = SensorVariableCreateView.as_view()
-sensor_variable_update_view = SensorVariableUpdateView.as_view()
-sensor_variable_list_view = SensorVariableListView.as_view()
-sensor_variable_delete_view = SensorVariableDeleteView.as_view()
-sensor_variable_detail_view = SensorVariableDetailView.as_view()
 # ================ Sensor views ========================
 
 

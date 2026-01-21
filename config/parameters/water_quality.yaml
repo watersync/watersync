@@ -1,0 +1,683 @@
+# =============================================================================
+# Pint Unit Definitions
+# =============================================================================
+# These definitions are loaded into the Pint UnitRegistry for unit conversions.
+# Format follows Pint's definition syntax. Each line is a definition string.
+
+pint_definitions:
+  # Turbidity units
+  - "NTU = [turbidity]"
+  - "FNU = [turbidity]"
+  - "FTU = [turbidity]"
+  
+  # Bacterial count units  
+  - "CFU = [count]"
+  - "MPN = [count]"
+  - "MPNU = [count]"
+  
+  # pH and chemical activity
+  - "pH_unit = [acidity]"
+  - "pH = [acidity]"
+  
+  # Water quality specific units
+  - "ppm_as_CaCO3 = [mass] / [volume]"
+  - "mg_CaCO3_per_L = milligram / liter"
+  - "equiv_per_L = [amount] / [volume]"
+  - "meq_per_L = milli * equiv_per_L"
+  
+  # Conductivity aliases
+  - "uS_per_cm = microsiemens / centimeter"
+  - "mS_per_cm = millisiemens / centimeter"
+  
+  # Dissolved oxygen
+  - "mg_O2_per_L = milligram / liter"
+  - "percent_saturation = [dimensionless]"
+  
+  # Chlorophyll
+  - "ug_chl_a_per_L = microgram / liter"
+  
+  # Nitrogen and phosphorus compounds
+  - "mg_N_per_L = milligram / liter"
+  - "mg_P_per_L = milligram / liter"
+  - "mg_NH3_N_per_L = milligram / liter"
+  - "mg_NO3_N_per_L = milligram / liter"
+  - "mg_PO4_P_per_L = milligram / liter"
+  
+  # Hydrogeological units - Hydraulic Conductivity
+  - "gpd_per_ft2 = gallon / day / foot ** 2"
+  
+  # Flow Rate
+  - "gpm = gallon / minute"
+  - "cfs = foot ** 3 / second"
+  - "MGD = 1e6 * gallon / day"
+  
+  # Transmissivity
+  - "gpd_per_ft = gallon / day / foot"
+  
+  # Specific Capacity
+  - "gpm_per_ft = gallon / minute / foot"
+  
+  # Dimensionless Hydrogeological Parameters
+  - "storativity = [dimensionless]"
+  - "porosity = [dimensionless]"
+  - "specific_yield = [dimensionless]"
+  
+  # Isotope Units
+  - "permil = 0.001"
+  - "pMC = [dimensionless]"
+  - "TU = [dimensionless]"
+
+
+# =============================================================================
+# Reusable Unit Groups
+# =============================================================================
+# Define groups of units that can be referenced by parameters using YAML anchors
+
+unit_groups:
+  concentration: &concentration_units
+    mg/L: "mg/L"
+    ug/L: "µg/L"
+    g/L: "g/L"
+    
+  concentration_trace: &concentration_trace_units
+    ug/L: "µg/L"
+    ng/L: "ng/L"
+    
+  concentration_with_molar: &concentration_molar_units
+    mg/L: "mg/L"
+    mmol/L: "mmol/L"
+    meq/L: "meq/L"
+    
+  temperature: &temperature_units
+    degC: "°C (Celsius)"
+    degF: "°F (Fahrenheit)"
+    kelvin: "K (Kelvin)"
+    
+  length: &length_units
+    m: "m (meters)"
+    cm: "cm (centimeters)"
+    mm: "mm (millimeters)"
+    ft: "ft (feet)"
+    inch: "in (inches)"
+    
+  pressure: &pressure_units
+    kPa: "kPa (kilopascals)"
+    Pa: "Pa (pascals)"
+    mbar: "mbar (millibars)"
+    bar: "bar"
+    psi: "psi (pounds per square inch)"
+    atm: "atm (atmospheres)"
+    
+  conductivity: &conductivity_units
+    uS/cm: "µS/cm (microsiemens/cm)"
+    mS/cm: "mS/cm (millisiemens/cm)"
+    S/m: "S/m (siemens/meter)"
+    
+  voltage: &voltage_units
+    mV: "mV (millivolts)"
+    V: "V (volts)"
+    
+  isotope_ratio: &isotope_units
+    permille: "‰"
+    
+  bacterial_count: &bacterial_units
+    CFU/100mL: "CFU/100mL"
+    MPN/100mL: "MPN/100mL"
+
+
+# =============================================================================
+# Parameter Groups
+# =============================================================================
+
+parameter_groups:
+  physicochemical:
+    label: "Physicochemical"
+    code: "PHYS"
+    description: "Basic water quality parameters measured in the field"
+    
+  nutrients:
+    label: "Nutrients"
+    code: "NUT"
+    description: "Nitrogen and phosphorus compounds"
+    
+  metals:
+    label: "Metals"
+    code: "MET"
+    description: "Heavy metals and trace elements"
+    
+  organics:
+    label: "Organics"
+    code: "ORG"
+    description: "Organic compounds and carbon"
+    
+  microbiology:
+    label: "Microbiology"
+    code: "MIC"
+    description: "Bacterial and biological indicators"
+    
+  isotopes:
+    label: "Isotopes"
+    code: "ISO"
+    description: "Stable and radioactive isotopes"
+
+
+# =============================================================================
+# Water Quality Parameters
+# =============================================================================
+
+parameters:
+  # ---------------------------------------------------------------------------
+  # Physicochemical Parameters
+  # ---------------------------------------------------------------------------
+  temperature:
+    label: "Temperature"
+    group: physicochemical
+    description: "Water temperature"
+    units: *temperature_units
+    default_unit: degC
+    
+  ph:
+    label: "pH"
+    group: physicochemical
+    description: "Measure of acidity/alkalinity"
+    units:
+      pH_unit: "pH units"
+    default_unit: pH_unit
+    
+  electrical_conductivity:
+    label: "Electrical Conductivity"
+    group: physicochemical
+    description: "Ability of water to conduct electricity"
+    units: *conductivity_units
+    default_unit: uS/cm
+    
+  dissolved_oxygen:
+    label: "Dissolved Oxygen"
+    group: physicochemical
+    description: "Concentration of oxygen dissolved in water"
+    units:
+      mg/L: "mg/L"
+      percent: "% saturation"
+    default_unit: mg/L
+    
+  turbidity:
+    label: "Turbidity"
+    group: physicochemical
+    description: "Cloudiness of water"
+    units:
+      NTU: "NTU (Nephelometric Turbidity Units)"
+      FNU: "FNU (Formazin Nephelometric Units)"
+    default_unit: NTU
+    
+  redox_potential:
+    label: "Redox Potential (ORP)"
+    group: physicochemical
+    description: "Oxidation-reduction potential"
+    units: *voltage_units
+    default_unit: mV
+    
+  tds:
+    label: "Total Dissolved Solids"
+    group: physicochemical
+    description: "Total dissolved solids concentration"
+    units:
+      mg/L: "mg/L"
+      g/L: "g/L"
+      ppm: "ppm"
+    default_unit: mg/L
+    
+  alkalinity:
+    label: "Alkalinity"
+    group: physicochemical
+    description: "Buffering capacity of water"
+    units:
+      mg/L: "mg/L as CaCO₃"
+      meq/L: "meq/L"
+    default_unit: mg/L
+    
+  hardness:
+    label: "Hardness"
+    group: physicochemical
+    description: "Total hardness (Ca + Mg)"
+    units:
+      mg/L: "mg/L as CaCO₃"
+      mmol/L: "mmol/L"
+      dGH: "°dH (German degrees)"
+    default_unit: mg/L
+
+  # Major Ions
+  calcium:
+    label: "Calcium (Ca²⁺)"
+    group: physicochemical
+    description: "Calcium ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  magnesium:
+    label: "Magnesium (Mg²⁺)"
+    group: physicochemical
+    description: "Magnesium ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  sodium:
+    label: "Sodium (Na⁺)"
+    group: physicochemical
+    description: "Sodium ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  potassium:
+    label: "Potassium (K⁺)"
+    group: physicochemical
+    description: "Potassium ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  chloride:
+    label: "Chloride (Cl⁻)"
+    group: physicochemical
+    description: "Chloride ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  sulfate:
+    label: "Sulfate (SO₄²⁻)"
+    group: physicochemical
+    description: "Sulfate ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  bicarbonate:
+    label: "Bicarbonate (HCO₃⁻)"
+    group: physicochemical
+    description: "Bicarbonate ion concentration"
+    units: *concentration_molar_units
+    default_unit: mg/L
+    
+  carbonate:
+    label: "Carbonate (CO₃²⁻)"
+    group: physicochemical
+    description: "Carbonate ion concentration"
+    units:
+      mg/L: "mg/L"
+      mmol/L: "mmol/L"
+    default_unit: mg/L
+    
+  fluoride:
+    label: "Fluoride (F⁻)"
+    group: physicochemical
+    description: "Fluoride ion concentration"
+    units:
+      mg/L: "mg/L"
+      ug/L: "µg/L"
+    default_unit: mg/L
+    
+  silica:
+    label: "Silica (SiO₂)"
+    group: physicochemical
+    description: "Dissolved silica concentration"
+    units:
+      mg/L: "mg/L"
+    default_unit: mg/L
+
+  # ---------------------------------------------------------------------------
+  # Nutrients
+  # ---------------------------------------------------------------------------
+  nitrate:
+    label: "Nitrate (NO₃⁻)"
+    group: nutrients
+    description: "Nitrate concentration"
+    units:
+      mg/L: "mg/L as NO₃"
+      mg/L_N: "mg/L as N"
+      umol/L: "µmol/L"
+    default_unit: mg/L
+    
+  nitrite:
+    label: "Nitrite (NO₂⁻)"
+    group: nutrients
+    description: "Nitrite concentration"
+    units:
+      mg/L: "mg/L as NO₂"
+      mg/L_N: "mg/L as N"
+      ug/L: "µg/L"
+    default_unit: mg/L
+    
+  ammonium:
+    label: "Ammonium (NH₄⁺)"
+    group: nutrients
+    description: "Ammonium concentration"
+    units:
+      mg/L: "mg/L as NH₄"
+      mg/L_N: "mg/L as N"
+      ug/L: "µg/L"
+    default_unit: mg/L
+    
+  total_nitrogen:
+    label: "Total Nitrogen"
+    group: nutrients
+    description: "Total nitrogen concentration"
+    units:
+      mg/L: "mg/L as N"
+      ug/L: "µg/L as N"
+    default_unit: mg/L
+    
+  phosphate:
+    label: "Phosphate (PO₄³⁻)"
+    group: nutrients
+    description: "Orthophosphate concentration"
+    units:
+      mg/L: "mg/L as PO₄"
+      mg/L_P: "mg/L as P"
+      ug/L: "µg/L"
+    default_unit: mg/L
+    
+  total_phosphorus:
+    label: "Total Phosphorus"
+    group: nutrients
+    description: "Total phosphorus concentration"
+    units:
+      mg/L: "mg/L as P"
+      ug/L: "µg/L as P"
+    default_unit: mg/L
+
+  # ---------------------------------------------------------------------------
+  # Metals (trace elements)
+  # ---------------------------------------------------------------------------
+  iron:
+    label: "Iron (Fe)"
+    group: metals
+    description: "Iron concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  manganese:
+    label: "Manganese (Mn)"
+    group: metals
+    description: "Manganese concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  arsenic:
+    label: "Arsenic (As)"
+    group: metals
+    description: "Arsenic concentration"
+    units: *concentration_trace_units
+    default_unit: ug/L
+    
+  lead:
+    label: "Lead (Pb)"
+    group: metals
+    description: "Lead concentration"
+    units: *concentration_trace_units
+    default_unit: ug/L
+    
+  copper:
+    label: "Copper (Cu)"
+    group: metals
+    description: "Copper concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  zinc:
+    label: "Zinc (Zn)"
+    group: metals
+    description: "Zinc concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  cadmium:
+    label: "Cadmium (Cd)"
+    group: metals
+    description: "Cadmium concentration"
+    units: *concentration_trace_units
+    default_unit: ug/L
+    
+  chromium:
+    label: "Chromium (Cr)"
+    group: metals
+    description: "Total chromium concentration"
+    units: *concentration_trace_units
+    default_unit: ug/L
+    
+  nickel:
+    label: "Nickel (Ni)"
+    group: metals
+    description: "Nickel concentration"
+    units: *concentration_trace_units
+    default_unit: ug/L
+    
+  mercury:
+    label: "Mercury (Hg)"
+    group: metals
+    description: "Mercury concentration"
+    units: *concentration_trace_units
+    default_unit: ng/L
+    
+  aluminum:
+    label: "Aluminum (Al)"
+    group: metals
+    description: "Aluminum concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  barium:
+    label: "Barium (Ba)"
+    group: metals
+    description: "Barium concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  strontium:
+    label: "Strontium (Sr)"
+    group: metals
+    description: "Strontium concentration"
+    units: *concentration_units
+    default_unit: ug/L
+    
+  boron:
+    label: "Boron (B)"
+    group: metals
+    description: "Boron concentration"
+    units: *concentration_units
+    default_unit: ug/L
+
+  # ---------------------------------------------------------------------------
+  # Organics
+  # ---------------------------------------------------------------------------
+  doc:
+    label: "Dissolved Organic Carbon"
+    group: organics
+    description: "Dissolved organic carbon concentration"
+    units:
+      mg/L: "mg/L"
+    default_unit: mg/L
+    
+  toc:
+    label: "Total Organic Carbon"
+    group: organics
+    description: "Total organic carbon concentration"
+    units:
+      mg/L: "mg/L"
+    default_unit: mg/L
+    
+  bod:
+    label: "Biochemical Oxygen Demand"
+    group: organics
+    description: "BOD₅ - 5-day biochemical oxygen demand"
+    units:
+      mg/L: "mg/L O₂"
+    default_unit: mg/L
+    
+  cod:
+    label: "Chemical Oxygen Demand"
+    group: organics
+    description: "Chemical oxygen demand"
+    units:
+      mg/L: "mg/L O₂"
+    default_unit: mg/L
+
+  # ---------------------------------------------------------------------------
+  # Microbiology
+  # ---------------------------------------------------------------------------
+  total_coliforms:
+    label: "Total Coliforms"
+    group: microbiology
+    description: "Total coliform bacteria count"
+    units: *bacterial_units
+    default_unit: CFU/100mL
+    
+  e_coli:
+    label: "E. coli"
+    group: microbiology
+    description: "Escherichia coli count"
+    units: *bacterial_units
+    default_unit: CFU/100mL
+    
+  enterococci:
+    label: "Enterococci"
+    group: microbiology
+    description: "Enterococci bacteria count"
+    units: *bacterial_units
+    default_unit: CFU/100mL
+
+  # ---------------------------------------------------------------------------
+  # Isotopes
+  # ---------------------------------------------------------------------------
+  deuterium:
+    label: "δ²H (Deuterium)"
+    group: isotopes
+    description: "Deuterium isotope ratio"
+    units:
+      permille: "‰ VSMOW"
+    default_unit: permille
+    
+  oxygen_18:
+    label: "δ¹⁸O (Oxygen-18)"
+    group: isotopes
+    description: "Oxygen-18 isotope ratio"
+    units:
+      permille: "‰ VSMOW"
+    default_unit: permille
+    
+  carbon_13:
+    label: "δ¹³C (Carbon-13)"
+    group: isotopes
+    description: "Carbon-13 isotope ratio"
+    units:
+      permille: "‰ VPDB"
+    default_unit: permille
+    
+  tritium:
+    label: "³H (Tritium)"
+    group: isotopes
+    description: "Tritium activity"
+    units:
+      TU: "TU (Tritium Units)"
+      Bq/L: "Bq/L"
+    default_unit: TU
+
+
+# =============================================================================
+# Sensor Variables
+# =============================================================================
+# Variables measured by automated sensors/loggers
+
+sensor_variables:
+  water_level:
+    label: "Water Level"
+    description: "Height of water surface relative to a reference point"
+    units: *length_units
+    default_unit: m
+
+  temperature:
+    label: "Temperature"
+    description: "Water or air temperature"
+    units: *temperature_units
+    default_unit: degC
+
+  pressure:
+    label: "Pressure"
+    description: "Atmospheric or water pressure"
+    units: *pressure_units
+    default_unit: kPa
+
+  electrical_conductivity:
+    label: "Electrical Conductivity"
+    description: "Ability of water to conduct electricity"
+    units: *conductivity_units
+    default_unit: uS/cm
+
+  dissolved_oxygen:
+    label: "Dissolved Oxygen"
+    description: "Concentration of oxygen dissolved in water"
+    units:
+      mg/L: "mg/L"
+      percent: "% saturation"
+    default_unit: mg/L
+
+  ph:
+    label: "pH"
+    description: "Measure of acidity/alkalinity"
+    units:
+      pH_unit: "pH units"
+    default_unit: pH_unit
+
+  turbidity:
+    label: "Turbidity"
+    description: "Cloudiness of water"
+    units:
+      NTU: "NTU (Nephelometric Turbidity Units)"
+      FNU: "FNU (Formazin Nephelometric Units)"
+    default_unit: NTU
+
+  salinity:
+    label: "Salinity"
+    description: "Salt concentration in water"
+    units:
+      ppt: "ppt (parts per thousand)"
+      PSU: "PSU (Practical Salinity Units)"
+      percent: "%"
+    default_unit: ppt
+
+  flow_rate:
+    label: "Flow Rate"
+    description: "Volume of water per unit time"
+    units:
+      L/s: "L/s (liters per second)"
+      m3/s: "m³/s (cubic meters per second)"
+      m3/h: "m³/h (cubic meters per hour)"
+      gpm: "gpm (gallons per minute)"
+    default_unit: L/s
+
+  velocity:
+    label: "Flow Velocity"
+    description: "Speed of water movement"
+    units:
+      m/s: "m/s (meters per second)"
+      cm/s: "cm/s (centimeters per second)"
+      ft/s: "ft/s (feet per second)"
+    default_unit: m/s
+
+  rainfall:
+    label: "Rainfall"
+    description: "Precipitation amount"
+    units:
+      mm: "mm"
+      cm: "cm"
+      inch: "in (inches)"
+    default_unit: mm
+
+  humidity:
+    label: "Relative Humidity"
+    description: "Atmospheric moisture content"
+    units:
+      percent: "%"
+    default_unit: percent
+
+  battery_voltage:
+    label: "Battery Voltage"
+    description: "Sensor battery voltage"
+    units: *voltage_units
+    default_unit: V

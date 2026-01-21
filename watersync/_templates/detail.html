@@ -20,30 +20,40 @@
 {% endif %}
 <div class="d-flex justify-content-between align-items-center">
     <h3 class="text-muted mb-0">{{ object }}</h3>
-    <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="actionMenu" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fas fa-cog"></i>
+    <div class="d-flex">
+        <div class="dropdown me-2">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="settingsMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-cog"></i>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="settingsMenu">
+                <li>
+                    <a class="dropdown-item"
+                       style="cursor: pointer;" 
+                       hx-get="{{ object.get_delete_url }}"
+                       hx-target="#dialog"
+                       title="Delete">
+                        Delete {{ object }}
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item"
+                       style="cursor: pointer;" 
+                       hx-get="{{ object.get_update_url }}"
+                       hx-target="#dialog"
+                       title="Edit">
+                        Edit {{ object }}
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% if object.get_history_url %}
+        <button class="btn btn-secondary" type="button"
+                hx-get="{{ object.get_history_url }}"
+                hx-target="#ofc-dialog"
+                title="History">
+            <i class="fas fa-history"></i>
         </button>
-        <ul class="dropdown-menu" aria-labelledby="actionMenu">
-            <li>
-                <a class="dropdown-item"
-                style="cursor: pointer;" 
-                hx-get="{{ detail_context.delete_url|replace_placeholder:object.pk }}"
-                hx-target="#dialog"
-                title="Delete">
-                Delete {{ object }}
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item"
-                style="cursor: pointer;" 
-                hx-get="{{ detail_context.update_url|replace_placeholder:object.pk }}"
-                hx-target="#dialog"
-                title="Edit">
-                Edit {{ object }}
-                </a>
-            </li>
-        </ul>
+        {% endif %}
     </div>
 </div>
 <!-- Information block -->
@@ -72,7 +82,6 @@
                         {% endif %}
                     </ul>
                     {% include "shared/list_detail.html" with object=object %}
-                    {% include "shared/list_history.html" %}
                 </div>
             </div>
         </div>

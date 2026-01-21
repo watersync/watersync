@@ -6,9 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, TemplateView, UpdateView
 
 from watersync.users.models import User
-from watersync.waterquality.views import ProtocolListView, ParameterListView, ParameterGroupListView
-from watersync.sensor.views import SensorVariableListView
-from watersync.core.views import UnitListView
+from watersync.waterquality.views import ProtocolListView
 from watersync.core.generics.utils import get_resource_list_context
 from watersync.core.permissions import ApprovalRequiredMixin
 
@@ -53,11 +51,7 @@ class SettingsView(LoginRequiredMixin, ApprovalRequiredMixin, TemplateView):
     template_name = "users/settings/settings.html"
 
     def get_resource_list_context(self, **kwargs):
-        views = {"protocols": ProtocolListView,
-                 "units": UnitListView,
-                 "parameter_groups": ParameterGroupListView,
-                 "parameters": ParameterListView,
-                 "sensorvariables": SensorVariableListView}
+        views = {"protocols": ProtocolListView,}
         return get_resource_list_context(self.request, self.kwargs, views)
 
     def get_context_data(self, **kwargs):

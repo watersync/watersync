@@ -1,10 +1,18 @@
+from bootstrap_datepicker_plus.widgets import DatePickerInput
 from django import forms
+from django.conf import settings
 from django.forms import Textarea
 
+from watersync.core.config import (
+    get_all_wq_unit_choices,
+    get_parameter_choices,
+    get_parameter_default_unit,
+    get_parameter_group_choices,
+    get_parameters_json,
+    get_wq_unit_choices,
+    is_valid_unit_for_parameter,
+)
 from watersync.waterquality.models import Measurement, Sample
-
-from bootstrap_datepicker_plus.widgets import DatePickerInput
-from django.conf import settings
 
 
 class SampleForm(forms.ModelForm):
@@ -17,7 +25,12 @@ class SampleForm(forms.ModelForm):
         ),
         help_text="The date when the sample was analysed.",
     )
-    
+    parameter_group = forms.ChoiceField(
+        choices=lambda: get_parameter_group_choices(),
+        label="Target Parameters",
+        help_text="Select the parameter group targeted for analysis",
+    )
+
     class Meta:
         model = Sample
         fields = (
@@ -36,80 +49,68 @@ class SampleForm(forms.ModelForm):
 class MeasurementForm(forms.ModelForm):
     title = "Add Measurement"
 
-    # Simple, clean fields for measurement input
-    value = forms.DecimalField(
-        max_digits=10,
-        decimal_places=4,
-        label="Measurement Value",
-        help_text="Enter the numeric measurement value",
-        required=True
+    parameter = forms.ChoiceField(
+        choices=lambda: get_parameter_choices(),
+        label="Parameter",
+        help_text="Select the parameter measured",
     )
-    unit = forms.CharField(
-        max_length=50,
+    unit = forms.ChoiceField(
+        choices=lambda: get_all_wq_unit_choices(),
         label="Unit",
-        help_text="Enter the unit (e.g., mg/L, NTU, pH_unit, CFU/100mL, °C)",
-        required=True
-    )
-    detection_limit = forms.DecimalField(
-        max_digits=10,
-        decimal_places=4,
-        required=False,
-        label="Detection Limit (optional)",
-        help_text="Optional detection limit in the same unit as the measurement"
+        help_text="Select the unit of measurement",
     )
 
     class Meta:
         model = Measurement
-        fields = ("sample", "parameter")
+        fields = ("sample", "parameter", "value", "unit", "detection_limit")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # If editing existing instance, set initial values
+        if self.instance.pk:
+            self.fields["parameter"].initial = self.instance.parameter
+            self.fields["unit"].initial = self.instance.unit
+
+        # Pass parameters config to template for JavaScript filtering
+        self.parameters_config = get_parameters_json()
 
     def clean(self):
         cleaned_data = super().clean()
 
-        value = cleaned_data.get("value")
+        parameter = cleaned_data.get("parameter")
         unit = cleaned_data.get("unit")
+        value = cleaned_data.get("value")
 
-        # Require both value and unit
-        if value is None or not unit:
-            raise forms.ValidationError("Both value and unit are required.")
+        # Validate unit is valid for the selected parameter
+        if parameter and unit:
+            if not is_valid_unit_for_parameter(parameter, unit):
+                raise forms.ValidationError({
+                    "unit": f"'{unit}' is not a valid unit for this parameter"
+                })
 
         # Validate unit with Pint
-        try:
-            settings.UREG.Quantity(1.0, unit)
-        except Exception as exc:
-            raise forms.ValidationError(f"Invalid unit '{unit}'.") from exc
+        if unit:
+            try:
+                settings.UREG.Quantity(1.0, unit)
+            except Exception as exc:
+                raise forms.ValidationError({"unit": f"Invalid unit '{unit}'."}) from exc
 
         # Optional detection limit validation
         detection_limit = cleaned_data.get("detection_limit")
         if detection_limit is not None and detection_limit < 0:
-            raise forms.ValidationError("Detection limit must be a non-negative number.")
-
-        # Populate instance JSON-backed fields BEFORE model validation runs
-        self.instance.measurement = settings.UREG.Quantity(float(value), unit)
-        if detection_limit is not None:
-            self.instance.detection_limit = settings.UREG.Quantity(float(detection_limit), unit)
+            raise forms.ValidationError({
+                "detection_limit": "Detection limit must be a non-negative number."
+            })
 
         return cleaned_data
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-
-        value = self.cleaned_data.get("value")
-        unit = self.cleaned_data.get("unit")
-        detection_limit = self.cleaned_data.get("detection_limit")
-
-        # Redundant safety: ensure measurement/detection limit still set
-        if value is not None and unit:
-            instance.measurement = settings.UREG.Quantity(float(value), unit)
-        if detection_limit is not None and unit:
-            instance.detection_limit = settings.UREG.Quantity(float(detection_limit), unit)
-
-        if commit:
-            instance.save()
-        
-        return instance
-
 
 class MeasurementBulkForm(forms.Form):
+    """Form for bulk adding measurements from pasted data.
+
+    Expected data format: parameter, value, unit (tab or comma separated)
+    """
 
     bulk = forms.CharField(widget=forms.HiddenInput(), initial="true", required=False)
     sample = forms.ModelChoiceField(
@@ -117,51 +118,63 @@ class MeasurementBulkForm(forms.Form):
         label="Sample",
         help_text="Select the sample to which these measurements belong.",
     )
-    # unit = forms.ModelChoiceField(
-    #     queryset=Unit.objects.all(),
-    #     label="Unit",
-    #     help_text="Select the unit of measurement",
-    #     required=False,
-    # )
     data = forms.CharField(
         label="Data",
-        help_text="Paste tab-separated or comma-separated data with the following columns: "
-        "parameter, value",
+        help_text="Paste tab-separated or comma-separated data with columns: "
+        "parameter, value, unit",
         widget=Textarea(attrs={"rows": 5}),
     )
 
     def clean(self):
         cleaned_data = super().clean()
-        
+
         # Only process if data field is present and valid
-        if 'data' in cleaned_data and isinstance(cleaned_data['data'], str):
-            data_str = cleaned_data['data']
+        if "data" in cleaned_data and isinstance(cleaned_data["data"], str):
+            data_str = cleaned_data["data"]
             processed_data = []
-            
+
             lines = data_str.splitlines()
-            for line in lines:
+            for i, line in enumerate(lines, 1):
                 if not line.strip():
                     continue
 
                 fields = line.split("\t") if "\t" in line else line.split(",")
-                if len(fields) != 2:
-                    raise forms.ValidationError("Each line must contain exactly 2 fields: parameter and value.")
+                if len(fields) != 3:
+                    raise forms.ValidationError(
+                        f"Line {i}: Expected 3 fields (parameter, value, unit), got {len(fields)}."
+                    )
 
-                parameter, value = fields
-                
+                parameter, value, unit = [f.strip() for f in fields]
+
+                # Validate parameter
+                valid_params = [k for k, _ in get_parameter_choices()]
+                if parameter not in valid_params:
+                    raise forms.ValidationError(
+                        f"Line {i}: Unknown parameter '{parameter}'."
+                    )
+
+                # Validate value
                 try:
                     value = float(value)
                 except ValueError:
-                    raise forms.ValidationError(f"Value '{value}' is not a valid number.")
+                    raise forms.ValidationError(
+                        f"Line {i}: Value '{value}' is not a valid number."
+                    )
+
+                # Validate unit for parameter
+                if not is_valid_unit_for_parameter(parameter, unit):
+                    raise forms.ValidationError(
+                        f"Line {i}: Unit '{unit}' is not valid for parameter '{parameter}'."
+                    )
 
                 processed_data.append({
-                    "sample": cleaned_data.get('sample'),
-                    "unit": cleaned_data.get('unit', ''),
-                    "parameter": parameter.strip(),
+                    "sample": cleaned_data.get("sample"),
+                    "parameter": parameter,
                     "value": value,
+                    "unit": unit,
                 })
-            
+
             # Store the processed data back in cleaned_data
-            cleaned_data['processed_data'] = processed_data
-            
+            cleaned_data["processed_data"] = processed_data
+
         return cleaned_data

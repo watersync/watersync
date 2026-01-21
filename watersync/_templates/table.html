@@ -6,34 +6,43 @@
     <td>{{ val }}</td>
     {% endfor %}
     <td>
-        {% if list_context.detail_url %}
+        {# Detail button - modal style #}
+        {% if list_context.has_detail %}
         <button type="button" class="btn btn-sm btn-info m-1"
-            hx-get="{{ list_context.detail_url|replace_placeholder:obj.pk }}" hx-target="#ofc-dialog"
+            hx-get="{{ obj.get_detail_url }}" hx-target="#ofc-dialog"
             hx-trigger="click"
             hx-headers='{"HX-Context": "block"}' title="Detail">
             <i class="fa-solid fa-circle-info"></i>
         </button>
         {% endif %}
-        {% if list_context.detail_page_url %}
-        <a class="btn btn-sm btn-info" href="{{ list_context.detail_page_url|replace_placeholder:obj.pk }}">
+
+        {# Detail button - page style (overview) #}
+        {% if list_context.has_detail_page %}
+        <a class="btn btn-sm btn-info" href="{{ obj.get_overview_url }}">
             Open<i class="fa-solid fa-arrow-right mx-2"></i>
         </a>
         {% endif %}
-        {% if list_context.detail_popover %}
+
+        {# Detail button - popover style #}
+        {% if list_context.has_detail_popover %}
         <button type="button" class="btn btn-sm btn-info" data-toggle="popover" data-bs-trigger="focus"
             data-bs-placement="top" title="Comment" data-bs-content="{{ obj.description }}">
             <i class="fas fa-info"></i>
         </button>
         {% endif %}
-        {% if list_context.update_url %}
+
+        {# Update button - uses model method #}
+        {% if list_context.has_update %}
         <button type="button" class="btn btn-sm btn-warning m-1"
-            hx-get="{{ list_context.update_url|replace_placeholder:obj.pk }}" hx-target="#dialog" title="Edit">
+            hx-get="{{ obj.get_update_url }}" hx-target="#dialog" title="Edit">
             <i class="fas fa-edit"></i>
         </button>
         {% endif %}
-        {% if list_context.delete_url %}
+
+        {# Delete button - uses model method #}
+        {% if list_context.has_delete %}
         <button type="button" class="btn btn-sm btn-danger m-1"
-            hx-get="{{ list_context.delete_url|replace_placeholder:obj.pk }}" hx-target="#dialog" title="Delete">
+            hx-get="{{ obj.get_delete_url }}" hx-target="#dialog" title="Delete">
             <i class="fas fa-trash"></i>
         </button>
         {% endif %}

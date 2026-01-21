@@ -7,14 +7,6 @@ from django.template.loader import render_to_string
 from watersync.core.models import Location, Fieldwork
 from watersync.waterquality.models import Sample
 
-class RenderToResponseMixin:
-    """Mixin for rendering HTMX responses."""
-    def render_to_response(self, context, **response_kwargs):
-        if self.request.htmx:
-            html = render_to_string(self.htmx_template, context, request=self.request)
-            return HttpResponse(html)
-        return super().render_to_response(context, **response_kwargs)
-
 
 class UpdateFormMixin:
     """Mixin for updating form instances."""
@@ -50,9 +42,9 @@ class UpdateFormMixin:
 
         # Sample handling
         if current_url and "samples" in current_url:
-            location_pk = self.get_pk_from_hx_headers(current_url, "samples")
-            if location_pk:
-                initial["sample"] = get_object_or_404(Sample, pk=location_pk)
+            sample_pk = self.get_pk_from_hx_headers(current_url, "samples")
+            if sample_pk:
+                initial["sample"] = get_object_or_404(Sample, pk=sample_pk)
 
         # fieldwork handling
         if current_url and "fieldworks" in current_url:

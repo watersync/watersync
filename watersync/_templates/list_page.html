@@ -2,6 +2,19 @@
 
 {% block content %}
 
-{% include "list.html" %}
+{% comment %}
+    Template selection based on request type:
+    - HTMX request (any) → table.html (just rows for tbody replacement)
+    - Full page load (non-HTMX) → list.html wrapped in base layout
 
+    When list.html is embedded in another page (like location_overview.html),
+    the tbody sends HX-Context header. Both cases (with or without header)
+    should return just the table rows.
+{% endcomment %}
+
+{% if is_htmx %}
+    {% include "table.html" %}
+{% else %}
+    {% include "list.html" %}
+{% endif %}
 {% endblock content %}

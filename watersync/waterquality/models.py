@@ -43,7 +43,7 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
     # URL configuration for ModelURLMixin
     # Sample URLs are: /projects/<project_pk>/samples/<sample_pk>/
     # We need to traverse: sample.location.project to get project_pk
-    _url_app_label = "waterquality"""
+    _url_app_label = "waterquality"
     # In case of internal samples, fieldwork is required
     fieldwork = models.ForeignKey(
         "core.Fieldwork", on_delete=models.CASCADE, related_name="samples",

@@ -1,65 +1,20 @@
-from django.utils.text import slugify
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+"""
+Water Quality Setup Models
 
+This module contains setup/configuration models that are user-defined
+and need database storage. Parameter groups and individual parameters
+are now defined in YAML config files - see config/parameters/water_quality.yaml.
+
+Use watersync.core.config for accessing parameter definitions.
+"""
 
 from django.db import models
+from django.utils.text import slugify
+
+from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
 
 
-class ParameterGroup(models.Model, InterfaceModelTemplate):
-    """Group of target parameters for analysis.
-
-    These are groups of parameters like nutrients, metals, etc. that are
-    normally analyzed together. These values will be used in the
-    sample form as select options.
-
-    These items are available in the Settings panel in the app.
-
-    Attributes:
-        name: The name of the target parameter group.
-        description: A brief description of the group.
-    """
-
-    name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10, unique=True)
-    description = models.TextField(blank=True, null=True)
-
-    _list_view_fields = {
-        "Name": "name",
-        "Code": "code",
-    }
-
-    def __str__(self):
-        return self.name
-
-
-class Parameter(models.Model, InterfaceModelTemplate):
-    """Parameter for analysis.
-
-    Each parameter is a specific measurement that can be taken from a sample.
-    Parameters are grouped into target parameter groups. When adding measurements,
-    the select options for the parameters will be restricted to the sample target group.
-
-    These items are available in the Settings panel in the app.
-
-    Attributes:
-        name: The name of the parameter.
-        group: The target parameter group to which the parameter belongs.
-    """
-
-    name = models.CharField(max_length=50)
-    code = models.CharField(max_length=10, unique=True)
-    group = models.ForeignKey(ParameterGroup, on_delete=models.CASCADE)
-
-    _list_view_fields = {
-        "Name": "name",
-        "Group": "group",
-    }
-
-    def __str__(self):
-        return self.name
-
-
-class Protocol(models.Model, InterfaceModelTemplate):
+class Protocol(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Protocols for sampling and analysis.
 
     Protocol describes the details of the sampling collection and analysis process,

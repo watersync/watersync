@@ -1,4 +1,4 @@
-{% extends 'layouts/base_dashboard.html' %}
+{% extends base_template %}
 {% load static %}
 
 {% block breadcrumb %}
@@ -6,7 +6,10 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-
+{# HTMX request returns just the cards, full page load returns the wrapper #}
+{% if is_htmx %}
+    {% include "core/partial/project_table.html" %}
+{% else %}
 <button 
     type="button" 
     class="btn btn-success mb-3" 
@@ -25,5 +28,5 @@
         </div>
     </div>
 </div>
-
+{% endif %}
 {% endblock content %}

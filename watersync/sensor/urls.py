@@ -33,11 +33,7 @@ from watersync.sensor.views import (
     sensorrecord_update_view,
     sensorrecord_download_view,
     sensorrecord_list_view,
-    sensor_variable_create_view,
-    sensor_variable_delete_view,
-    sensor_variable_update_view,
-    sensor_variable_list_view,
-    sensor_variable_detail_view,
+    variable_units_api_view,
 )
 
 app_name = "sensor"
@@ -50,24 +46,9 @@ sensor_urlpatterns = [
     path("<str:sensor_pk>/delete/", sensor_delete_view, name="delete-sensor"),
 ]
 
-sensor_variable_urlpatterns = [
-    path("", sensor_variable_list_view, name="sensorvariables"),
-    path("add/", sensor_variable_create_view, name="add-sensorvariable"),
-    path(
-        "<str:sensorvariable_pk>/update/",
-        sensor_variable_update_view,
-        name="update-sensorvariable",
-    ),
-    path(
-        "<str:sensorvariable_pk>/delete/",
-        sensor_variable_delete_view,
-        name="delete-sensorvariable",
-    ),
-    path(
-        "<str:sensorvariable_pk>/",
-        sensor_variable_detail_view,
-        name="detail-sensorvariable",
-    ),
+# API endpoint for dynamic unit filtering
+api_urlpatterns = [
+    path("units/", variable_units_api_view, name="variable-units-api"),
 ]
 
 deployment_urlpatterns = [
@@ -117,13 +98,10 @@ sensorrecord_urlpatterns = [
 
 urlpatterns = [
     path("sensors/", include(sensor_urlpatterns)),
+    path("api/", include(api_urlpatterns)),
     path(
         "projects/<str:project_pk>/deployments/",
         include(deployment_urlpatterns),
-    ),
-    path(
-        "sensorvariables/",
-        include(sensor_variable_urlpatterns)
     ),
     # This one should probably be just a downloadable or viewable as a graph only.
     # There is no sense in displaying the records as a list.

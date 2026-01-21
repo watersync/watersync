@@ -1,14 +1,14 @@
 
 
 import csv
-from functools import partial
+
 from django.http import HttpResponse
 from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
 from watersync.core.models import Project
 from watersync.core.permissions import ApprovalRequiredMixin
-from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 
 class ExportCsvMixin:
     def export_as_csv(self, request, queryset):
@@ -29,35 +29,30 @@ class ExportCsvMixin:
 
 
 class StandardURLMixin(ApprovalRequiredMixin):
-    """Provide standardized URL handling for views and templates.
+    """Provide standardized URL handling for views.
 
-    The properties included in this mixin are used in automated controll mostly over the
-    templates and the URLs interaction. This should in principle reduce boilerplate code
-    in the views and allow to focus on important customization of the views.
+    This mixin provides URL name generation and model metadata for views.
+    Instance-level URL resolution is handled by ModelURLMixin on models.
+    Base template selection is handled by the url_context context processor.
 
-    Attributes:
-        blank_template: The template used for the blank layout.
-        base_template: The template used for the base layout (i.e. the base dashboard,
-            before selecting the project).
-        project_base_template: The template used for the project dashboard.
+    Where possible, this mixin delegates to ModelURLMixin methods on the model
+    to maintain a single source of truth for URL conventions.
 
     Properties:
         model_name: The name of the model.
         model_name_plural: The plural name of the model with spaces removed.
         app_label: The app label of the model.
         model_verbose_name_plural: The verbose name plural of the model.
-
-    Methods:
-        _get_model_meta: Get model metadata safely.
-        _get_list_view_fields: Get list view fields safely.
+        htmx_trigger: The HTMX trigger name for this model.
+        item_pk_name: The URL parameter name for this model's pk.
     """
-
-    blank_template = "layouts/blank.html"
-    base_template = "layouts/base_dashboard.html"
-    project_base_template = "layouts/project_dashboard.html"
 
     class Meta:
         abstract = True
+
+    def _model_has_url_mixin(self):
+        """Check if the model has ModelURLMixin methods available."""
+        return hasattr(self.model, '_get_url_model_name')
 
     def _get_model_meta(self):
         """Get model metadata safely."""
@@ -66,6 +61,8 @@ class StandardURLMixin(ApprovalRequiredMixin):
     @property
     def model_name(self):
         """Shortcut to get the model name."""
+        if self._model_has_url_mixin():
+            return self.model._get_url_model_name()
         meta = self._get_model_meta()
         return meta.model_name if meta else ""
 
@@ -75,6 +72,8 @@ class StandardURLMixin(ApprovalRequiredMixin):
 
         As this is used further to get the list URL.
         """
+        if self._model_has_url_mixin():
+            return self.model._get_url_model_name_plural()
         meta = self._get_model_meta()
         if meta:
             return meta.verbose_name_plural.replace(" ", "")
@@ -86,64 +85,25 @@ class StandardURLMixin(ApprovalRequiredMixin):
 
         This is used as title in the list view and other places.
         """
+        if self._model_has_url_mixin():
+            return self.model._get_verbose_name_plural()
         meta = self._get_model_meta()
         return meta.verbose_name_plural if meta else ""
 
     @property
     def app_label(self):
         """Shortcut to get the app label."""
+        if self._model_has_url_mixin():
+            return self.model._get_url_app_label()
         meta = self._get_model_meta()
         return meta.app_label if meta else ""
 
     @property
     def htmx_trigger(self):
         """Compose the HTMX change action name for the view."""
+        if self._model_has_url_mixin():
+            return self.model.get_htmx_trigger()
         return f"{self.model_name}Changed"
-
-    def _get_url_name(self, action):
-        """Compose the URL pattern for a given action.
-
-        Standardized URL naming convention:
-        - For listing: `app_label:model_name_plural`, e.g., `sensors:sensors`
-        - For other actions: `app_label:action-model_name`, e.g., `sensors:add-sensor`
-
-        Standardizing URL names helps in maintaining consistency across the application
-        and reduces boilerplate code in the views. The urls are passed in the
-        ListContext object to the templates and are then assigned to the right buttons.
-        """
-        if action == "list":
-            return f"{self.app_label}:{self.model_name_plural}"
-        return f"{self.app_label}:{action}-{self.model_name}"
-
-    @property
-    def list_url(self):
-        """Url for the list view."""
-        return self._get_url_name("list")
-
-    @property
-    def add_url(self):
-        """Url for the add view."""
-        return self._get_url_name("add")
-
-    @property
-    def update_url(self):
-        """Url for the update view."""
-        return self._get_url_name("update")
-
-    @property
-    def delete_url(self):
-        """Url for the delete view."""
-        return self._get_url_name("delete")
-
-    @property
-    def detail_url(self):
-        """Url for the detail view."""
-        return self._get_url_name("detail")
-
-    @property
-    def overview_url(self):
-        """Url for the overview view."""
-        return self._get_url_name("overview")
 
     @property
     def item_pk_name(self):
@@ -154,53 +114,62 @@ class StandardURLMixin(ApprovalRequiredMixin):
         The convention here is to use the tag for an item as `model_name_pk`,
         e.g., `sensor_pk` for the Sensor model records.
         """
+        if self._model_has_url_mixin():
+            return self.model.get_item_pk_name()
         return f"{self.model_name}_pk"
+
+    def _get_url_name(self, action):
+        """Compose the URL pattern for a given action.
+
+        Delegates to ModelURLMixin._get_url_name if available, otherwise
+        uses the standardized URL naming convention:
+        - For listing: `app_label:model_name_plural`, e.g., `sensors:sensors`
+        - For other actions: `app_label:action-model_name`, e.g., `sensors:add-sensor`
+        """
+        if self._model_has_url_mixin():
+            return self.model._get_url_name(action)
+        if action == "list":
+            return f"{self.app_label}:{self.model_name_plural}"
+        return f"{self.app_label}:{action}-{self.model_name}"
+
+    @property
+    def list_url(self):
+        """URL name for the list view."""
+        return self._get_url_name("list")
+
+    @property
+    def add_url(self):
+        """URL name for the add view."""
+        return self._get_url_name("add")
 
     @property
     def item_pk(self):
         """Get the primary key of the item."""
         return self.kwargs.get(self.item_pk_name)
 
-    @property
-    def item(self):
-        """Get the item object from the URL."""
-        return {f"{self.item_pk_name}": "__placeholder__"}
+    def get_list_url(self, **kwargs):
+        """Get the resolved list URL."""
+        return reverse(self.list_url, kwargs=kwargs)
 
-    def _get_url_reverse(self, url_name):
-        """Get a partial reverse function for the given URL name."""
-        return partial(reverse, url_name)
-
-    def get_list_url(self):
-        return self._get_url_reverse(self.list_url)
-
-    def get_add_url(self):
-        return self._get_url_reverse(self.add_url)
-
-    def get_update_url(self):
-        return self._get_url_reverse(self.update_url)
-
-    def get_delete_url(self):
-        return self._get_url_reverse(self.delete_url)
-
-    def get_detail_url(self):
-        return self._get_url_reverse(self.detail_url)
-
-    def get_overview_url(self):
-        return self._get_url_reverse(self.overview_url)
+    def get_add_url(self, **kwargs):
+        """Get the resolved add URL."""
+        return reverse(self.add_url, kwargs=kwargs)
 
     def get_project(self):
-        """Get the project object from the URL."""
-        return (
-            get_object_or_404(Project, pk=self.kwargs.get("project_pk"))
-            if "projects" in self.request.path
-            else None
-        )
+        """Get the project object from the URL kwargs.
+        
+        Used for filtering querysets by project in list views.
+        """
+        if project_pk := self.kwargs.get("project_pk"):
+            return get_object_or_404(Project, pk=project_pk)
+        return None
 
     def get_base_url_kwargs(self):
+        """Build base URL kwargs from the current request's URL parameters."""
         base_kwargs = {}
-        project = self.get_project()
-        if project and self.model_name != "project":
-            base_kwargs["project_pk"] = project.pk
+        if project_pk := self.kwargs.get("project_pk"):
+            if self.model_name != "project":
+                base_kwargs["project_pk"] = project_pk
         return base_kwargs
 
 
@@ -238,6 +207,7 @@ class CreateUpdateDetailMixin:
                 "detail" in response.context_data["form"].fields and
                 "type" in response.context_data["form"].fields
             )
+            
             if context_is_right:
                 # Set hx-get to the current path with a query parameter to
                 # account for both updates and creates

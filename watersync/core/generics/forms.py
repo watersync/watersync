@@ -78,7 +78,6 @@ class FormWithDetailMixin(forms.ModelForm):
             instance.save()
         return instance
 
-
 class FormWithHistory(forms.ModelForm):
     """Allows the user to explicitly set the modification date in the history table when updating an object."""
     history_date = forms.DateTimeField(
