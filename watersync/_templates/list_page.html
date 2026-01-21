@@ -4,12 +4,15 @@
 
 {% comment %}
     Template selection based on request type:
+    - HTMX request with HX-Rows-Only header → table.html (just rows for tbody refresh)
     - HTMX request without HX-Context header → table.html (just rows for tbody refresh)
     - HTMX request with HX-Context: block → list.html (embedded list with buttons)
     - Full page load (non-HTMX) → list.html wrapped in base layout
 {% endcomment %}
 
-{% if is_htmx and not htmx_context %}
+{% if is_htmx and htmx_rows_only %}
+    {% include "table.html" %}
+{% elif is_htmx and not htmx_context %}
     {% include "table.html" %}
 {% else %}
     {% include "list.html" %}

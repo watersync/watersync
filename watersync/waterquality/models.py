@@ -94,7 +94,9 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
         return kwargs
 
     def __str__(self):
-        return f"{self.fieldwork.date:%Y%m%d}/{slugify(self.location.name)}/{self.parameter_group}/{self.replica_number}"
+        date_str = self.fieldwork.date.strftime("%Y%m%d") if self.fieldwork else "no-date"
+        location_str = slugify(self.location.name) if self.location else "no-location"
+        return f"{date_str}/{location_str}/{self.parameter_group}/{self.replica_number}"
 
 class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Individual measurements of parameters in a sample.

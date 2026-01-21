@@ -64,7 +64,8 @@
     <tbody id="{{ list_config.tbody_id }}"
         hx-get="{{ request.path }}"
         hx-trigger="{% if not htmx_context %}revealed, {% endif %}refreshList from:body"
-        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'>
+        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
+        hx-headers='{"HX-Rows-Only": "true"}'>
         {% include "table.html" %}
     </tbody>
 </table>

@@ -184,4 +184,5 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
     }
 
     def __str__(self):
-        return f"{self.project} - {self.date}"
+        # Use project_id to avoid triggering a lazy DB query in async contexts
+        return f"Fieldwork {self.project_id} - {self.date}"

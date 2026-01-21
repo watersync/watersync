@@ -167,7 +167,12 @@ class WatersyncDeleteView(
     template_name = "confirm_delete.html"
 
     def get_object(self):
-        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+        queryset = self.model.objects.all()
+        # Pre-fetch parent relation to avoid lazy loading in async contexts
+        parent_field = getattr(self.model, '_url_parent_field', None)
+        if parent_field:
+            queryset = queryset.select_related(parent_field)
+        return get_object_or_404(queryset, pk=self.kwargs[self.item_pk_name])
 
     def get_redirect_url(self, request):
         """Get the URL from htmx request to redirect to after the delete.

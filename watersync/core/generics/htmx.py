@@ -12,52 +12,71 @@ class UpdateFormMixin:
     Attributes:
         prefill_from_parent: Dict mapping form field names to (param_name, model_class).
             Example: {'location': ('location_pk', Location)}
+    
+    How it works:
+        1. GET request: Parent PKs come via query params (from hx-vals)
+        2. Form is prefilled and parent fields are hidden (not editable)
+        3. POST request: Parent PKs come via hidden form fields  
+        4. form_valid() saves the instance with parent values included
     """
 
     # Override in subclass to configure parent object prefilling
     # Format: {'form_field': ('request_param', ModelClass)}
     prefill_from_parent: dict = None
 
+    def _get_parent_pks(self):
+        """Get parent PKs from GET (initial load) or POST (form submission)."""
+        pks = {}
+        if not self.prefill_from_parent:
+            return pks
+            
+        for field_name, (param_name, model_class) in self.prefill_from_parent.items():
+            # Check POST first (form submission), then GET (initial load)
+            pk = self.request.POST.get(param_name) or self.request.GET.get(param_name)
+            if pk:
+                pks[field_name] = (param_name, pk, model_class)
+        return pks
+
     def get_initial(self):
-        """Get initial data for the form from request parameters.
-        
-        Reads values from request.GET (populated by hx-vals) and fetches
-        the corresponding model instances for form pre-filling.
-        """
+        """Get initial data for the form from request parameters."""
         initial = super().get_initial()
 
         # User handling
         if self.request.user.is_authenticated:
             initial["user"] = self.request.user.pk
 
-        # Parent object prefilling from hx-vals
-        if self.prefill_from_parent:
-            for field_name, (param_name, model_class) in self.prefill_from_parent.items():
-                pk = self.request.GET.get(param_name)
-                if pk:
-                    try:
-                        initial[field_name] = model_class.objects.get(pk=pk)
-                    except model_class.DoesNotExist:
-                        pass
+        # Parent object prefilling from request params
+        for field_name, (param_name, pk, model_class) in self._get_parent_pks().items():
+            try:
+                initial[field_name] = model_class.objects.get(pk=pk)
+            except model_class.DoesNotExist:
+                pass
 
         return initial
 
     def get_form(self, form_class=None):
-        """Make pre-filled parent fields read-only.
-        
-        If a field was pre-filled via prefill_from_parent, disable it
-        to prevent users from changing the parent relationship.
-        """
+        """Hide pre-filled parent fields (values come via hidden inputs)."""
         form = super().get_form(form_class)
         
-        if self.prefill_from_parent:
-            for field_name in self.prefill_from_parent.keys():
-                if (form.initial.get(field_name) and 
-                    field_name in form.fields and
-                    hasattr(self.model, field_name)):
-                    form.fields[field_name].disabled = True
+        # Hide parent fields that are prefilled
+        parent_pks = self._get_parent_pks()
+        for field_name in parent_pks.keys():
+            if field_name in form.fields:
+                form.fields[field_name].widget = form.fields[field_name].hidden_widget()
         
         return form
+
+    def get_context_data(self, **kwargs):
+        """Add parent PKs to context for hidden inputs in template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Pass parent PKs to template for hidden inputs
+        context['parent_pks'] = [
+            (param_name, pk) 
+            for field_name, (param_name, pk, model_class) in self._get_parent_pks().items()
+        ]
+        
+        return context
 
     def update_user(self, instance):
         """Update user field in forms, if applicable.
@@ -113,16 +132,16 @@ class HTMXFormMixin(UpdateFormMixin):
         """
 
     def form_valid(self, form):
-        """Handle a valid form submission.
-        TODO: Review this method.
-        """
-
+        """Handle a valid form submission."""
+        
         self.update_form_instance(form)
-        # Save the instance to the database
+        
+        # Save the instance
         if hasattr(form, "save"):            
             instance = form.save()
         else:
             instance = None
+            
         if hasattr(form, "save_m2m"):
             form.save_m2m()
 
@@ -134,7 +153,6 @@ class HTMXFormMixin(UpdateFormMixin):
         self.update_user(instance)
 
         if self.request.htmx:
-            # Use standard "refreshList" event - all list tbodys listen for this
             return HttpResponse(
                 status=self.htmx_response_status, 
                 headers={"HX-Trigger": "refreshList"}

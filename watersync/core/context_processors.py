@@ -51,12 +51,16 @@ def url_context(request):
         'fieldwork': None,
         'base_url_kwargs': {},
         'htmx_context': None,
+        'htmx_rows_only': False,
         'is_htmx': False,
     }
     
     # Check if HTMX request (django-htmx middleware sets this)
     is_htmx = getattr(request, 'htmx', False)
     context['is_htmx'] = bool(is_htmx)
+    
+    # Check if this is a rows-only request (tbody refresh)
+    context['htmx_rows_only'] = bool(request.headers.get("HX-Rows-Only"))
     
     # Get HX-Context header, filtering out "None" string that can come from template
     hx_context = request.headers.get("HX-Context")
