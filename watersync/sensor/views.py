@@ -273,6 +273,9 @@ sensorrecord_list_view = SensorRecordListView.as_view()
 class DeploymentCreateView(WatersyncCreateView):
     model = Deployment
     form_class = DeploymentForm
+    prefill_from_parent = {
+        'location': ('location_pk', Location),
+    }
 
 class DeploymentUpdateView(WatersyncUpdateView):
     model = Deployment

@@ -13,7 +13,7 @@ from watersync.core.generics.views import (
     WatersyncListView,
     WatersyncUpdateView,
 )
-from watersync.core.models import Project
+from watersync.core.models import Fieldwork, Location, Project
 from watersync.waterquality.forms import MeasurementBulkForm, MeasurementForm, SampleForm
 from watersync.waterquality.forms_setup import ProtocolForm
 from watersync.waterquality.models import Measurement, Sample
@@ -59,6 +59,10 @@ protocol_detail_view = ProtocolDetailView.as_view()
 class SampleCreateView(WatersyncCreateView):
     model = Sample
     form_class = SampleForm
+    prefill_from_parent = {
+        'location': ('location_pk', Location),
+        'fieldwork': ('fieldwork_pk', Fieldwork),
+    }
 
 
 class SampleUpdateView(WatersyncUpdateView):
@@ -122,6 +126,9 @@ class MeasurementCreateView(WatersyncCreateView):
     model = Measurement
     form_class = MeasurementForm
     bulk_form_class = MeasurementBulkForm
+    prefill_from_parent = {
+        'sample': ('sample_pk', Sample),
+    }
 
     def handle_bulk_create(self, form):
         if isinstance(form, self.bulk_form_class):

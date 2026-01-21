@@ -1,69 +1,62 @@
-import re
-
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-
-from watersync.core.models import Location, Fieldwork
-from watersync.waterquality.models import Sample
 
 
 class UpdateFormMixin:
-    """Mixin for updating form instances."""
-
-    def get_pk_from_hx_headers(self, current_url, parameter):
-        """Use the Hx-Current-Url header to determine the current URL.
-        Then extract the required parameters from the URL.
-
-        This is mostly used to make it easier to add items from the level
-        of overviews (location, fieldwork and sample).
-        """
-        match = re.search(f'/{parameter}/(\d+)/', current_url)
-        
-        if match:
-            return match.group(1)
-        
-        return None
+    """Mixin for updating form instances with HTMX support.
     
+    This mixin provides automatic form pre-filling from request parameters
+    passed via hx-vals. Configure which fields to prefill by setting
+    `prefill_from_parent` on the view.
+    
+    Attributes:
+        prefill_from_parent: Dict mapping form field names to (param_name, model_class).
+            Example: {'location': ('location_pk', Location)}
+    """
+
+    # Override in subclass to configure parent object prefilling
+    # Format: {'form_field': ('request_param', ModelClass)}
+    prefill_from_parent: dict = None
+
     def get_initial(self):
-        """Get initial data for the form."""
+        """Get initial data for the form from request parameters.
+        
+        Reads values from request.GET (populated by hx-vals) and fetches
+        the corresponding model instances for form pre-filling.
+        """
         initial = super().get_initial()
-        current_url = self.request.headers.get("HX-Current-URL", "")
 
         # User handling
         if self.request.user.is_authenticated:
             initial["user"] = self.request.user.pk
 
-        # Location handling
-        if current_url and "locations" in current_url:
-            location_pk = self.get_pk_from_hx_headers(current_url, "locations")
-            if location_pk:
-                initial["location"] = get_object_or_404(Location, pk=location_pk)
+        # Parent object prefilling from hx-vals
+        if self.prefill_from_parent:
+            for field_name, (param_name, model_class) in self.prefill_from_parent.items():
+                pk = self.request.GET.get(param_name)
+                if pk:
+                    try:
+                        initial[field_name] = model_class.objects.get(pk=pk)
+                    except model_class.DoesNotExist:
+                        pass
 
-        # Sample handling
-        if current_url and "samples" in current_url:
-            sample_pk = self.get_pk_from_hx_headers(current_url, "samples")
-            if sample_pk:
-                initial["sample"] = get_object_or_404(Sample, pk=sample_pk)
-
-        # fieldwork handling
-        if current_url and "fieldworks" in current_url:
-            fieldwork_pk = self.get_pk_from_hx_headers(current_url, "fieldworks")
-            if fieldwork_pk:
-                initial["fieldwork"] = get_object_or_404(Fieldwork, pk=fieldwork_pk)
-        
         return initial
 
     def get_form(self, form_class=None):
-        """Make certain fields read-only if pre-filled."""
-
+        """Make pre-filled parent fields read-only.
+        
+        If a field was pre-filled via prefill_from_parent, disable it
+        to prevent users from changing the parent relationship.
+        """
         form = super().get_form(form_class)
-        if form.initial.get("location") and hasattr(self.model, "location"):
-            form.fields["location"].disabled = True
-        if form.initial.get("sample") and hasattr(self.model, "sample"):
-            form.fields["sample"].disabled = True
-        if form.initial.get("fieldwork") and hasattr(self.model, "fieldwork"):
-            form.fields["fieldwork"].disabled = True
+        
+        if self.prefill_from_parent:
+            for field_name in self.prefill_from_parent.keys():
+                if (form.initial.get(field_name) and 
+                    field_name in form.fields and
+                    hasattr(self.model, field_name)):
+                    form.fields[field_name].disabled = True
+        
         return form
 
     def update_user(self, instance):

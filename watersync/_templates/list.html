@@ -25,19 +25,20 @@
     hx-get="{{ list_context.add_url }}" 
     hx-target="#dialog"
     hx-trigger="click"
-    hx-vals='{"bulk": true}'>
+    hx-vals='js:(function(){ var vals = {{ hx_vals|default:"{}" }}; vals.bulk = true; return vals; })()'>
     <img src="{% static 'icons/pluses-alt.svg' %}" alt="CSV Icon" class="text-white" style="filter: invert(1);">
     </button>
 {% endif %}
 <button type="button" class="btn btn-success" 
         hx-get="{{ list_context.add_url }}" 
         hx-target="#dialog"
-        hx-trigger="click">
+        hx-trigger="click"
+        hx-vals='js:{{ hx_vals|default:"{}" }}'>
         <i class="fa-solid fa-plus"></i>
     </button>
     <button class="btn btn-secondary"
         hx-get="{{ list_context.list_url }}"
-        hx-vals='js:{{ hx_vals|safe }}'
+        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
         hx-headers='{"HX-Download": "true"}'
         hx-swap="none">
         <i class="fa fa-download"></i>
@@ -62,7 +63,7 @@
     </thead>
     <tbody hx-get="{{ list_context.list_url }}"
         hx-trigger="revealed, configRequest from:body, {{ list_context.action }} from:body"
-        hx-vals='js:{{ hx_vals|safe }}'
+        hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
         {% if htmx_context %}hx-headers='{"HX-Context": "{{ htmx_context }}"}'{% endif %}>
         <tr id="loading-spinner-row" class="bg-white">
             <td colspan="4" class="text-center">

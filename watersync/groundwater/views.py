@@ -1,4 +1,4 @@
-from watersync.core.models import Location, Project
+from watersync.core.models import Fieldwork, Location, Project
 from watersync.groundwater.forms import GWLForm
 from watersync.groundwater.models import GWLManualMeasurement
 from watersync.core.generics.views import WatersyncCreateView, WatersyncUpdateView, WatersyncDeleteView, WatersyncListView
@@ -10,6 +10,10 @@ from django.shortcuts import get_list_or_404
 class GWLCreateView(WatersyncCreateView):
     model = GWLManualMeasurement
     form_class = GWLForm
+    prefill_from_parent = {
+        'location': ('location_pk', Location),
+        'fieldwork': ('fieldwork_pk', Fieldwork),
+    }
 
 class GWLUpdateView(WatersyncUpdateView):
     model = GWLManualMeasurement
