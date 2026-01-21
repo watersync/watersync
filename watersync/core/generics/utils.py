@@ -14,10 +14,3 @@ def update_location_geom(form):
 
 def add_current_project(kwargs, form):
     form.instance.project = get_object_or_404(Project, pk=kwargs.get("project_pk"))
-
-def get_resource_list_context(request, kwargs, resource_dict):
-
-    return {
-        key: view(request=request, kwargs=kwargs).get_context_data(object_list=0)
-        for key, view in resource_dict.items()
-    }

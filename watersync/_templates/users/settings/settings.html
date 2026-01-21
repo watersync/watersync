@@ -13,11 +13,15 @@
       </h2>
       <div id="flush-collapsProtocols" class="accordion-collapse collapse" aria-labelledby="flush-protocols" data-bs-parent="#accordionSettings">
         <div class="accordion-body">
-          <div id="protocols" class="container p-4">
-            {% with list_config=protocols.list_config htmx_context="block" %}
-                {% include "list.html"%}
-            {% endwith %}
-        </div>
+          {# Protocols - lazy loads when accordion is opened #}
+          <div id="protocols" class="container p-4"
+               hx-get="{% url 'waterquality:protocols' %}"
+               hx-trigger="revealed once"
+               hx-headers='{"HX-Context": "block"}'>
+              <div class="spinner-grow" role="status">
+                  <span class="visually-hidden">Loading...</span>
+              </div>
+          </div>
         </div>
       </div>
     </div>

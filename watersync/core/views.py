@@ -3,13 +3,9 @@ from django.forms import ModelForm
 from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom, add_current_project
-from watersync.groundwater.views import GWLListView
 from watersync.core.forms import FieldworkForm, LocationForm, ProjectForm
 from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
-from watersync.sensor.views import DeploymentListView
-from watersync.waterquality.views import SampleListView
-from watersync.core.generics.utils import get_resource_list_context
 from django.db.models import Count
 import json
 from django.shortcuts import get_object_or_404
@@ -49,41 +45,18 @@ class FieldworkDetailView(WatersyncDetailView):
 class FieldworkOverviewView(TemplateView):
     template_name = "core/fieldwork_overview.html"
 
-    def get_resource_counts(self, fieldwork):
-        """Keeping this for the pattern:
-            "samplecount": fieldwork.visits.aggregate(
-            total=Count('samples')
-                )['total'],
-        """
-
-        fieldwork = Fieldwork.objects.annotate(
-            gwlmeasurementcount=Count('gwlmeasurements'),
-            samplecount=Count('samples')
-        ).get(pk=fieldwork.pk)
-
-        views = {
-            "gwlmeasurementcount": fieldwork.gwlmeasurementcount,
-            "samplecount": fieldwork.samplecount
-        }
-
-        return views
-    
-    def get_resource_list_context(self):
-        views = {
-            "gwlmeasurements": GWLListView,
-            "samples": SampleListView,
-        }
-
-        return get_resource_list_context(self.request, self.kwargs, views)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        fieldwork = get_object_or_404(Fieldwork, pk=self.kwargs["fieldwork_pk"])
-
-        context.update(self.get_resource_counts(fieldwork))
-        context.update(self.get_resource_list_context())
-        context["hx_vals"] = json.dumps({"fieldwork_pk": str(fieldwork.pk)})
-
+        fieldwork = get_object_or_404(
+            Fieldwork.objects.annotate(
+                gwlmeasurementcount=Count('gwlmeasurements'),
+                samplecount=Count('samples')
+            ),
+            pk=self.kwargs["fieldwork_pk"]
+        )
+        context["fieldwork"] = fieldwork
+        context["gwlmeasurementcount"] = fieldwork.gwlmeasurementcount
+        context["samplecount"] = fieldwork.samplecount
         return context
 
 fieldwork_overview_view = FieldworkOverviewView.as_view()
@@ -190,44 +163,20 @@ project_list_view = ProjectListView.as_view()
 class LocationOverviewView(TemplateView):
     template_name = "core/location_overview.html"
 
-    def get_resource_counts(self, location):
-        """Keeping this for the pattern:
-            "samplecount": location.visits.aggregate(
-            total=Count('samples')
-                )['total'],
-        """
-
-        location = Location.objects.annotate(
-            gwlmeasurementcount=Count('gwlmeasurements'),
-            deploymentcount=Count('deployments'),
-            samplecount=Count('samples')
-        ).get(pk=location.pk)
-
-        views = {
-            "gwlmeasurementcount": location.gwlmeasurementcount,
-            "deploymentcount": location.deploymentcount,
-            "samplecount": location.samplecount
-        }
-
-        return views
-    
-    def get_resource_list_context(self):
-        views = {
-            "gwlmeasurements": GWLListView,
-            "deployments": DeploymentListView,
-            "samples": SampleListView,
-        }
-
-        return get_resource_list_context(self.request, self.kwargs, views)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-
-        context.update(self.get_resource_counts(location))
-        context.update(self.get_resource_list_context())
-        context["hx_vals"] = json.dumps({"location_pk": str(location.pk)})
-
+        location = get_object_or_404(
+            Location.objects.annotate(
+                gwlmeasurementcount=Count('gwlmeasurements'),
+                deploymentcount=Count('deployments'),
+                samplecount=Count('samples')
+            ),
+            pk=self.kwargs["location_pk"]
+        )
+        context["location"] = location
+        context["gwlmeasurementcount"] = location.gwlmeasurementcount
+        context["deploymentcount"] = location.deploymentcount
+        context["samplecount"] = location.samplecount
         return context
 
 location_overview_view = LocationOverviewView.as_view()

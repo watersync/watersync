@@ -6,8 +6,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, TemplateView, UpdateView
 
 from watersync.users.models import User
-from watersync.waterquality.views import ProtocolListView
-from watersync.core.generics.utils import get_resource_list_context
 from watersync.core.permissions import ApprovalRequiredMixin
 
 
@@ -49,15 +47,6 @@ user_redirect_view = UserRedirectView.as_view()
 
 class SettingsView(LoginRequiredMixin, ApprovalRequiredMixin, TemplateView):
     template_name = "users/settings/settings.html"
-
-    def get_resource_list_context(self, **kwargs):
-        views = {"protocols": ProtocolListView,}
-        return get_resource_list_context(self.request, self.kwargs, views)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(self.get_resource_list_context())
-        return context
 
 class ApprovalPendingView(TemplateView):
     template_name = 'users/approval_pending.html'

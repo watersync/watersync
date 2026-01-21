@@ -62,16 +62,10 @@
         </tr>
     </thead>
     <tbody hx-get="{{ list_config.list_url }}"
-        hx-trigger="revealed, configRequest from:body, {{ list_config.htmx_trigger }} from:body"
+        hx-trigger="{% if not htmx_context %}revealed, {% endif %}configRequest from:body, {{ list_config.htmx_trigger }} from:body"
         hx-vals='js:{{ hx_vals|default:"{}"|safe }}'
         {% if htmx_context %}hx-headers='{"HX-Context": "{{ htmx_context }}"}'{% endif %}>
-        <tr id="loading-spinner-row" class="bg-white">
-            <td colspan="4" class="text-center">
-                <div class="spinner-grow" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td>
-        </tr>
+        {% include "table.html" %}
     </tbody>
 </table>
 

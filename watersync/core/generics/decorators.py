@@ -13,6 +13,24 @@ def filter_by_location(view_func):
         return queryset
     return _wrapped_view
 
+def filter_by_fieldwork(view_func):
+    @wraps(view_func)
+    def _wrapped_view(self, *args, **kwargs):
+        queryset = view_func(self, *args, **kwargs)
+        if "fieldwork_pk" in self.request.GET:
+            queryset = queryset.filter(fieldwork__pk=self.request.GET.get("fieldwork_pk"))
+        return queryset
+    return _wrapped_view
+
+def filter_by_sample(view_func):
+    @wraps(view_func)
+    def _wrapped_view(self, *args, **kwargs):
+        queryset = view_func(self, *args, **kwargs)
+        if "sample_pk" in self.request.GET:
+            queryset = queryset.filter(sample__pk=self.request.GET.get("sample_pk"))
+        return queryset
+    return _wrapped_view
+
 def filter_by_conditions(*conditions):
     def decorator(view_func):
         @wraps(view_func)

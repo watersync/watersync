@@ -4,8 +4,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 
-from watersync.core.generics.decorators import filter_by_conditions, filter_by_location
-from watersync.core.generics.utils import get_resource_list_context
+from watersync.core.generics.decorators import filter_by_conditions, filter_by_location, filter_by_fieldwork
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -78,6 +77,7 @@ class SampleListView(WatersyncListView):
     model = Sample
     detail_type = "page"
 
+    @filter_by_fieldwork
     @filter_by_location
     def get_queryset(self):
         project = self.get_project()
@@ -93,23 +93,11 @@ class SampleDetailView(WatersyncDetailView):
 
 class SampleOverviewView(TemplateView):
     template_name = "waterquality/sample_overview.html"
-    
-    def get_resource_list_context(self):
-        views = {
-            "measurements": MeasurementListView,
-        }
-
-        return get_resource_list_context(self.request, self.kwargs, views)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        sample = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
-        context["project"] = project
-        context["sample"] = sample
-        context.update(self.get_resource_list_context())
-        context["hx_vals"] = json.dumps({"sample_pk": str(sample.pk)})
-
+        context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
+        context["sample"] = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
         return context
 
 sample_overview_view = SampleOverviewView.as_view()

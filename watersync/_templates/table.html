@@ -48,6 +48,12 @@
         {% endif %}
     </td>
 </tr>
+{% empty %}
+<tr>
+    <td colspan="100" class="text-center text-muted py-3">
+        <em>No data available</em>
+    </td>
+</tr>
 {% endfor %}
 
 

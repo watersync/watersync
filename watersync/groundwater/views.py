@@ -2,7 +2,7 @@ from watersync.core.models import Fieldwork, Location
 from watersync.groundwater.forms import GWLForm
 from watersync.groundwater.models import GWLManualMeasurement
 from watersync.core.generics.views import WatersyncCreateView, WatersyncUpdateView, WatersyncDeleteView, WatersyncListView
-from watersync.core.generics.decorators import filter_by_location
+from watersync.core.generics.decorators import filter_by_location, filter_by_fieldwork
 
 
 class GWLCreateView(WatersyncCreateView):
@@ -26,6 +26,7 @@ class GWLListView(WatersyncListView):
     model = GWLManualMeasurement
     detail_type = "popover"
 
+    @filter_by_fieldwork
     @filter_by_location
     def get_queryset(self):
         """Get the queryset for the list view."""

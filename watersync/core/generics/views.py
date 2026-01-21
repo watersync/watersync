@@ -13,6 +13,8 @@ TODO:
     good to unify these two approaches a bit.
 """
 
+import json
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import HttpResponse
@@ -100,6 +102,14 @@ class WatersyncListView(
         )
 
         context["list_config"] = list_config
+        
+        # Build hx_vals from filter parameters (location_pk, fieldwork_pk, sample_pk)
+        # These are passed via hx-vals in lazy-load requests and used for add button
+        filter_keys = ["location_pk", "fieldwork_pk", "sample_pk"]
+        hx_vals = {k: v for k, v in self.request.GET.items() if k in filter_keys}
+        if hx_vals:
+            context["hx_vals"] = json.dumps(hx_vals)
+        
         return context
 
 

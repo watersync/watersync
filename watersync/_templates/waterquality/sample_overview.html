@@ -10,12 +10,17 @@
 </div>
 <hr>
 <h3 class="text-muted">Measurements</h3>
-<p><em>Mind that you have to first delete all the resources linked to the location, before deleting the location
+<p><em>Mind that you have to first delete all the resources linked to the sample, before deleting the sample
         itself.</em></p>
-<div id="measurements" class="container p-4">
-    {% with list_config=measurements.list_config htmx_context="block" %}
-    {% include "list.html"%}
-    {% endwith %}
+{# Measurements - lazy loads when revealed #}
+<div id="measurements" class="container p-4"
+     hx-get="{% url 'waterquality:measurements' project.pk %}"
+     hx-vals='{"sample_pk": "{{ sample.pk }}"}'
+     hx-trigger="revealed once"
+     hx-headers='{"HX-Context": "block"}'>
+    <div class="spinner-grow" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
 </div>
 
 {% endblock content %}
