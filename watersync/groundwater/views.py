@@ -1,10 +1,8 @@
-from watersync.core.models import Fieldwork, Location, Project
+from watersync.core.models import Fieldwork, Location
 from watersync.groundwater.forms import GWLForm
 from watersync.groundwater.models import GWLManualMeasurement
 from watersync.core.generics.views import WatersyncCreateView, WatersyncUpdateView, WatersyncDeleteView, WatersyncListView
 from watersync.core.generics.decorators import filter_by_location
-
-from django.shortcuts import get_list_or_404
 
 
 class GWLCreateView(WatersyncCreateView):

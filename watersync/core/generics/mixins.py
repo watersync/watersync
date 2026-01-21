@@ -31,135 +31,55 @@ class ExportCsvMixin:
 class StandardURLMixin(ApprovalRequiredMixin):
     """Provide standardized URL handling for views.
 
-    This mixin provides URL name generation and model metadata for views.
-    Instance-level URL resolution is handled by ModelURLMixin on models.
-    Base template selection is handled by the url_context context processor.
-
-    Where possible, this mixin delegates to ModelURLMixin methods on the model
-    to maintain a single source of truth for URL conventions.
+    This mixin delegates URL generation to ModelURLMixin on models,
+    maintaining a single source of truth for URL conventions.
+    
+    All models should inherit from ModelURLMixin which provides the
+    actual URL generation logic.
 
     Properties:
         model_name: The name of the model.
-        model_name_plural: The plural name of the model with spaces removed.
-        app_label: The app label of the model.
-        model_verbose_name_plural: The verbose name plural of the model.
         htmx_trigger: The HTMX trigger name for this model.
         item_pk_name: The URL parameter name for this model's pk.
     """
 
-    class Meta:
-        abstract = True
-
-    def _model_has_url_mixin(self):
-        """Check if the model has ModelURLMixin methods available."""
-        return hasattr(self.model, '_get_url_model_name')
-
-    def _get_model_meta(self):
-        """Get model metadata safely."""
-        return getattr(self.model, "_meta", None)
-
     @property
     def model_name(self):
-        """Shortcut to get the model name."""
-        if self._model_has_url_mixin():
-            return self.model._get_url_model_name()
-        meta = self._get_model_meta()
-        return meta.model_name if meta else ""
-
-    @property
-    def model_name_plural(self):
-        """Shortcut to get the plural model name.
-
-        As this is used further to get the list URL.
-        """
-        if self._model_has_url_mixin():
-            return self.model._get_url_model_name_plural()
-        meta = self._get_model_meta()
-        if meta:
-            return meta.verbose_name_plural.replace(" ", "")
-        return ""
+        """Get the model name from the model's URL mixin."""
+        return self.model._get_url_model_name()
 
     @property
     def model_verbose_name_plural(self):
-        """Get the verbose name plural of the model.
-
-        This is used as title in the list view and other places.
-        """
-        if self._model_has_url_mixin():
-            return self.model._get_verbose_name_plural()
-        meta = self._get_model_meta()
-        return meta.verbose_name_plural if meta else ""
-
-    @property
-    def app_label(self):
-        """Shortcut to get the app label."""
-        if self._model_has_url_mixin():
-            return self.model._get_url_app_label()
-        meta = self._get_model_meta()
-        return meta.app_label if meta else ""
+        """Get the verbose name plural for display."""
+        return self.model._get_verbose_name_plural()
 
     @property
     def htmx_trigger(self):
-        """Compose the HTMX change action name for the view."""
-        if self._model_has_url_mixin():
-            return self.model.get_htmx_trigger()
-        return f"{self.model_name}Changed"
+        """Get the HTMX trigger name from the model."""
+        return self.model.get_htmx_trigger()
 
     @property
     def item_pk_name(self):
-        """Compose item's url parameter name.
-
-        As part of standardization, the model names are singular, and can be used
-        to compose the url parameter name representing the primary keys of item.
-        The convention here is to use the tag for an item as `model_name_pk`,
-        e.g., `sensor_pk` for the Sensor model records.
-        """
-        if self._model_has_url_mixin():
-            return self.model.get_item_pk_name()
-        return f"{self.model_name}_pk"
-
-    def _get_url_name(self, action):
-        """Compose the URL pattern for a given action.
-
-        Delegates to ModelURLMixin._get_url_name if available, otherwise
-        uses the standardized URL naming convention:
-        - For listing: `app_label:model_name_plural`, e.g., `sensors:sensors`
-        - For other actions: `app_label:action-model_name`, e.g., `sensors:add-sensor`
-        """
-        if self._model_has_url_mixin():
-            return self.model._get_url_name(action)
-        if action == "list":
-            return f"{self.app_label}:{self.model_name_plural}"
-        return f"{self.app_label}:{action}-{self.model_name}"
-
-    @property
-    def list_url(self):
-        """URL name for the list view."""
-        return self._get_url_name("list")
-
-    @property
-    def add_url(self):
-        """URL name for the add view."""
-        return self._get_url_name("add")
+        """Get the URL parameter name for this model's pk."""
+        return self.model.get_item_pk_name()
 
     @property
     def item_pk(self):
-        """Get the primary key of the item."""
+        """Get the primary key of the item from URL kwargs."""
         return self.kwargs.get(self.item_pk_name)
 
     def get_list_url(self, **kwargs):
         """Get the resolved list URL."""
-        return reverse(self.list_url, kwargs=kwargs)
+        url_name = self.model._get_url_name("list")
+        return reverse(url_name, kwargs=kwargs)
 
     def get_add_url(self, **kwargs):
         """Get the resolved add URL."""
-        return reverse(self.add_url, kwargs=kwargs)
+        url_name = self.model._get_url_name("add")
+        return reverse(url_name, kwargs=kwargs)
 
     def get_project(self):
-        """Get the project object from the URL kwargs.
-        
-        Used for filtering querysets by project in list views.
-        """
+        """Get the project object from the URL kwargs."""
         if project_pk := self.kwargs.get("project_pk"):
             return get_object_or_404(Project, pk=project_pk)
         return None

@@ -7,7 +7,7 @@
     {% endfor %}
     <td>
         {# Detail button - modal style #}
-        {% if list_context.has_detail %}
+        {% if list_config.detail_type == "modal" %}
         <button type="button" class="btn btn-sm btn-info m-1"
             hx-get="{{ obj.get_detail_url }}" hx-target="#ofc-dialog"
             hx-trigger="click"
@@ -17,30 +17,30 @@
         {% endif %}
 
         {# Detail button - page style (overview) #}
-        {% if list_context.has_detail_page %}
+        {% if list_config.detail_type == "page" %}
         <a class="btn btn-sm btn-info" href="{{ obj.get_overview_url }}">
             Open<i class="fa-solid fa-arrow-right mx-2"></i>
         </a>
         {% endif %}
 
         {# Detail button - popover style #}
-        {% if list_context.has_detail_popover %}
+        {% if list_config.detail_type == "popover" %}
         <button type="button" class="btn btn-sm btn-info" data-toggle="popover" data-bs-trigger="focus"
             data-bs-placement="top" title="Comment" data-bs-content="{{ obj.description }}">
             <i class="fas fa-info"></i>
         </button>
         {% endif %}
 
-        {# Update button - uses model method #}
-        {% if list_context.has_update %}
+        {# Update button #}
+        {% if list_config.has_update %}
         <button type="button" class="btn btn-sm btn-warning m-1"
             hx-get="{{ obj.get_update_url }}" hx-target="#dialog" title="Edit">
             <i class="fas fa-edit"></i>
         </button>
         {% endif %}
 
-        {# Delete button - uses model method #}
-        {% if list_context.has_delete %}
+        {# Delete button #}
+        {% if list_config.has_delete %}
         <button type="button" class="btn btn-sm btn-danger m-1"
             hx-get="{{ obj.get_delete_url }}" hx-target="#dialog" title="Delete">
             <i class="fas fa-trash"></i>

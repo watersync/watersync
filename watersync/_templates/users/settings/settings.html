@@ -14,7 +14,7 @@
       <div id="flush-collapsProtocols" class="accordion-collapse collapse" aria-labelledby="flush-protocols" data-bs-parent="#accordionSettings">
         <div class="accordion-body">
           <div id="protocols" class="container p-4">
-            {% with list_context=protocols.list_context htmx_context="block" %}
+            {% with list_config=protocols.list_config htmx_context="block" %}
                 {% include "list.html"%}
             {% endwith %}
         </div>

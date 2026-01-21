@@ -27,7 +27,7 @@ from django.views.generic import (
 
 from docstring_parser import parse_from_object
 
-from watersync.core.generics.context import ListContext
+from watersync.core.generics.context import ListConfig
 from watersync.core.generics.htmx import HTMXFormMixin
 from watersync.core.generics.mixins import CreateUpdateDetailMixin, ExportCsvMixin, StandardURLMixin
 from django.utils import timezone
@@ -41,15 +41,10 @@ class WatersyncListView(
 ):
     """Base view for listing objects.
 
-    It contains the basic setup that is shared between all list views.
-    The individual list view can override default settings by setting
-    the class attributes.
-
-    This view relies on use of generic names for items in the apps.
-
-    For now, it all works on the premise that all the views are under
-    the project view.
-
+    Template context includes:
+        - list_config: ListConfig with URLs, columns, title, descriptions,
+          and feature flags (has_bulk_create, has_update, has_delete, detail_type)
+        
     Template selection is handled via context processor setting `base_template`:
     - HTMX requests: base_template = 'layouts/partial.html' (no wrapper)
     - Full page: base_template = appropriate dashboard layout
@@ -57,28 +52,9 @@ class WatersyncListView(
     Within the template, list_page.html uses conditional includes:
     - HTMX without HX-Context: renders table.html (just table rows)
     - All other cases: renders list.html (full list component)
-
-    Attributes:
-        detail_type: The type of the detail view. It can be either "page"
-            or "modal".
-        template_name: The name of the template used for the list view.
-
-    Properties:
-        model_name: The model name of the object.
-        model_name_plural: The plural model name of the object.
-        app_label: The app label of the object.
-        action: The HTMX action name of the view.
-        list_url: The URL name for the list view.
-        add_url: The URL name for the add view.
-        update_url: The URL name for the update view.
-        delete_url: The URL name for the delete view.
-        detail_url: The URL name for the detail view.
-        item_pk_name: The primary key of the item.
-        item_pk: The primary key of the item.
-        item: The item object from the URL.
     """
 
-    detail_type: str
+    detail_type: str = None  # Fallback if model doesn't define _detail_type
     template_name = "list_page.html"
     docstr: str | None = None
 
@@ -86,11 +62,6 @@ class WatersyncListView(
         super().setup(request, *args, **kwargs)
         self.docstr = parse_from_object(self.model)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields["type"].widget.attrs["hx-get"] = self.request.path
-        return form
-    
     def _get_list_view_fields(self):
         """Get list view fields safely."""
         return getattr(self.model, "_list_view_fields", {})
@@ -110,26 +81,25 @@ class WatersyncListView(
 
         base_kwargs = self.get_base_url_kwargs()
         
-        # Get config from model or fall back to view-level detail_type
+        # Get config from model (with defaults)
         detail_type = getattr(self.model, "_detail_type", None) or self.detail_type
 
-        list_context = ListContext(
+        # ListConfig with all values needed by templates
+        list_config = ListConfig(
             add_url=self.get_add_url(**base_kwargs),
-            has_bulk_create=getattr(self.model, "_has_bulk_create", False),
             list_url=self.get_list_url(**base_kwargs),
+            htmx_trigger=self.htmx_trigger,
+            columns=list(self._get_list_view_fields().keys()),
+            title=self.model_verbose_name_plural,
+            detail_type=detail_type,
+            has_bulk_create=getattr(self.model, "_has_bulk_create", False),
             has_update=getattr(self.model, "_has_update", True),
             has_delete=getattr(self.model, "_has_delete", True),
-            has_detail=detail_type == "modal",
-            has_detail_page=detail_type == "page",
-            has_detail_popover=detail_type == "popover",
-            action=self.htmx_trigger,
-            columns=self._get_list_view_fields().keys(),
             explanation=self.docstr.short_description,
             explanation_detail=self.docstr.long_description,
-            title=self.model_verbose_name_plural,
         )
 
-        context["list_context"] = list_context
+        context["list_config"] = list_config
         return context
 
 
