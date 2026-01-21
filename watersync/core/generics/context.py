@@ -9,9 +9,8 @@ class ListConfig:
     Values come from model class attributes and view computations.
     
     Attributes:
-        add_url: Resolved URL to add a new object.
-        list_url: Resolved URL for the list view.
-        htmx_trigger: HTMX trigger action name (e.g., 'sensorChanged').
+        list_url: Resolved URL for the list view (used for "See all" link).
+        tbody_id: Unique ID for the table body element.
         columns: List of column names for table headers.
         title: Title for the list view (model's verbose_name_plural).
         explanation: Short description from model docstring.
@@ -22,9 +21,8 @@ class ListConfig:
         has_delete: Whether delete is supported.
     """
 
-    add_url: str
     list_url: str
-    htmx_trigger: str
+    tbody_id: str
     columns: list
     title: str
     detail_type: str | None = None

@@ -134,13 +134,11 @@ class HTMXFormMixin(UpdateFormMixin):
         self.update_user(instance)
 
         if self.request.htmx:
-            headers = (
-                {"Hx-Trigger": self.htmx_trigger}
-                if self.htmx_trigger
-                else {}
+            # Use standard "refreshList" event - all list tbodys listen for this
+            return HttpResponse(
+                status=self.htmx_response_status, 
+                headers={"HX-Trigger": "refreshList"}
             )
-
-            return HttpResponse(status=self.htmx_response_status, headers=headers)
         return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
 
     def form_invalid(self, form):

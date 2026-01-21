@@ -30,7 +30,6 @@ class ModelURLMixin:
         - delete_url_name: URL name for delete view
 
     Properties for view integration:
-        - htmx_trigger: HTMX trigger name for this model
         - item_pk_name: URL parameter name for this model's pk
         - verbose_name_plural: The verbose plural name (for display)
     """
@@ -120,15 +119,6 @@ class ModelURLMixin:
     # -------------------------------------------------------------------------
     # View Integration Properties
     # -------------------------------------------------------------------------
-
-    @classmethod
-    def get_htmx_trigger(cls):
-        """Compose the HTMX change action name for this model.
-
-        Returns a string like 'sensorChanged' that can be used as an
-        HX-Trigger header value to notify other components of changes.
-        """
-        return f"{cls._get_url_model_name()}Changed"
 
     @classmethod
     def get_item_pk_name(cls):

@@ -88,9 +88,8 @@ class WatersyncListView(
 
         # ListConfig with all values needed by templates
         list_config = ListConfig(
-            add_url=self.get_add_url(**base_kwargs),
             list_url=self.get_list_url(**base_kwargs),
-            htmx_trigger=self.htmx_trigger,
+            tbody_id=f"{self.model_name}-tbody",
             columns=list(self._get_list_view_fields().keys()),
             title=self.model_verbose_name_plural,
             detail_type=detail_type,
@@ -205,7 +204,7 @@ class WatersyncDeleteView(
             self.object.delete()
 
             headers = {
-                "HX-Trigger": "configRequest",
+                "HX-Trigger": "refreshList",
             }
 
             if redirect_url:

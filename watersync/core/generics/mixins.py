@@ -39,7 +39,6 @@ class StandardURLMixin(ApprovalRequiredMixin):
 
     Properties:
         model_name: The name of the model.
-        htmx_trigger: The HTMX trigger name for this model.
         item_pk_name: The URL parameter name for this model's pk.
     """
 
@@ -54,19 +53,9 @@ class StandardURLMixin(ApprovalRequiredMixin):
         return self.model._get_verbose_name_plural()
 
     @property
-    def htmx_trigger(self):
-        """Get the HTMX trigger name from the model."""
-        return self.model.get_htmx_trigger()
-
-    @property
     def item_pk_name(self):
         """Get the URL parameter name for this model's pk."""
         return self.model.get_item_pk_name()
-
-    @property
-    def item_pk(self):
-        """Get the primary key of the item from URL kwargs."""
-        return self.kwargs.get(self.item_pk_name)
 
     def get_list_url(self, **kwargs):
         """Get the resolved list URL."""
