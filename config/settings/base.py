@@ -84,6 +84,7 @@ DJANGO_APPS = [
     "django.forms",
 ]
 THIRD_PARTY_APPS = [
+    "django_cotton.apps.SimpleAppConfig",
     "crispy_forms",
     "crispy_bootstrap5",
     "bootstrap_datepicker_plus",
@@ -199,9 +200,24 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#dirs
         "DIRS": [str(APPS_DIR / "_templates")],
-        # https://docs.djangoproject.com/en/dev/ref/settings/#app-dirs
-        "APP_DIRS": True,
+        # When using custom loaders, APP_DIRS must be False
+        "APP_DIRS": False,
         "OPTIONS": {
+            # Django Cotton requires explicit loaders configuration
+            "loaders": [
+                (
+                    "django.template.loaders.cached.Loader",
+                    [
+                        "django_cotton.cotton_loader.Loader",
+                        "django.template.loaders.filesystem.Loader",
+                        "django.template.loaders.app_directories.Loader",
+                    ],
+                ),
+            ],
+            # Django Cotton templatetags must be in builtins
+            "builtins": [
+                "django_cotton.templatetags.cotton",
+            ],
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
                 "django.template.context_processors.debug",
