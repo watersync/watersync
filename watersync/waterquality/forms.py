@@ -39,10 +39,42 @@ class SampleForm(forms.ModelForm):
             "measured_on",
             "protocol",
             "parameter_group",
+            "field_sample",
             "container_type",
             "volume_collected",
             "replica_number",
             "description",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter field_sample to only show FIELD parameter samples
+        field_sample_qs = Sample.objects.filter(parameter_group="FIELD")
+        
+        # Further filter by location if available (from initial data or instance)
+        location = None
+        if self.instance.pk and self.instance.location:
+            location = self.instance.location
+        elif self.initial.get("location"):
+            location = self.initial["location"]
+        
+        if location:
+            field_sample_qs = field_sample_qs.filter(location=location)
+        
+        # Further filter by fieldwork if available
+        fieldwork = None
+        if self.instance.pk and self.instance.fieldwork:
+            fieldwork = self.instance.fieldwork
+        elif self.initial.get("fieldwork"):
+            fieldwork = self.initial["fieldwork"]
+            
+        if fieldwork:
+            field_sample_qs = field_sample_qs.filter(fieldwork=fieldwork)
+        
+        self.fields["field_sample"].queryset = field_sample_qs.order_by("-fieldwork__date")
+        self.fields["field_sample"].label = "Field Measurement Sample"
+        self.fields["field_sample"].help_text = (
+            "Link to the field measurements (PARAMS) sample taken at the same time"
         )
 
 

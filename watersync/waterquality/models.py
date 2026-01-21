@@ -64,6 +64,16 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
     replica_number = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)
 
+    # Link lab samples to their associated field measurement sample
+    field_sample = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lab_samples',
+        help_text="Link to the field measurement sample (PARAMS) taken at the same time/location"
+    )
+
     # in case of external samples, provide the source, location and date
     is_external = models.BooleanField(default=False)
     source = models.CharField(max_length=100, blank=True, null=True)
@@ -97,6 +107,40 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
         date_str = self.fieldwork.date.strftime("%Y%m%d") if self.fieldwork else "no-date"
         location_str = slugify(self.location.name) if self.location else "no-location"
         return f"{date_str}/{location_str}/{self.parameter_group}/{self.replica_number}"
+
+    def clean(self):
+        """Validate field_sample only points to FIELD parameter samples."""
+        super().clean()
+        if self.field_sample:
+            if self.field_sample.parameter_group != 'FIELD':
+                raise ValidationError({
+                    'field_sample': "Can only link to a Field Parameters sample"
+                })
+            if self.field_sample_id == self.pk:
+                raise ValidationError({
+                    'field_sample': "A sample cannot link to itself"
+                })
+
+    def get_field_measurements(self):
+        """Get associated field measurements.
+        
+        For FIELD samples, returns own measurements.
+        For lab samples with a linked field_sample, returns field_sample's measurements.
+        """
+        if self.parameter_group == 'FIELD':
+            return self.measurements.all()
+        elif self.field_sample:
+            return self.field_sample.measurements.all()
+        return Measurement.objects.none()
+
+    def get_all_measurements(self):
+        """Get both field and lab measurements together.
+        
+        For lab samples, combines the linked field measurements with own lab measurements.
+        """
+        field = self.get_field_measurements()
+        lab = self.measurements.all() if self.parameter_group != 'FIELD' else Measurement.objects.none()
+        return field | lab
 
 class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
     """Individual measurements of parameters in a sample.
