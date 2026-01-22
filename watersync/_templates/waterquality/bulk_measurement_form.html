@@ -1,0 +1,270 @@
+{% load crispy_forms_tags %}
+
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ form.title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form hx-post="{{ request.path }}" hx-target="#dialog" hx-encoding="multipart/form-data" id="bulk-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for param_name, pk in parent_pks %}
+            <input type="hidden" name="{{ param_name }}" value="{{ pk }}" id="hidden_{{ param_name }}">
+            {% endfor %}
+            
+            {{ form.bulk }}
+            <input type="hidden" name="input_mode" id="input_mode" value="paste">
+            
+            <div class="mb-3">
+                {{ form.sample|crispy }}
+            </div>
+            
+            {# Tab Navigation #}
+            <ul class="nav nav-tabs mb-3" id="bulkInputTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="paste-tab" data-bs-toggle="tab" 
+                            data-bs-target="#paste-content" type="button" role="tab"
+                            onclick="document.getElementById('input_mode').value='paste'">
+                        <i class="fas fa-paste"></i> Paste Data
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="formset-tab" data-bs-toggle="tab" 
+                            data-bs-target="#formset-content" type="button" role="tab"
+                            onclick="document.getElementById('input_mode').value='formset'">
+                        <i class="fas fa-table"></i> Manual Entry
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="file-tab" data-bs-toggle="tab" 
+                            data-bs-target="#file-content" type="button" role="tab"
+                            onclick="document.getElementById('input_mode').value='file'">
+                        <i class="fas fa-file-upload"></i> Upload File
+                    </button>
+                </li>
+            </ul>
+            
+            {# Tab Content #}
+            <div class="tab-content" id="bulkInputTabContent">
+                {# Paste Tab #}
+                <div class="tab-pane fade show active" id="paste-content" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="id_data" class="form-label">Paste Data</label>
+                        <textarea 
+                            name="data" 
+                            id="id_data" 
+                            class="form-control {% if form.data.errors %}is-invalid{% endif %}"
+                            rows="8"
+                            placeholder="ph&#9;7.2&#9;pH_unit&#10;temperature&#9;22.5&#9;degC&#10;electrical_conductivity&#9;1250&#9;uS/cm"
+                            hx-post="{{ preview_url }}"
+                            hx-trigger="input changed delay:500ms"
+                            hx-target="#bulk-preview"
+                            hx-include="this, #hidden_sample_pk">{{ form.data.value|default:"" }}</textarea>
+                        <div class="form-text">
+                            Paste tab or comma-separated data: <code>parameter_code, value, unit</code>
+                        </div>
+                        {% if form.data.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.data.errors %}{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="bulk-preview">
+                        {% include "waterquality/bulk_preview.html" %}
+                    </div>
+                </div>
+                
+                {# Manual Entry Tab #}
+                <div class="tab-pane fade" id="formset-content" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="formset-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                    <th>Unit</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="formset-rows">
+                                {{ formset.management_form }}
+                                {% for row_form in formset %}
+                                <tr class="formset-row">
+                                    <td>
+                                        <select name="{{ row_form.parameter.html_name }}" 
+                                                class="form-select form-select-sm parameter-select"
+                                                onchange="updateUnitOptions(this)">
+                                            <option value="">-- Select --</option>
+                                            {% for value, label in row_form.parameter.field.choices %}
+                                            {% if value %}
+                                            <option value="{{ value }}">{{ label }}</option>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" step="any" 
+                                               name="{{ row_form.value.html_name }}"
+                                               class="form-control form-control-sm">
+                                    </td>
+                                    <td>
+                                        <select name="{{ row_form.unit.html_name }}" 
+                                                class="form-select form-select-sm unit-select">
+                                            <option value="">-- Select --</option>
+                                            {% for value, label in row_form.unit.field.choices %}
+                                            {% if value %}
+                                            <option value="{{ value }}">{{ label }}</option>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="clearRow(this)" title="Clear row">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFormsetRow()">
+                        <i class="fas fa-plus"></i> Add Row
+                    </button>
+                </div>
+                
+                {# File Upload Tab #}
+                <div class="tab-pane fade" id="file-content" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="id_file" class="form-label">Upload File</label>
+                        <input type="file" name="file" id="id_file" 
+                               class="form-control {% if form.file.errors %}is-invalid{% endif %}"
+                               accept=".csv,.xlsx,.xls"
+                               hx-post="{{ preview_url }}"
+                               hx-trigger="change"
+                               hx-target="#file-preview"
+                               hx-encoding="multipart/form-data"
+                               hx-include="#hidden_sample_pk">
+                        <div class="form-text">
+                            Upload a CSV or Excel file with columns: <code>parameter</code>, <code>value</code>, <code>unit</code>
+                        </div>
+                        {% if form.file.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.file.errors %}{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {# File preview area #}
+                    <div id="file-preview">
+                        <div class="text-muted small">
+                            <i class="fas fa-info-circle"></i> Select a file to see a preview.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info small mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Expected format:</strong>
+                        <table class="table table-sm table-bordered mt-2 mb-0 bg-white">
+                            <thead>
+                                <tr><th>parameter</th><th>value</th><th>unit</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>ph</td><td>7.2</td><td>pH_unit</td></tr>
+                                <tr><td>temperature</td><td>22.5</td><td>degC</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3">
+                {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Measurements
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Parameter to units mapping (passed from Django)
+const parameterUnits = {{ parameters_json|safe|default:"{}" }};
+
+function updateUnitOptions(paramSelect) {
+    const row = paramSelect.closest('tr');
+    const unitSelect = row.querySelector('.unit-select');
+    const selectedParam = paramSelect.value;
+    
+    // Clear current options
+    unitSelect.innerHTML = '<option value="">-- Select --</option>';
+    
+    if (selectedParam && parameterUnits[selectedParam]) {
+        const units = parameterUnits[selectedParam].units || {};
+        const defaultUnit = parameterUnits[selectedParam].default_unit;
+        
+        // units is a dict: {code: label}
+        Object.entries(units).forEach(([code, label]) => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = label;
+            unitSelect.appendChild(option);
+        });
+        
+        // Auto-select default unit
+        if (defaultUnit) {
+            unitSelect.value = defaultUnit;
+        }
+    }
+}
+
+function clearRow(btn) {
+    const row = btn.closest('tr');
+    row.querySelectorAll('input, select').forEach(el => {
+        el.value = '';
+    });
+    // Also reset the unit dropdown
+    const unitSelect = row.querySelector('.unit-select');
+    if (unitSelect) {
+        unitSelect.innerHTML = '<option value="">-- Select --</option>';
+    }
+}
+
+function addFormsetRow() {
+    const tbody = document.getElementById('formset-rows');
+    const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+    const currentCount = parseInt(totalForms.value);
+    
+    // Clone the first row and update field names
+    const firstRow = tbody.querySelector('.formset-row');
+    const newRow = firstRow.cloneNode(true);
+    
+    // Update all field names with new index
+    newRow.querySelectorAll('input, select').forEach(el => {
+        if (el.name) {
+            el.name = el.name.replace(/form-\d+/, `form-${currentCount}`);
+        }
+        el.value = '';
+    });
+    
+    // Reset the unit select to just the placeholder
+    const unitSelect = newRow.querySelector('.unit-select');
+    if (unitSelect) {
+        unitSelect.innerHTML = '<option value="">-- Select --</option>';
+    }
+    
+    tbody.appendChild(newRow);
+    totalForms.value = currentCount + 1;
+}
+</script>

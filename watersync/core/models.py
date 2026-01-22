@@ -147,6 +147,10 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
     # URL configuration for ModelURLMixin
     _url_parent_field = "project"
     _url_parent_param = "project_pk"
+    
+    # Enable bulk creation
+    _has_bulk_create = True
+    
     class WeatherConditions(models.TextChoices):
         SUNNY = "sunny", "Sunny"
         CLOUDY = "cloudy", "Cloudy"

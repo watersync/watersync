@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from watersync.core.views import fieldwork_create_view, fieldwork_update_view, fieldwork_delete_view, fieldwork_detail_view, fieldwork_list_view, fieldwork_overview_view, location_create_view, location_delete_view, location_detail_view, location_overview_view, location_update_view, project_create_view, project_delete_view, project_detail_view, project_update_view
+from watersync.core.views import fieldwork_create_view, fieldwork_update_view, fieldwork_delete_view, fieldwork_detail_view, fieldwork_list_view, fieldwork_overview_view, fieldwork_bulk_preview_view, location_create_view, location_delete_view, location_detail_view, location_overview_view, location_update_view, project_create_view, project_delete_view, project_detail_view, project_update_view
 from watersync.core.views import (
     location_list_view,
 )
@@ -29,6 +29,7 @@ project_urlpatterns = [
 fieldwork_urlpatterns = [
     path("", fieldwork_list_view, name="fieldworks"),
     path("add/", fieldwork_create_view, name="add-fieldwork"),
+    path("add/preview/", fieldwork_bulk_preview_view, name="preview-fieldwork"),
     path("<str:fieldwork_pk>/", fieldwork_detail_view, name="detail-fieldwork"),
     path("<str:fieldwork_pk>/update/", fieldwork_update_view, name="update-fieldwork"),
     path("<str:fieldwork_pk>/delete/", fieldwork_delete_view, name="delete-fieldwork"),

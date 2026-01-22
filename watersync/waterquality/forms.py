@@ -13,6 +13,11 @@ from watersync.core.config import (
     is_valid_unit_for_parameter,
 )
 from watersync.waterquality.models import Measurement, Sample
+from watersync.waterquality.utils import parse_bulk_file, parse_bulk_measurement_data
+from watersync.waterquality.validators import (
+    check_duplicate_measurements,
+    get_allowed_parameters_for_sample,
+)
 
 
 class SampleForm(forms.ModelForm):
@@ -138,75 +143,177 @@ class MeasurementForm(forms.ModelForm):
         return cleaned_data
 
 
-class MeasurementBulkForm(forms.Form):
-    """Form for bulk adding measurements from pasted data.
-
-    Expected data format: parameter, value, unit (tab or comma separated)
-    """
-
-    bulk = forms.CharField(widget=forms.HiddenInput(), initial="true", required=False)
-    sample = forms.ModelChoiceField(
-        queryset=Sample.objects.all(),
-        label="Sample",
-        help_text="Select the sample to which these measurements belong.",
+class MeasurementRowForm(forms.Form):
+    """Single row form for the formset approach."""
+    
+    parameter = forms.ChoiceField(
+        choices=lambda: get_parameter_choices(),
+        required=False,
     )
-    data = forms.CharField(
-        label="Data",
-        help_text="Paste tab-separated or comma-separated data with columns: "
-        "parameter, value, unit",
-        widget=Textarea(attrs={"rows": 5}),
+    value = forms.DecimalField(
+        max_digits=20,
+        decimal_places=10,
+        required=False,
+    )
+    unit = forms.ChoiceField(
+        choices=lambda: get_all_wq_unit_choices(),
+        required=False,
     )
 
     def clean(self):
         cleaned_data = super().clean()
+        parameter = cleaned_data.get("parameter")
+        value = cleaned_data.get("value")
+        unit = cleaned_data.get("unit")
+        
+        # If any field is filled, all must be filled
+        has_data = any([parameter, value is not None, unit])
+        if has_data:
+            if not parameter:
+                raise forms.ValidationError("Parameter is required")
+            if value is None:
+                raise forms.ValidationError("Value is required")
+            if not unit:
+                raise forms.ValidationError("Unit is required")
+            # Validate unit for parameter
+            if not is_valid_unit_for_parameter(parameter, unit):
+                raise forms.ValidationError(
+                    f"Unit '{unit}' is not valid for parameter '{parameter}'"
+                )
+        return cleaned_data
 
-        # Only process if data field is present and valid
-        if "data" in cleaned_data and isinstance(cleaned_data["data"], str):
-            data_str = cleaned_data["data"]
-            processed_data = []
 
-            lines = data_str.splitlines()
-            for i, line in enumerate(lines, 1):
-                if not line.strip():
-                    continue
+# Create formset for multiple measurement rows
+from django.forms import formset_factory
+MeasurementRowFormSet = formset_factory(MeasurementRowForm, extra=5, can_delete=False)
 
-                fields = line.split("\t") if "\t" in line else line.split(",")
-                if len(fields) != 3:
-                    raise forms.ValidationError(
-                        f"Line {i}: Expected 3 fields (parameter, value, unit), got {len(fields)}."
-                    )
 
-                parameter, value, unit = [f.strip() for f in fields]
+class MeasurementBulkForm(forms.Form):
+    """Form for bulk adding measurements from pasted data.
 
-                # Validate parameter
-                valid_params = [k for k, _ in get_parameter_choices()]
-                if parameter not in valid_params:
-                    raise forms.ValidationError(
-                        f"Line {i}: Unknown parameter '{parameter}'."
-                    )
+    Supports three input modes:
+    - paste: Tab or comma separated text
+    - formset: Interactive form with dropdowns
+    - file: CSV/Excel file upload
+    """
 
-                # Validate value
-                try:
-                    value = float(value)
-                except ValueError:
-                    raise forms.ValidationError(
-                        f"Line {i}: Value '{value}' is not a valid number."
-                    )
+    title = "Bulk Add Measurements"
+    
+    INPUT_MODE_CHOICES = [
+        ("paste", "Paste Data"),
+        ("formset", "Manual Entry"),
+        ("file", "Upload File"),
+    ]
+    
+    bulk = forms.CharField(widget=forms.HiddenInput(), initial="true", required=False)
+    input_mode = forms.ChoiceField(
+        choices=INPUT_MODE_CHOICES,
+        initial="paste",
+        widget=forms.HiddenInput(),
+        required=False,
+    )
+    # Note: sample can come from 'sample' field OR 'sample_pk' hidden input
+    sample = forms.ModelChoiceField(
+        queryset=Sample.objects.all(),
+        label="Sample",
+        required=False,  # We'll validate in clean()
+        help_text="Select the sample to which these measurements belong.",
+    )
+    # Paste mode field
+    data = forms.CharField(
+        label="Paste Data",
+        help_text="Paste tab-separated or comma-separated data with columns: "
+        "parameter, value, unit.",
+        required=False,
+        widget=Textarea(attrs={"rows": 8}),
+    )
+    # File upload field
+    file = forms.FileField(
+        label="Upload File",
+        help_text="Upload a CSV or Excel file with columns: parameter, value, unit",
+        required=False,
+    )
 
-                # Validate unit for parameter
-                if not is_valid_unit_for_parameter(parameter, unit):
-                    raise forms.ValidationError(
-                        f"Line {i}: Unit '{unit}' is not valid for parameter '{parameter}'."
-                    )
-
-                processed_data.append({
-                    "sample": cleaned_data.get("sample"),
-                    "parameter": parameter,
-                    "value": value,
-                    "unit": unit,
-                })
-
-            # Store the processed data back in cleaned_data
-            cleaned_data["processed_data"] = processed_data
-
+    def clean(self):
+        cleaned_data = super().clean()
+        input_mode = cleaned_data.get("input_mode", "paste")
+        
+        # Handle sample from either 'sample' field or 'sample_pk' hidden input
+        sample = cleaned_data.get("sample")
+        if not sample and self.data.get("sample_pk"):
+            try:
+                sample = Sample.objects.get(pk=self.data.get("sample_pk"))
+                cleaned_data["sample"] = sample
+            except Sample.DoesNotExist:
+                raise forms.ValidationError("Invalid sample selected.")
+        
+        if not sample:
+            raise forms.ValidationError("Please select a sample.")
+        
+        processed_data = []
+        
+        if input_mode == "paste":
+            data_str = cleaned_data.get("data", "")
+            if data_str:
+                rows = parse_bulk_measurement_data(data_str)
+                invalid_rows = [r for r in rows if not r["is_valid"]]
+                if invalid_rows:
+                    errors = [f"Line {r['line_num']}: {r['error']}" for r in invalid_rows]
+                    raise forms.ValidationError(errors)
+                
+                for row in rows:
+                    processed_data.append({
+                        "sample": sample,
+                        "parameter": row["parameter"],
+                        "value": float(row["value"]),
+                        "unit": row["unit"],
+                    })
+        
+        elif input_mode == "file":
+            uploaded_file = cleaned_data.get("file")
+            if uploaded_file:
+                rows, error = parse_bulk_file(uploaded_file)
+                if error:
+                    raise forms.ValidationError(error)
+                
+                invalid_rows = [r for r in rows if not r["is_valid"]]
+                if invalid_rows:
+                    errors = [f"Line {r['line_num']}: {r['error']}" for r in invalid_rows]
+                    raise forms.ValidationError(errors)
+                
+                for row in rows:
+                    processed_data.append({
+                        "sample": sample,
+                        "parameter": row["parameter"],
+                        "value": float(row["value"]),
+                        "unit": row["unit"],
+                    })
+        
+        # Formset data is handled separately in the view
+        
+        if not processed_data and input_mode != "formset":
+            raise forms.ValidationError("No valid measurement data provided.")
+        
+        # Validate parameters and check for duplicates using validators
+        if processed_data and sample:
+            allowed_params = get_allowed_parameters_for_sample(sample)
+            invalid_params = [
+                d["parameter"] for d in processed_data 
+                if d["parameter"] not in allowed_params
+            ]
+            if invalid_params:
+                raise forms.ValidationError(
+                    f"These parameters are not in the sample's group ({sample.parameter_group}): {', '.join(invalid_params)}"
+                )
+            
+            duplicates = check_duplicate_measurements(
+                sample, 
+                [d["parameter"] for d in processed_data]
+            )
+            if duplicates:
+                raise forms.ValidationError(
+                    f"Measurements for these parameters already exist for this sample: {', '.join(duplicates)}"
+                )
+            
+        cleaned_data["processed_data"] = processed_data
         return cleaned_data

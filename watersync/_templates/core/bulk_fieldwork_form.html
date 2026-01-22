@@ -1,0 +1,158 @@
+{% load crispy_forms_tags %}
+
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ form.title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form hx-post="{{ request.path }}" hx-target="#dialog" hx-encoding="multipart/form-data" id="bulk-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for param_name, pk in parent_pks %}
+            <input type="hidden" name="{{ param_name }}" value="{{ pk }}" id="hidden_{{ param_name }}">
+            {% endfor %}
+            {# Ensure project_pk hidden field exists for hx-include #}
+            <input type="hidden" name="project_pk" value="{{ project_pk }}" id="hidden_project_pk">
+            
+            {{ form.bulk }}
+            <input type="hidden" name="input_mode" id="input_mode" value="paste">
+            
+            {# User selection #}
+            <div class="mb-3">
+                <label class="form-label">Assign Users to All Fieldwork Entries</label>
+                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                    {% for choice in form.user.field.queryset %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               name="user" value="{{ choice.pk }}" 
+                               id="user_{{ choice.pk }}">
+                        <label class="form-check-label" for="user_{{ choice.pk }}">
+                            {% firstof choice.get_full_name choice.username choice.email %}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="form-text">These users will be assigned to all created fieldwork entries.</div>
+                {% if form.user.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.user.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            {# Tab Navigation #}
+            <ul class="nav nav-tabs mb-3" id="bulkInputTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="paste-tab" data-bs-toggle="tab" 
+                            data-bs-target="#paste-content" type="button" role="tab"
+                            onclick="document.getElementById('input_mode').value='paste'">
+                        <i class="fas fa-paste"></i> Paste Data
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="file-tab" data-bs-toggle="tab" 
+                            data-bs-target="#file-content" type="button" role="tab"
+                            onclick="document.getElementById('input_mode').value='file'">
+                        <i class="fas fa-file-upload"></i> Upload File
+                    </button>
+                </li>
+            </ul>
+            
+            {# Tab Content #}
+            <div class="tab-content" id="bulkInputTabContent">
+                {# Paste Tab #}
+                <div class="tab-pane fade show active" id="paste-content" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="id_data" class="form-label">Paste Data</label>
+                        <textarea 
+                            name="data" 
+                            id="id_data" 
+                            class="form-control {% if form.data.errors %}is-invalid{% endif %}"
+                            rows="8"
+                            placeholder="2024-01-15&#9;08:30&#9;16:00&#9;sunny&#9;Regular monitoring&#10;2024-01-16&#9;09:00&#9;17:30&#9;cloudy&#9;Sampling campaign"
+                            hx-post="{{ preview_url }}"
+                            hx-trigger="input changed delay:500ms"
+                            hx-target="#bulk-preview"
+                            hx-include="#hidden_project_pk">{{ form.data.value|default:"" }}</textarea>
+                        <div class="form-text">
+                            Paste tab or comma-separated data: <code>date, start_time, end_time, weather, description (optional)</code>
+                        </div>
+                        {% if form.data.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.data.errors %}{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="bulk-preview">
+                        {% include "core/bulk_fieldwork_preview.html" %}
+                    </div>
+                </div>
+                
+                {# File Upload Tab #}
+                <div class="tab-pane fade" id="file-content" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="id_file" class="form-label">Upload File</label>
+                        <input type="file" name="file" id="id_file" 
+                               class="form-control {% if form.file.errors %}is-invalid{% endif %}"
+                               accept=".csv,.xlsx,.xls"
+                               hx-post="{{ preview_url }}"
+                               hx-trigger="change"
+                               hx-target="#file-preview"
+                               hx-encoding="multipart/form-data"
+                               hx-include="#hidden_project_pk">
+                        <div class="form-text">
+                            Upload CSV or Excel file with columns: date, start_time, end_time, weather, description
+                        </div>
+                        {% if form.file.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.file.errors %}{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="file-preview">
+                        {# Preview will be loaded here via HTMX #}
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-info-circle"></i> File Format</h6>
+                        <p class="mb-1">Your file should have these columns (in order):</p>
+                        <ol class="mb-0 small">
+                            <li><strong>Date</strong> - Format: YYYY-MM-DD (e.g., 2024-01-15)</li>
+                            <li><strong>Start Time</strong> - Format: HH:MM (e.g., 08:30)</li>
+                            <li><strong>End Time</strong> - Format: HH:MM (e.g., 16:00)</li>
+                            <li><strong>Weather</strong> - sunny, cloudy, rainy, snowy, windy, or stormy</li>
+                            <li><strong>Description</strong> (optional) - Any notes about the fieldwork</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            {# Form Errors #}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="bulk-form" class="btn btn-primary">
+            <i class="fas fa-upload"></i> Import Fieldwork
+        </button>
+    </div>
+</div>
+
+<script>
+// Initialize tooltips
+document.addEventListener('htmx:afterSettle', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>

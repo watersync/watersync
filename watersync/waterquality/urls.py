@@ -7,6 +7,7 @@ URLs for water quality sample and measurement management.
 from django.urls import include, path
 
 from watersync.waterquality.views import (
+    measurement_bulk_preview_view,
     measurement_create_view,
     measurement_delete_view,
     measurement_detail_view,
@@ -56,6 +57,7 @@ sample_patterns = [
 measurement_patterns = [
     path("", measurement_list_view, name="measurements"),
     path("add/", measurement_create_view, name="add-measurement"),
+    path("add/preview/", measurement_bulk_preview_view, name="bulk-preview-measurement"),
     path(
         "<str:measurement_pk>/update/",
         measurement_update_view,

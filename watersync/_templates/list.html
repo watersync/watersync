@@ -22,18 +22,18 @@
     {% endif %}
     {% if list_config.has_bulk_create %}
     <button type="button" class="btn btn-success" 
-    hx-get="{{ request.path }}add/"
-    hx-target="#dialog"
-    hx-trigger="click"
-    hx-vals='js:(function(){ var vals = {{ hx_vals|default:"{}" }}; vals.bulk = true; return vals; })()'>
-    <img src="{% static 'icons/pluses-alt.svg' %}" alt="CSV Icon" class="text-white" style="filter: invert(1);">
+        hx-get="{{ request.path }}add/?bulk=true"
+        hx-target="#dialog"
+        hx-trigger="click"
+        hx-vals='{{ hx_vals|default:"{}" }}'>
+        <img src="{% static 'icons/pluses-alt.svg' %}" alt="CSV Icon" class="text-white" style="filter: invert(1);">
     </button>
-{% endif %}
-<button type="button" class="btn btn-success" 
+    {% endif %}
+    <button type="button" class="btn btn-success" 
         hx-get="{{ request.path }}add/"
         hx-target="#dialog"
         hx-trigger="click"
-        hx-vals='js:{{ hx_vals|default:"{}" }}'>
+        hx-vals='{{ hx_vals|default:"{}" }}'>
         <i class="fa-solid fa-plus"></i>
     </button>
     <button class="btn btn-secondary"

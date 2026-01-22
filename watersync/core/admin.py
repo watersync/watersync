@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Location, Project
+from .models import Fieldwork, Location, Project
 
 # just adding a commet to see something
 
@@ -18,3 +18,9 @@ class LocationAdmin(admin.ModelAdmin):
     # Columns to display in the list view
     list_display = ("name",)
     search_fields = ("name",)  # Fields to search by
+
+@admin.register(Fieldwork)
+class FieldworkAdmin(admin.ModelAdmin):
+    # Columns to display in the list view
+    list_display = ("date",)
+    search_fields = ("date",)  # Fields to search by

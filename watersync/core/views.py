@@ -1,9 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import ModelForm
+from django.template.response import TemplateResponse
+from django.views import View
 from django.views.generic import ListView, TemplateView
 from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom, add_current_project
-from watersync.core.forms import FieldworkForm, LocationForm, ProjectForm
+from watersync.core.forms import FieldworkForm, FieldworkBulkForm, LocationForm, ProjectForm
 from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject
 from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
 from django.db.models import Count
@@ -11,13 +13,146 @@ import json
 from django.shortcuts import get_object_or_404
 
 
+class FieldworkBulkPreviewView(LoginRequiredMixin, View):
+    """HTMX endpoint for live preview of bulk fieldwork data (paste or file)."""
+    
+    def post(self, request, *args, **kwargs):
+        from watersync.core.parsers import (
+            parse_bulk_fieldwork_data,
+            parse_bulk_fieldwork_file,
+            validate_bulk_fieldwork_for_project,
+        )
+        
+        rows = []
+        error_message = None
+        
+        # Check if it's a file upload or paste data
+        if request.FILES.get("file"):
+            rows, error_message = parse_bulk_fieldwork_file(request.FILES["file"])
+        else:
+            data_str = request.POST.get("data", "")
+            rows = parse_bulk_fieldwork_data(data_str)
+        
+        # Get project for additional validation
+        project_pk = request.POST.get("project_pk") or self.kwargs.get("project_pk")
+        project = None
+        
+        if project_pk:
+            try:
+                project = Project.objects.get(pk=project_pk)
+            except Project.DoesNotExist:
+                pass
+        
+        # Add project-specific validation (duplicate dates)
+        if project:
+            rows = validate_bulk_fieldwork_for_project(project, rows)
+        
+        valid_count = sum(1 for r in rows if r["is_valid"])
+        invalid_count = sum(1 for r in rows if not r["is_valid"])
+        
+        return TemplateResponse(
+            request,
+            "core/bulk_fieldwork_preview.html",
+            {
+                "rows": rows,
+                "valid_count": valid_count,
+                "invalid_count": invalid_count,
+                "error_message": error_message,
+            }
+        )
+
+
+fieldwork_bulk_preview_view = FieldworkBulkPreviewView.as_view()
+
+
 class FieldworkCreateView(WatersyncCreateView):
     model = Fieldwork
     form_class = FieldworkForm
+    bulk_form_class = FieldworkBulkForm
+
+    def get_form_class(self):
+        """Return bulk form if bulk=true in request."""
+        if self.request.GET.get("bulk") == "true" or self.request.POST.get("bulk"):
+            return self.bulk_form_class
+        return super().get_form_class()
+
+    def get_template_names(self):
+        """Use custom template for bulk form."""
+        if self.get_form_class() == self.bulk_form_class:
+            return ["core/bulk_fieldwork_form.html"]
+        return super().get_template_names()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add context for bulk form
+        if self.get_form_class() == self.bulk_form_class:
+            from django.urls import reverse
+            project_pk = self.kwargs.get("project_pk")
+            context["project_pk"] = project_pk
+            context["preview_url"] = reverse(
+                "core:preview-fieldwork",
+                kwargs={"project_pk": project_pk}
+            )
+        return context
 
     def update_form_instance(self, form):
         """Always set the current project for the fieldwork instance."""
         add_current_project(self.kwargs, form)
+
+    def form_valid(self, form):
+        """Handle bulk form submission."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"form_valid called with form type: {type(form)}")
+        logger.error(f"isinstance check: {isinstance(form, FieldworkBulkForm)}")
+        logger.error(f"form.cleaned_data: {form.cleaned_data}")
+        
+        if isinstance(form, FieldworkBulkForm):
+            processed_data = form.cleaned_data.get("processed_data", [])
+            users = form.cleaned_data.get("user", [])
+            
+            logger.error(f"processed_data: {processed_data}")
+            logger.error(f"users: {users}")
+            
+            created_fieldworks = []
+            for data in processed_data:
+                fieldwork = Fieldwork.objects.create(
+                    project=data["project"],
+                    date=data["date"],
+                    start_time=data["start_time"],
+                    end_time=data["end_time"],
+                    weather=data["weather"],
+                    description=data["description"],
+                )
+                fieldwork.user.set(users)
+                created_fieldworks.append(fieldwork)
+            
+            logger.error(f"Created {len(created_fieldworks)} fieldworks")
+            
+            # Build success URL manually since we don't have self.object
+            from django.urls import reverse
+            success_url = reverse(
+                "core:fieldworks",
+                kwargs={"project_pk": self.kwargs.get("project_pk")}
+            )
+            
+            # Return success response
+            from django.http import HttpResponse
+            return HttpResponse(
+                status=204,
+                headers={
+                    "HX-Trigger": "fieldworkCreated",
+                    "HX-Redirect": success_url,
+                }
+            )
+        
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        """Handle bulk form errors."""
+        if isinstance(form, FieldworkBulkForm):
+            return self.render_to_response(self.get_context_data(form=form))
+        return super().form_invalid(form)
 
 class FieldworkUpdateView(WatersyncUpdateView):
     model = Fieldwork
