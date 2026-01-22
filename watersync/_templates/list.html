@@ -16,7 +16,7 @@
 
 <div class="align-items-start mb-3 gap-6">
     {% if htmx_context == "block" %}
-    <a href="{{ list_config.list_url }}" class="btn btn-info">See all
+    <a href="{{ request.path }}" class="btn btn-info">See all
         <i class="fa-solid fa-arrow-right"></i>
     </a>
     {% endif %}

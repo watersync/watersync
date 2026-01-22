@@ -8,8 +8,9 @@
     <td>
         {# Detail button - modal style #}
         {% if list_config.detail_type == "modal" %}
+        
         <button type="button" class="btn btn-sm btn-info m-1"
-            hx-get="{{ obj.get_detail_url }}" hx-target="#ofc-dialog"
+            hx-get="{{ request.path }}{{ obj.pk }}" hx-target="#ofc-dialog"
             hx-trigger="click"
             hx-headers='{"HX-Context": "block"}' title="Detail">
             <i class="fa-solid fa-circle-info"></i>
@@ -18,7 +19,7 @@
 
         {# Detail button - page style (overview) #}
         {% if list_config.detail_type == "page" %}
-        <a class="btn btn-sm btn-info" href="{{ obj.get_overview_url }}">
+        <a class="btn btn-sm btn-info" href="{{ request.path }}{{ obj.pk }}/overview" title="Open">
             Open<i class="fa-solid fa-arrow-right mx-2"></i>
         </a>
         {% endif %}
@@ -30,22 +31,16 @@
             <i class="fas fa-info"></i>
         </button>
         {% endif %}
-
-        {# Update button #}
-        {% if list_config.has_update %}
+    
         <button type="button" class="btn btn-sm btn-warning m-1"
-            hx-get="{{ obj.get_update_url }}" hx-target="#dialog" title="Edit">
+            hx-get="{{ request.path }}{{ obj.pk }}/update" hx-target="#dialog" title="Edit">
             <i class="fas fa-edit"></i>
         </button>
-        {% endif %}
 
-        {# Delete button #}
-        {% if list_config.has_delete %}
         <button type="button" class="btn btn-sm btn-danger m-1"
-            hx-get="{{ obj.get_delete_url }}" hx-target="#dialog" title="Delete">
+            hx-get="{{ request.path }}{{ obj.pk }}/delete" hx-target="#dialog" title="Delete">
             <i class="fas fa-trash"></i>
         </button>
-        {% endif %}
     </td>
 </tr>
 {% empty %}

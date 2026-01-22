@@ -29,7 +29,7 @@
                 <li>
                     <a class="dropdown-item"
                        style="cursor: pointer;" 
-                       hx-get="{{ object.get_delete_url }}"
+                       hx-get="{{ request.path }}delete/"
                        hx-target="#dialog"
                        title="Delete">
                         Delete {{ object }}
@@ -38,7 +38,7 @@
                 <li>
                     <a class="dropdown-item"
                        style="cursor: pointer;" 
-                       hx-get="{{ object.get_update_url }}"
+                       hx-get="{{ request.path }}update/"
                        hx-target="#dialog"
                        title="Edit">
                         Edit {{ object }}
@@ -46,9 +46,10 @@
                 </li>
             </ul>
         </div>
-        {% if object.get_history_url %}
+        {# The history attribute just needs to not be empty #}
+        {% if object.history %}
         <button class="btn btn-secondary" type="button"
-                hx-get="{{ object.get_history_url }}"
+                hx-get="{{ request.path }}history/"
                 hx-target="#ofc-dialog"
                 title="History">
             <i class="fas fa-history"></i>
