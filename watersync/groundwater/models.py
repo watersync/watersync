@@ -3,11 +3,11 @@ from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
 from watersync.core.models import Location
-from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin, TimeSeriesModel
+from watersync.core.generics.interfaces import InterfaceModelTemplate, TimeSeriesModel
 
 
 
-class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
+class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemplate):
     """Manual measurements of groundwater levels.
 
     The value field stores depth to water measured from the top of the casing.
@@ -18,7 +18,7 @@ class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemp
         groundwater_elevation: Computed elevation of groundwater surface
     """
 
-    # URL configuration for ModelURLMixin
+    # URL configuration fo
     # GWLManualMeasurement URLs are: /projects/<project_pk>/gwlmanualmeasurements/<gwlmanualmeasurement_pk>/
     _url_app_label = "groundwater"
 
@@ -28,7 +28,7 @@ class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemp
 
     fieldwork = models.ForeignKey(
         "core.Fieldwork",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="gwlmeasurements",
     )
     location = models.ForeignKey(
@@ -48,13 +48,6 @@ class GWLManualMeasurement(TimeSeriesModel, TimeStampedModel, InterfaceModelTemp
         "Depth": "value",
         "Elevation": "groundwater_elevation",
     }
-
-    def _get_url_kwargs(self):
-        """Build URL kwargs. GWLManualMeasurement URLs need project_pk from location.project."""
-        kwargs = {"gwlmanualmeasurement_pk": self.pk}
-        if self.location and self.location.project:
-            kwargs["project_pk"] = self.location.project.pk
-        return kwargs
 
     @property
     def groundwater_elevation(self):

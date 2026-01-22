@@ -67,7 +67,6 @@ class SensorListView(WatersyncListView):
 
 class SensorDetailView(WatersyncDetailView):
     model = Sensor
-    detail_type = "modal"
 
 
 class SensorDeleteView(WatersyncDeleteView):

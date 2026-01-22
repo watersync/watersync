@@ -51,7 +51,6 @@ class ProtocolListView(WatersyncListView):
 
 class ProtocolDetailView(WatersyncDetailView):
     model = Protocol
-    detail_type = "modal"
 
 
 protocol_create_view = ProtocolCreateView.as_view()

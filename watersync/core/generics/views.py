@@ -1,24 +1,14 @@
 """Module for the base views of the application.
-
-The idea is to abstract as much as possible the common logic between the
-views for the different models.
-
-TODO:
-    - I implemented a smarter check of the base template. Now it's done in
-    the view itself and does not require passing the blank template. Simply
-    when the htmx_context is "block", we set the list template_name to one
-    that has only the html element in it. list_page.html contains a reference
-    to the base template and includes the list.html template. The base_template
-    is not required in the with -- include statement in the template. Would be
-    good to unify these two approaches a bit.
 """
 
 import json
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.utils import timezone
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -30,9 +20,153 @@ from django.views.generic import (
 from docstring_parser import parse_from_object
 
 from watersync.core.generics.context import ListConfig
-from watersync.core.generics.htmx import HTMXFormMixin
 from watersync.core.generics.mixins import CreateUpdateDetailMixin, ExportCsvMixin, StandardURLMixin
-from django.utils import timezone
+
+
+class HTMXFormMixin:
+    """Mixin providing HTMX form handling with parent object prefilling.
+    
+    This mixin handles:
+    1. Pre-filling form fields from request parameters (via hx-vals)
+    2. Hiding pre-filled parent fields
+    3. HTMX-compatible form_valid/form_invalid responses
+    4. User field auto-population
+    
+    Attributes:
+        prefill_from_parent: Dict mapping form field names to (param_name, model_class).
+            Example: {'location': ('location_pk', Location)}
+        htmx_response_status: HTTP status code for successful HTMX responses (default: 204)
+        htmx_invalid_status: HTTP status code for invalid form HTMX responses (default: 400)
+        htmx_render_template: Template for re-rendering form on validation errors
+    """
+    
+    # Configure parent object prefilling: {'form_field': ('request_param', ModelClass)}
+    prefill_from_parent: dict = None
+    htmx_response_status: int = 204
+    htmx_invalid_status: int = 400
+    htmx_render_template: str = None
+
+    def _get_parent_pks(self):
+        """Get parent PKs from GET (initial load) or POST (form submission)."""
+        pks = {}
+        if not self.prefill_from_parent:
+            return pks
+            
+        for field_name, (param_name, model_class) in self.prefill_from_parent.items():
+            # Check POST first (form submission), then GET (initial load)
+            pk = self.request.POST.get(param_name) or self.request.GET.get(param_name)
+            if pk:
+                pks[field_name] = (param_name, pk, model_class)
+        return pks
+
+    def get_initial(self):
+        """Get initial data for the form from request parameters."""
+        initial = super().get_initial()
+
+        # User handling
+        if self.request.user.is_authenticated:
+            initial["user"] = self.request.user.pk
+
+        # Parent object prefilling from request params
+        for field_name, (param_name, pk, model_class) in self._get_parent_pks().items():
+            try:
+                initial[field_name] = model_class.objects.get(pk=pk)
+            except model_class.DoesNotExist:
+                pass
+
+        return initial
+
+    def get_form(self, form_class=None):
+        """Hide pre-filled parent fields (values come via hidden inputs)."""
+        form = super().get_form(form_class)
+        
+        # Hide parent fields that are prefilled
+        parent_pks = self._get_parent_pks()
+        for field_name in parent_pks.keys():
+            if field_name in form.fields:
+                form.fields[field_name].widget = form.fields[field_name].hidden_widget()
+        
+        return form
+
+    def get_context_data(self, **kwargs):
+        """Add parent PKs to context for hidden inputs in template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Pass parent PKs to template for hidden inputs
+        context['parent_pks'] = [
+            (param_name, pk) 
+            for field_name, (param_name, pk, model_class) in self._get_parent_pks().items()
+        ]
+        
+        return context
+
+    def _update_user(self, instance):
+        """Update user field on instance if applicable.
+        
+        Handles both ForeignKey and ManyToMany user fields.
+        """
+        if not instance or not hasattr(instance, 'user') or not self.request.user:
+            return
+
+        # ManyToMany field (has 'add' method)
+        if hasattr(instance.user, 'add'):
+            if self.request.user not in instance.user.all():
+                instance.user.add(self.request.user)
+        # ForeignKey field
+        elif not instance.user:
+            instance.user = self.request.user
+            instance.save()
+
+    def update_form_instance(self, form):
+        """Hook for updating form.instance in subclasses.
+        
+        Override to modify form.instance before save. Do not call form.save() here.
+        """
+        pass
+
+    def handle_bulk_create(self, form):
+        """Hook for handling bulk creation of objects.
+        
+        Override to implement bulk creation logic. Do not call form.save() here.
+        """
+        pass
+
+    def form_valid(self, form):
+        """Handle a valid form submission with HTMX support."""
+        self.update_form_instance(form)
+        
+        # Save the instance
+        instance = form.save() if hasattr(form, "save") else None
+            
+        if hasattr(form, "save_m2m"):
+            form.save_m2m()
+
+        # Handle bulk creation if applicable
+        if form.data.get("bulk") == "true":
+            self.handle_bulk_create(form)
+
+        # Update user AFTER saving m2m relationships
+        self._update_user(instance)
+
+        if self.request.htmx:
+            return HttpResponse(
+                status=self.htmx_response_status, 
+                headers={"HX-Trigger": "refreshList"}
+            )
+        return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
+
+    def form_invalid(self, form):
+        """Handle an invalid form submission with HTMX support."""
+        if self.request.htmx:
+            self.update_form_instance(form)
+            context = self.get_context_data(form=form)
+            html = render_to_string(
+                self.htmx_render_template, context, request=self.request
+            )
+            return HttpResponse(
+                html, status=self.htmx_invalid_status, content_type="text/html"
+            )
+        return super().form_invalid(form)
 
 
 class WatersyncListView(
@@ -45,7 +179,7 @@ class WatersyncListView(
 
     Template context includes:
         - list_config: ListConfig with URLs, columns, title, descriptions,
-          and feature flags (has_bulk_create, has_update, has_delete, detail_type)
+          and feature flags (has_bulk_create, detail_type)
         
     Template selection is handled via context processor setting `base_template`:
     - HTMX requests: base_template = 'layouts/partial.html' (no wrapper)
@@ -56,7 +190,7 @@ class WatersyncListView(
     - All other cases: renders list.html (full list component)
     """
 
-    detail_type: str = None  # Fallback if model doesn't define _detail_type
+    detail_type: str = None
     template_name = "list_page.html"
     docstr: str | None = None
 
@@ -81,21 +215,13 @@ class WatersyncListView(
         if self.docstr is None:
             self.docstr = parse_from_object(self.model)
 
-        base_kwargs = self.get_base_url_kwargs()
-        
-        # Get config from model (with defaults)
-        detail_type = getattr(self.model, "_detail_type", None) or self.detail_type
-
         # ListConfig with all values needed by templates
         list_config = ListConfig(
-            list_url=self.get_list_url(**base_kwargs),
             tbody_id=f"{self.model_name}-tbody",
             columns=list(self._get_list_view_fields().keys()),
-            title=self.model_verbose_name_plural,
-            detail_type=detail_type,
+            title=self.model._meta.verbose_name_plural,
+            detail_type=self.detail_type or None,
             has_bulk_create=getattr(self.model, "_has_bulk_create", False),
-            has_update=getattr(self.model, "_has_update", True),
-            has_delete=getattr(self.model, "_has_delete", True),
             explanation=self.docstr.short_description,
             explanation_detail=self.docstr.long_description,
         )
@@ -154,71 +280,98 @@ class WatersyncCreateView(
 class WatersyncDeleteView(
     LoginRequiredMixin,
     StandardURLMixin,
-    SuccessMessageMixin,
     DeleteView,
 ):
-    """Delete logic for watersync DeleteViews.
-
-    The largest chunk here is about redirecting after the delete. After the delete,
-    the user will be redirected to the list view, if the request is made from the detail
-    view of the deleted object, or to the current URL if the request is made
-    from elswhere."""
+    """Delete view with HTMX support.
+    
+    - From list pages: triggers 'refreshList' to update the table
+    - From detail/overview pages: redirects to list view via HX-Redirect
+    - Checks for protected relationships and disables delete if found
+    """
 
     template_name = "confirm_delete.html"
+    cascade_warning = None
+
+    def _get_protected_related_objects(self, obj):
+        """Check for related objects that would prevent deletion (PROTECT).
+        
+        Returns a list of (model_name, count) tuples for protected relations with objects.
+        """
+        from django.db.models import PROTECT
+        
+        protected = []
+        for rel in obj._meta.related_objects:
+            if rel.on_delete == PROTECT:
+                related_name = rel.get_accessor_name()
+                related_manager = getattr(obj, related_name, None)
+                if related_manager is not None:
+                    count = related_manager.count()
+                    if count > 0:
+                        model_name = rel.related_model._meta.verbose_name_plural
+                        protected.append((model_name, count))
+        return protected
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.cascade_warning:
+            context['cascade_warning'] = self.cascade_warning
+        
+        # Check for protected relationships
+        protected = self._get_protected_related_objects(self.object)
+        if protected:
+            context['protected_objects'] = protected
+            
+        return context
 
     def get_object(self):
         queryset = self.model.objects.all()
-        # Pre-fetch parent relation to avoid lazy loading in async contexts
         parent_field = getattr(self.model, '_url_parent_field', None)
         if parent_field:
             queryset = queryset.select_related(parent_field)
         return get_object_or_404(queryset, pk=self.kwargs[self.item_pk_name])
 
-    def get_redirect_url(self, request):
-        """Get the URL from htmx request to redirect to after the delete.
-        
-        For now, I am going return None in the case of the request being made from
-        elswhere than the detail view. This is because normally upon deletion a trigger
-        is sent to the client to request the new list of objects. This is done by the
-        configRequest trigger.
-        """
-        list_kwargs = self.get_base_url_kwargs()
-
-        current_url = request.htmx.current_url
-
-        is_detail_view = (
-            current_url.endswith(f"/{self.object.pk}/")
-        )
-        is_overview_view = (
+    def _is_viewing_this_object(self, current_url: str) -> bool:
+        """Check if we're on a page dedicated to this specific object."""
+        if not current_url:
+            return False
+        return (
+            current_url.endswith(f"/{self.object.pk}/") or
             current_url.endswith(f"/{self.object.pk}/overview/")
         )
-        is_location_overview = (
-            self.model_name == "location"
-        )
-
-        if not is_detail_view and not is_overview_view and not is_location_overview:
-            return None
+    
+    def truncate_url_to_list(self, url: str) -> str:
+        """Truncate a detail/overview URL to the corresponding list URL."""
+        if not url:
+            return ""
         
-        return self.get_list_url()(kwargs=list_kwargs)
+        # Ensure trailing slash for consistent handling
+        if not url.endswith('/'):
+            url += '/'
+
+        # Remove 'overview/' if present
+        if url.endswith("/overview/"):
+            url = url[:-len("overview/")]
+        
+        # Remove the pk segment
+        return url.rsplit("/", 2)[0] + "/"
 
     def delete(self, request, *args, **kwargs):
+
         self.object = self.get_object()
-        redirect_url = self.get_redirect_url(request)
 
         if request.htmx:
+            current_url = request.htmx.current_url
+            is_viewing_object = self._is_viewing_this_object(current_url)
+
             self.object.delete()
 
-            headers = {
-                "HX-Trigger": "refreshList",
-            }
+            headers = {}
+            if is_viewing_object:
+                headers["HX-Redirect"] = self.truncate_url_to_list(current_url)
+            else:
+                headers["HX-Trigger"] = "refreshList"
 
-            if redirect_url:
-                headers["HX-Redirect"] = redirect_url
-
-            return HttpResponse(
-                status=204,
-                headers=headers,
-            )
+            return HttpResponse(status=204, headers=headers)
 
         return super().delete(request, *args, **kwargs)
 

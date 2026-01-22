@@ -20,11 +20,11 @@ from watersync.core.config import (
     get_wq_unit_label,
     is_valid_unit_for_parameter,
 )
-from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 from watersync.waterquality.models_setup import Protocol
 
 
-class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
+class Sample(models.Model, InterfaceModelTemplate):
     """Samples taken for analysis.
 
     Each sample represents a volume of water collected for analysis of specific parameters.
@@ -40,7 +40,7 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
             sample.
     """
 
-    # URL configuration for ModelURLMixin
+    # URL configuration fo
     # Sample URLs are: /projects/<project_pk>/samples/<sample_pk>/
     # We need to traverse: sample.location.project to get project_pk
     _url_app_label = "waterquality"
@@ -96,13 +96,6 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
         "Replica Number": "replica_number",
     }
 
-    def _get_url_kwargs(self):
-        """Build URL kwargs. Sample URLs need project_pk from location.project."""
-        kwargs = {"sample_pk": self.pk}
-        if self.location and self.location.project:
-            kwargs["project_pk"] = self.location.project.pk
-        return kwargs
-
     def __str__(self):
         date_str = self.fieldwork.date.strftime("%Y%m%d") if self.fieldwork else "no-date"
         location_str = slugify(self.location.name) if self.location else "no-location"
@@ -142,7 +135,7 @@ class Sample(models.Model, InterfaceModelTemplate, ModelURLMixin):
         lab = self.measurements.all() if self.parameter_group != 'FIELD' else Measurement.objects.none()
         return field | lab
 
-class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
+class Measurement(models.Model, InterfaceModelTemplate):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and
@@ -152,7 +145,7 @@ class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
     for unit conversions.
     """
 
-    # URL configuration for ModelURLMixin
+    # URL configuration fo
     # Measurement URLs are: /projects/<project_pk>/measurements/<measurement_pk>/
     _url_app_label = "waterquality"
 
@@ -196,14 +189,6 @@ class Measurement(models.Model, InterfaceModelTemplate, ModelURLMixin):
     }
 
     _has_bulk_create = True
-    _detail_type = "modal"
-
-    def _get_url_kwargs(self):
-        """Build URL kwargs. Measurement URLs need project_pk from sample.location.project."""
-        kwargs = {"measurement_pk": self.pk}
-        if self.sample and self.sample.location and self.sample.location.project:
-            kwargs["project_pk"] = self.sample.location.project.pk
-        return kwargs
 
     def __str__(self):
         return f"{self.sample} - {self.parameter_display}: {self.formatted_value}"

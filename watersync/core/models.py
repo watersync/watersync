@@ -5,11 +5,11 @@ from simple_history.models import HistoricalRecords
 
 from watersync.core.generics.model_setup import SetupSimpleHistory
 from watersync.core.managers import LocationManager, ProjectManager, WatersyncManager
-from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 from watersync.users.models import User
 
 
-class Project(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleHistory):
+class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -55,7 +55,7 @@ class Project(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleHi
     def __str__(self):
         return self.name
 
-class Location(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleHistory):
+class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     """List of locations.
 
     Locations are attached to projects and most of other types of data in projects like
@@ -63,12 +63,6 @@ class Location(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleH
     history of the updates. The history is tracked by the simple_history package.
     It is useful in cases when the location parameters like height of the top of the
     casing change, but old measurement still refer to the old location height.
-
-    NOTE: Previously used LocationVisit model has been removed in favor of tracking the
-    status of the location in the Location model itself and with the HistoricalLocation
-    model from simple_history. Comment on status change is stored in the  history_change_reason 
-    field. Locations visited durinng the fieldwork will be tracked within the Fieldwork
-    model as M2M relation. Other items will be linked to Location and Fieldwork directly.
 
     Attributes:
         project (ForeignKey): The project to which the location is attached.
@@ -82,7 +76,6 @@ class Location(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleH
             schema and avoid related models.
     """
 
-    # URL configuration for ModelURLMixin
     _url_parent_field = "project"
     _url_parent_param = "project_pk"
 
@@ -134,7 +127,7 @@ class Location(models.Model, InterfaceModelTemplate, ModelURLMixin, SetupSimpleH
     def __str__(self):
         return f"{self.name}"
 
-class Fieldwork(TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
+class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
     """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
@@ -144,7 +137,6 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate, ModelURLMixin):
     fieldwork per day.
     """
 
-    # URL configuration for ModelURLMixin
     _url_parent_field = "project"
     _url_parent_param = "project_pk"
     

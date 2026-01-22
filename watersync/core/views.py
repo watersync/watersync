@@ -175,7 +175,6 @@ class FieldworkListView(WatersyncListView):
 
 class FieldworkDetailView(WatersyncDetailView):
     model = Fieldwork
-    detail_type = "modal"
 
 class FieldworkOverviewView(TemplateView):
     template_name = "core/fieldwork_overview.html"

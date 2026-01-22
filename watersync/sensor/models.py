@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from watersync.core.models import Location
-from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin, TimeSeriesModel
+from watersync.core.generics.interfaces import InterfaceModelTemplate, TimeSeriesModel
 from watersync.users.models import User
 from watersync.core.config import (
     get_variable_choices,
@@ -15,7 +15,7 @@ from watersync.core.config import (
 )
 
 
-class Sensor(models.Model, InterfaceModelTemplate, ModelURLMixin):
+class Sensor(models.Model, InterfaceModelTemplate):
     """Sensing devices.
 
     Sensors are devices that can be deployed in a location to measure
@@ -48,7 +48,7 @@ class Sensor(models.Model, InterfaceModelTemplate, ModelURLMixin):
         return self.identifier
 
 
-class Deployment(models.Model, InterfaceModelTemplate, ModelURLMixin):
+class Deployment(models.Model, InterfaceModelTemplate):
     """Timeseries from sensors.
 
     A sensor deployment happens when a sensor is placed in a particular location. Deployment
@@ -70,7 +70,7 @@ class Deployment(models.Model, InterfaceModelTemplate, ModelURLMixin):
         find_deployment: retrieve a deployment by station, sensor and timesetamp.
     """
 
-    # URL configuration for ModelURLMixin
+    # URL configuration fo
     # Deployment URLs are: /projects/<project_pk>/deployments/<deployment_pk>/
     _url_app_label = "sensor"
 
@@ -113,13 +113,6 @@ class Deployment(models.Model, InterfaceModelTemplate, ModelURLMixin):
         automate the creation of tables and lists."""
 
         unique_together = ("sensor", "location", "variable", "unit", "deployed_at")
-
-    def _get_url_kwargs(self):
-        """Build URL kwargs. Deployment URLs need project_pk from location.project."""
-        kwargs = {"deployment_pk": self.pk}
-        if self.location and self.location.project:
-            kwargs["project_pk"] = self.location.project.pk
-        return kwargs
 
     def __str__(self) -> str:
         return f"{self.sensor.identifier} at {self.location.name} ({self.get_variable_display()})"

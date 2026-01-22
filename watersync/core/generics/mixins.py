@@ -5,7 +5,6 @@ import csv
 from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 
 from watersync.core.models import Project
 from watersync.core.permissions import ApprovalRequiredMixin
@@ -48,38 +47,15 @@ class StandardURLMixin(ApprovalRequiredMixin):
         return self.model._get_url_model_name()
 
     @property
-    def model_verbose_name_plural(self):
-        """Get the verbose name plural for display."""
-        return self.model._get_verbose_name_plural()
-
-    @property
     def item_pk_name(self):
         """Get the URL parameter name for this model's pk."""
         return self.model.get_item_pk_name()
-
-    def get_list_url(self, **kwargs):
-        """Get the resolved list URL."""
-        url_name = self.model._get_url_name("list")
-        return reverse(url_name, kwargs=kwargs)
-
-    def get_add_url(self, **kwargs):
-        """Get the resolved add URL."""
-        url_name = self.model._get_url_name("add")
-        return reverse(url_name, kwargs=kwargs)
 
     def get_project(self):
         """Get the project object from the URL kwargs."""
         if project_pk := self.kwargs.get("project_pk"):
             return get_object_or_404(Project, pk=project_pk)
         return None
-
-    def get_base_url_kwargs(self):
-        """Build base URL kwargs from the current request's URL parameters."""
-        base_kwargs = {}
-        if project_pk := self.kwargs.get("project_pk"):
-            if self.model_name != "project":
-                base_kwargs["project_pk"] = project_pk
-        return base_kwargs
 
 
 class CreateUpdateDetailMixin:

@@ -11,10 +11,10 @@ Use watersync.core.config for accessing parameter definitions.
 from django.db import models
 from django.utils.text import slugify
 
-from watersync.core.generics.interfaces import InterfaceModelTemplate, ModelURLMixin
+from watersync.core.generics.interfaces import InterfaceModelTemplate
 
 
-class Protocol(models.Model, InterfaceModelTemplate, ModelURLMixin):
+class Protocol(models.Model, InterfaceModelTemplate):
     """Protocols for sampling and analysis.
 
     Protocol describes the details of the sampling collection and analysis process,
