@@ -40,13 +40,6 @@ class SensorForm(FormWithDetailMixin):
         choices={"vented": "Vented", "unvented": "Unvented", "other": "Other"},
         required=True,
         label="Type",
-        widget=forms.ChoiceField.widget(
-            attrs={
-                "hx-trigger": "change, revealed",
-                "hx-target": "#detail_form",
-                "hx-swap": "innerHTML",
-            }
-        ),
     )
     detail_forms = {
         "vented": SensorDetailForm,
@@ -56,7 +49,7 @@ class SensorForm(FormWithDetailMixin):
 
     class Meta:
         model = Sensor
-        fields = ("identifier", "user", "detail", "available")
+        fields = ("identifier", "user", "detail")
         widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
 
 
@@ -76,7 +69,7 @@ class DeploymentForm(FormWithDetailMixin):
     title = "Deployment Form"
     
     sensor = forms.ModelChoiceField(
-        queryset=Sensor.objects.filter(available=True),
+        queryset=Sensor.objects.all(),
         label="Sensor",
         required=True,
         widget=forms.Select(

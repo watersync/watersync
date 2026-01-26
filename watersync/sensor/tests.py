@@ -23,7 +23,6 @@ def sensor(db):
     """Create a test sensor."""
     return Sensor.objects.create(
         identifier="TEST-SENSOR-001",
-        available=True
     )
 
 
@@ -59,7 +58,6 @@ class TestSensor:
         """Can create a sensor."""
         sensor = Sensor.objects.create(
             identifier="TEST-001",
-            available=True
         )
         assert sensor.pk is not None
         assert str(sensor) == "TEST-001"
@@ -69,7 +67,6 @@ class TestSensor:
         with pytest.raises(Exception):  # IntegrityError
             Sensor.objects.create(
                 identifier="TEST-SENSOR-001",  # Same as fixture
-                available=True
             )
 
     def test_sensor_can_have_variables(self, sensor, sensor_variable):

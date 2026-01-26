@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.views import View
 from django.views.generic import TemplateView
 
-from watersync.core.generics.decorators import filter_by_conditions, filter_by_location, filter_by_fieldwork
+from watersync.core.generics.mixins import FilterMixin
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -16,6 +16,7 @@ from watersync.core.generics.views import (
     WatersyncUpdateView,
 )
 from watersync.core.models import Fieldwork, Location, Project
+from watersync.waterquality.filters import SampleFilter
 from watersync.waterquality.forms import (
     MeasurementBulkForm,
     MeasurementForm,
@@ -64,10 +65,6 @@ protocol_detail_view = ProtocolDetailView.as_view()
 class SampleCreateView(WatersyncCreateView):
     model = Sample
     form_class = SampleForm
-    prefill_from_parent = {
-        'location': ('location_pk', Location),
-        'fieldwork': ('fieldwork_pk', Fieldwork),
-    }
 
 
 class SampleUpdateView(WatersyncUpdateView):
@@ -79,16 +76,14 @@ class SampleDeleteView(WatersyncDeleteView):
     model = Sample
 
 
-class SampleListView(WatersyncListView):
+class SampleListView(FilterMixin, WatersyncListView):
     model = Sample
     detail_type = "page"
+    filterset_class = SampleFilter
 
-    @filter_by_fieldwork
-    @filter_by_location
-    def get_queryset(self):
-        project = self.get_project()
-        return Sample.objects.filter(
-            location__in=project.locations.all()
+    def get_base_queryset(self):
+        return Sample.objects.for_project(
+            self.kwargs["project_pk"]
         ).order_by("-fieldwork__date")
 
 
@@ -103,7 +98,10 @@ class SampleOverviewView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["project"] = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        context["sample"] = get_object_or_404(Sample, pk=self.kwargs["sample_pk"])
+        context["sample"] = get_object_or_404(
+            Sample.objects.with_counts(),
+            pk=self.kwargs["sample_pk"]
+        )
         return context
 
 sample_overview_view = SampleOverviewView.as_view()
@@ -172,9 +170,6 @@ class MeasurementCreateView(WatersyncCreateView):
     model = Measurement
     form_class = MeasurementForm
     bulk_form_class = MeasurementBulkForm
-    prefill_from_parent = {
-        'sample': ('sample_pk', Sample),
-    }
 
     def get_template_names(self):
         """Use custom template for bulk form."""
@@ -295,11 +290,6 @@ class MeasurementCreateView(WatersyncCreateView):
                     Measurement.objects.bulk_create(measurements)
 
 
-class MeasurementUpdateView(WatersyncUpdateView):
-    model = Measurement
-    form_class = MeasurementForm
-
-
 class MeasurementDeleteView(WatersyncDeleteView):
     model = Measurement
 
@@ -312,22 +302,18 @@ class MeasurementListView(WatersyncListView):
     model = Measurement
     detail_type = None
 
-    def get_queryset(self):
-        # for all locations in the project
-        project = self.get_project()
-        locations = project.locations.all()
-        samples = Sample.objects.filter(location__in=locations)
+    def get_base_queryset(self):
+        qs = Measurement.objects.for_project(
+            self.kwargs["project_pk"]
+        ).order_by("-sample__fieldwork__date")
 
         if self.request.GET.get("sample_pk"):
-            samples = samples.filter(pk=self.request.GET.get("sample_pk"))
+            qs = qs.filter(sample_id=self.request.GET.get("sample_pk"))
 
-        return Measurement.objects.filter(
-            sample__in=samples
-        ).order_by("-sample__fieldwork__date")
+        return qs
 
 
 measurement_create_view = MeasurementCreateView.as_view()
-measurement_update_view = MeasurementUpdateView.as_view()
 measurement_delete_view = MeasurementDeleteView.as_view()
 measurement_detail_view = MeasurementDetailView.as_view()
 measurement_list_view = MeasurementListView.as_view()

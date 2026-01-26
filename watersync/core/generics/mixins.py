@@ -3,11 +3,7 @@
 import csv
 
 from django.http import HttpResponse
-from django.template.response import TemplateResponse
-from django.shortcuts import get_object_or_404, render
-
-from watersync.core.models import Project
-from watersync.core.permissions import ApprovalRequiredMixin
+from django.shortcuts import render
 
 class ExportCsvMixin:
     def export_as_csv(self, request, queryset):
@@ -27,101 +23,147 @@ class ExportCsvMixin:
         return response
 
 
-class StandardURLMixin(ApprovalRequiredMixin):
-    """Provide standardized URL handling for views.
+class DetailFormMixin:
+    """Handle dynamic detail forms based on a type selection.
 
-    This mixin delegates URL generation to ModelURLMixin on models,
-    maintaining a single source of truth for URL conventions.
+    Provides a clean pattern for forms with type-dependent detail sections:
+    1. On initial render (create/update), the detail form is included in context
+    2. On type change, HTMX requests swap just the detail section
     
-    All models should inherit from ModelURLMixin which provides the
-    actual URL generation logic.
-
-    Properties:
-        model_name: The name of the model.
-        item_pk_name: The URL parameter name for this model's pk.
+    Subclasses need:
+    - form_class with `detail_forms` dict mapping type -> form class
+    - Template with `<div id="detail_form">` target
+    
+    The mixin handles:
+    - Setting hx-get URL on the type field
+    - Responding to HTMX detail form requests
+    - Pre-populating detail form for updates
     """
+    
+    detail_form_template = "shared/form_detail.html"
 
-    @property
-    def model_name(self):
-        """Get the model name from the model's URL mixin."""
-        return self.model._get_url_model_name()
+    def get_detail_form_class(self, type_value):
+        """Return the detail form class for the given type."""
+        if not type_value or not hasattr(self.form_class, 'detail_forms'):
+            return None
+        return self.form_class.detail_forms.get(type_value)
 
-    @property
-    def item_pk_name(self):
-        """Get the URL parameter name for this model's pk."""
-        return self.model.get_item_pk_name()
-
-    def get_project(self):
-        """Get the project object from the URL kwargs."""
-        if project_pk := self.kwargs.get("project_pk"):
-            return get_object_or_404(Project, pk=project_pk)
-        return None
-
-
-class CreateUpdateDetailMixin:
-    """Handle swapping the detail form based on the selected type.
-
-    When a form has a type field that user can select from, the form will
-    have a detail section. That section is swapped by the HTMX request
-    to the appropriate detail form based on the selected type.
-    """
-    partial_form_template = "shared/form_detail.html"
-
-    def get_detail_form_class(self, request):
-        """Return the appropriate detail form class based on the selected type
-        or empty response.
+    def get_detail_form_initial(self):
+        """Return initial data for the detail form.
+        
+        Override in UpdateView to return instance.detail.
         """
-        item_type = request.GET.get("type")
+        return {}
 
-        if not item_type:
-            return HttpResponse("")
+    def get_detail_form(self, type_value, initial=None):
+        """Instantiate the appropriate detail form."""
+        form_class = self.get_detail_form_class(type_value)
+        if not form_class:
+            return None
+        return form_class(initial=initial or {})
 
-        return self.form_class.detail_forms.get(item_type) or HttpResponse("")
+    def get_context_data(self, **kwargs):
+        """Add detail_form to context if type is selected."""
+        context = super().get_context_data(**kwargs)
+        form = context.get('form')
+        
+        if form and hasattr(form, 'detail_form') and form.detail_form:
+            # Form already has detail_form (from FormWithDetailMixin)
+            context['detail_form'] = form.detail_form
+        
+        # Set all HTMX attrs on type field for dynamic detail form swapping
+        if form and 'type' in form.fields:
+            form.fields['type'].widget.attrs.update({
+                'hx-get': self.request.path,
+                'hx-trigger': 'change',
+                'hx-target': '#detail_form',
+                'hx-swap': 'innerHTML',
+            })
+        
+        return context
 
-    def add_hx_get(self, response):
-        """Add hx-get attribute to the form field from the request.
-
-        This is needed to automate the form rendering. It allows to configure the
-        form in a standard way, with crispy forms, and then just alter the type field
-        to contain hx-get attribute triggering a get request for the right detail form.
-        """
-
-        if isinstance(response, TemplateResponse) and not response.is_rendered:
-            context_is_right = (
-                "form" in response.context_data and
-                "detail" in response.context_data["form"].fields and
-                "type" in response.context_data["form"].fields
-            )
-            
-            if context_is_right:
-                # Set hx-get to the current path with a query parameter to
-                # account for both updates and creates
-                form_field = response.context_data["form"].fields["type"]
-                form_field.widget.attrs["hx-get"] = f"{self.request.path}"
-
-        return response
-
-    def swap_detail_form(self, request, initial=None) -> HttpResponse:
-        """Swap the detail form in the main form template based on selected type."""
-
-        detail_form_class = self.get_detail_form_class(request)
-
-        if not initial:
-            initial = {}
-
-        # THis is a week point, it might fail if the form is not bound
-        detail_form = detail_form_class(initial=initial)
-
-        # Render the detail form template
+    def handle_detail_form_request(self, request):
+        """Handle HTMX request for detail form swap."""
+        type_value = request.GET.get('type')
+        initial = self.get_detail_form_initial()
+        detail_form = self.get_detail_form(type_value, initial=initial)
+        
+        if not detail_form:
+            return HttpResponse('')
+        
         return render(
             request,
-            self.partial_form_template,
-            {"form": detail_form}
+            self.detail_form_template,
+            {'form': detail_form}
         )
 
     def get(self, request, *args, **kwargs):
-        response = super().get(request, *args, **kwargs)
-        self.add_hx_get(response)
-        return response
+        """Check if this is an HTMX request for detail form."""
+        if request.htmx and 'type' in request.GET:
+            return self.handle_detail_form_request(request)
+        return super().get(request, *args, **kwargs)
+
+
+class FilterMixin:
+    """Mixin that integrates django-filter with ListView.
+    
+    Provides automatic filtering based on a filterset_class.
+    Works with ProjectScopedFilterSet to limit choices to current project.
+    
+    Attributes:
+        filterset_class: The django-filter FilterSet class to use
+        
+    Template context:
+        filter: The filterset instance (use filter.form in template)
+        
+    Example:
+        class SampleListView(FilterMixin, WatersyncListView):
+            model = Sample
+            filterset_class = SampleFilter
+            
+        In template:
+            <form hx-get="{{ request.path }}" hx-target="#table-container">
+                {{ filter.form }}
+                <button type="submit">Filter</button>
+            </form>
+    """
+    
+    filterset_class = None
+    
+    def get_filterset_kwargs(self):
+        """Get kwargs for filterset instantiation."""
+        kwargs = {
+            'data': self.request.GET or None,
+            'queryset': self.get_base_queryset(),
+            'request': self.request,
+        }
+        
+        # Pass project to project-scoped filtersets
+        if hasattr(self, 'get_project'):
+            kwargs['project'] = self.get_project()
+            
+        return kwargs
+    
+    def get_base_queryset(self):
+        """Get the base queryset before filtering.
+        
+        Override this instead of get_queryset when using FilterMixin.
+        """
+        return super().get_queryset()
+    
+    def get_queryset(self):
+        """Apply filterset to queryset."""
+        if self.filterset_class is None:
+            return super().get_queryset()
+            
+        self.filterset = self.filterset_class(**self.get_filterset_kwargs())
+        return self.filterset.qs
+    
+    def get_context_data(self, **kwargs):
+        """Add filterset to context."""
+        context = super().get_context_data(**kwargs)
+        if hasattr(self, 'filterset'):
+            context['filter'] = self.filterset
+        return context
 
 

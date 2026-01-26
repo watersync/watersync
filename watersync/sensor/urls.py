@@ -30,7 +30,6 @@ from watersync.sensor.views import (
     deployment_update_view,
     sensorrecord_create_view,
     sensorrecord_delete_view,
-    sensorrecord_update_view,
     sensorrecord_download_view,
     sensorrecord_list_view,
     variable_units_api_view,
@@ -73,16 +72,8 @@ deployment_urlpatterns = [
 sensorrecord_urlpatterns = [
     path("", sensorrecord_list_view, name="sensorrecords"),
     path("add/", sensorrecord_create_view, name="add-sensorrecord"),
-    # I am not sure the user should be able to update the sensor records. it's the whole
-    # point of automatically recorded data. Also the delete method should probably be a
-    # bulk delete method. Or maybe instead I should just let the user to delete the
-    # deployment and all the records will be deleted (CASCADE). Then the default would
-    # be to just reupload corrected data.
-    path(
-        "<int:sensorrecords_pk>/update/",
-        sensorrecord_update_view,
-        name="update-sensorrecord",
-    ),
+    # Records are immutable - update not allowed. Delete individual records or
+    # delete deployment to cascade delete all records, then reupload corrected data.
     path(
         "<int:sensorrecords_pk>/delete/",
         sensorrecord_delete_view,

@@ -75,8 +75,7 @@ def deployment(db, location, sensor):
         location=location,
         sensor=sensor,
         variable="temperature",
-        unit="degC",  # Valid unit from config
-        deployed_at=timezone.now(),
+        unit="degC",
     )
 
 

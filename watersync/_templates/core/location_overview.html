@@ -21,7 +21,7 @@
             data-bs-target="#gwlmeasurements-tab-pane" type="button" role="tab" aria-controls="gwlmeasurements-tab-pane"
             aria-selected="true">
             GWL
-            <span class="badge rounded-pill bg-primary">{{ gwlmeasurementcount }}</span>
+            <span class="badge rounded-pill bg-primary">{{ location.gwlmeasurements_count }}</span>
         </button>
     </li>
     {% endif %}
@@ -29,14 +29,14 @@
         <button class="nav-link{% if location.type != 'piezometer' and location.type != 'pumping_well' %} active{% endif %}" id="deployments-tab" data-bs-toggle="tab" data-bs-target="#deployments-tab-pane"
             type="button" role="tab" aria-controls="deployments-tab-pane" aria-selected="{% if location.type != 'piezometer' and location.type != 'pumping_well' %}true{% else %}false{% endif %}">
             Timeseries
-            <span class="badge rounded-pill bg-primary">{{ deploymentcount }}</span>
+            <span class="badge rounded-pill bg-primary">{{ location.deployments_count }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="sampling-tab" data-bs-toggle="tab" data-bs-target="#sampling-tab-pane"
             type="button" role="tab" aria-controls="sampling-tab-pane" aria-selected="false">
             Water Quality
-            <span class="badge rounded-pill bg-primary">{{ samplecount }}</span>
+            <span class="badge rounded-pill bg-primary">{{ location.samples_count }}</span>
         </button>
     </li>
 </ul>

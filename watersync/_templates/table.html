@@ -2,13 +2,12 @@
 {% for obj in object_list %}
 <tr>
     <th scope="row">{{ forloop.counter }}</th>
-    {% for fld, val in obj.list_view_items %}
-    <td>{{ val }}</td>
+    {% for label, value in obj|display_fields:"list" %}
+    <td>{{ value }}</td>
     {% endfor %}
     <td>
         {# Detail button - modal style #}
         {% if list_config.detail_type == "modal" %}
-        
         <button type="button" class="btn btn-sm btn-info m-1"
             hx-get="{{ request.path }}{{ obj.pk }}" hx-target="#ofc-dialog"
             hx-trigger="click"
@@ -31,12 +30,14 @@
             <i class="fas fa-info"></i>
         </button>
         {% endif %}
-    
+        {# Edit button #}
+        {% if list_config.has_update %}
         <button type="button" class="btn btn-sm btn-warning m-1"
             hx-get="{{ request.path }}{{ obj.pk }}/update" hx-target="#dialog" title="Edit">
             <i class="fas fa-edit"></i>
         </button>
-
+        {% endif %}
+        {# Delete button #}
         <button type="button" class="btn btn-sm btn-danger m-1"
             hx-get="{{ request.path }}{{ obj.pk }}/delete" hx-target="#dialog" title="Delete">
             <i class="fas fa-trash"></i>

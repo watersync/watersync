@@ -1,5 +1,4 @@
 from django import forms
-from django.forms import ChoiceField
 from django.utils import timezone
 import logging
 
@@ -113,21 +112,3 @@ class FormWithHistory(forms.ModelForm):
             instance.save()
 
         return instance
-
-class HTMXChoiceField(ChoiceField):
-    """Custom ChoiceField to handle HTMX requests.
-    
-    This is a choice field that will trigger HTMX requests
-    when the selection changes, allowing for dynamic updates
-    of the form based on the selected choice.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.widget.attrs.update(
-            {
-                "hx-trigger": "change, revealed",
-                "hx-target": "#detail_form",
-                "hx-swap": "innerHTML",
-            }
-        )

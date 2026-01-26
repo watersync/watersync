@@ -26,7 +26,11 @@
             </div>
             {% endif %}
             {% if form.detail %}
-            <div class="card p-2 mt-4" id="detail_form"></div>
+            <div class="card p-2 mt-4" id="detail_form">
+                {% if detail_form %}
+                {% include "shared/form_detail.html" with form=detail_form %}
+                {% endif %}
+            </div>
             {% endif %}
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

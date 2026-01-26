@@ -1,10 +1,13 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
+from simple_history.models import HistoricalRecords
+from watersync.core.generics.models import SetupSimpleHistory
+
 
 from watersync.core.models import Location
-from watersync.core.generics.interfaces import InterfaceModelTemplate, TimeSeriesModel
+from watersync.core.generics.models import TimeSeriesModel
+from watersync.core.managers import WithCountsManager, UserScopedManager
 from watersync.users.models import User
 from watersync.core.config import (
     get_variable_choices,
@@ -15,7 +18,7 @@ from watersync.core.config import (
 )
 
 
-class Sensor(models.Model, InterfaceModelTemplate):
+class Sensor(models.Model, SetupSimpleHistory):
     """Sensing devices.
 
     Sensors are devices that can be deployed in a location to measure
@@ -24,55 +27,44 @@ class Sensor(models.Model, InterfaceModelTemplate):
     Attributes:
         identifier: The unique identifier of the sensor.
         user: The owner of the sensor.
-        available: whether the sensor is currently deployed or not.
-        detail: Additional information about the sensor
-            in a JSON format.
+        detail: Additional information about the sensor in a JSON format.
     """
 
     identifier = models.CharField(max_length=55, unique=True)
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
-    available = models.BooleanField(default=True)
     detail = models.JSONField(null=True, blank=True)
+
+    objects = UserScopedManager()
+    history = HistoricalRecords()
 
     _list_view_fields = {
         "Identifier": "identifier",
-        "Available": "available"
     }
 
     _detail_view_fields = {
         "Identifier": "identifier",
-        "Available": "available"
     }
 
     def __str__(self):
         return self.identifier
 
 
-class Deployment(models.Model, InterfaceModelTemplate):
-    """Timeseries from sensors.
+class Deployment(models.Model):
+    """Metadata for sensor timeseries.
 
-    A sensor deployment happens when a sensor is placed in a particular location. Deployment
-    marks the beginning and the end of a timeseries obtained from a particular location from
-    a particular sensor. The details are a JSONField because sensors can have different
-    needs for details.
+    Groups sensor records with common metadata like location, variable, and unit.
+    The detail JSONField stores sensor-specific setup information (e.g., rope length,
+    reference elevation for non-vented sensors).
 
     Attributes:
-        location: Location of deployment.
-        sensor: The sensor deployed.
+        location: Location where measurements are taken.
+        sensor: The sensor taking measurements.
         variable: The variable being measured (from SENSOR_VARIABLES config).
         unit: The unit of measurement (must be valid for the variable).
-        deployed_at: The date and time the sensor was deployed.
-        decommissioned_at: The date and time the sensor was decommissioned.
-        detail: Additional information relevant to the sensor deployment.
-
-    Methods:
-        decommission: Decommissions the sensor.
-        find_deployment: retrieve a deployment by station, sensor and timesetamp.
+        started_at: When this timeseries started (optional).
+        ended_at: When this timeseries ended (optional, null if ongoing).
+        detail: Sensor setup details (e.g., rope_length, reference_elevation).
     """
-
-    # URL configuration fo
-    # Deployment URLs are: /projects/<project_pk>/deployments/<deployment_pk>/
-    _url_app_label = "sensor"
 
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="deployments")
     sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT, related_name="deployments")
@@ -86,17 +78,23 @@ class Deployment(models.Model, InterfaceModelTemplate):
         choices=get_all_sensor_unit_choices(),
         help_text="Unit of measurement (must be valid for the selected variable)"
     )
-    deployed_at = models.DateTimeField(auto_now_add=True)
-    decommissioned_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True, help_text="When this timeseries started")
+    ended_at = models.DateTimeField(null=True, blank=True, help_text="When this timeseries ended (null if ongoing)")
     detail = models.JSONField(null=True, blank=True)
+
+    objects = WithCountsManager()
+    history = HistoricalRecords()
+
+    # Fields to count in with_counts() - used for overview pages
+    _count_fields = ['records']
 
     _list_view_fields = {
             "Location": "location",
             "Sensor": "sensor",
             "Variable": "get_variable_display",
             "Unit": "get_unit_display",
-            "Start": "deployed_at",
-            "End": "decommissioned_at",
+            "Start": "started_at",
+            "End": "ended_at",
         }
     
     _detail_view_fields = {
@@ -104,15 +102,12 @@ class Deployment(models.Model, InterfaceModelTemplate):
             "Sensor": "sensor",
             "Variable": "get_variable_display",
             "Unit": "get_unit_display",
-            "Start": "deployed_at",
-            "End": "decommissioned_at",
+            "Start": "started_at",
+            "End": "ended_at",
     }
 
     class Meta:
-        """Extra attribute in the Meta is the table_view_fields. It's used in the view to
-        automate the creation of tables and lists."""
-
-        unique_together = ("sensor", "location", "variable", "unit", "deployed_at")
+        unique_together = ("sensor", "location", "variable", "unit", "started_at")
 
     def __str__(self) -> str:
         return f"{self.sensor.identifier} at {self.location.name} ({self.get_variable_display()})"
@@ -138,57 +133,6 @@ class Deployment(models.Model, InterfaceModelTemplate):
         self.full_clean()
         super().save(*args, **kwargs)
 
-    def deploy(self):
-        """
-        Creates a new deployment and sets the sensor's availability to False.
-        """
-        if not self.sensor.available:
-            message = "This sensor is already deployed and not available."
-            raise ValueError(message)
-
-        self.sensor.available = False
-        self.sensor.save()
-        self.save()
-
-    def decommission(self):
-        """
-        Decommissions the deployment and sets the sensor's availability to True.
-        """
-        if self.decommissioned_at is None:
-            self.decommissioned_at = timezone.now()
-            self.sensor.available = True
-            self.sensor.save()
-            self.save()
-
-    @classmethod
-    def find_deployment(cls, location, sensor, timestamp=None):
-        """
-        Finds the deployment based on the station, sensor, and the time between
-        deployed_at and decommissioned_at.
-
-        Parameters:
-            station (Station): The station where the sensor is deployed.
-            sensor (Sensor): The sensor deployed.
-            timestamp (datetime, optional): The time to check the deployment against.
-                                             Defaults to the current time.
-
-        Returns:
-            Deployment: The deployment instance that matches the criteria or None if not found.
-        """
-        timestamp = timestamp or timezone.now()
-
-        try:
-            deployment = cls.objects.get(
-                location=location,
-                sensor=sensor,
-                deployed_at__lte=timestamp,
-                decommissioned_at__gte=timestamp if timestamp else None,
-            )
-            return deployment
-
-        except cls.DoesNotExist:
-            return None
-
 
 class SensorRecord(TimeSeriesModel):
     """Measurements from sensors.
@@ -197,10 +141,15 @@ class SensorRecord(TimeSeriesModel):
     as metadata for the measurements, so we only need to store the deployment,
     the value and the timestamp.
 
+    Records are immutable: update not allowed, use delete and recreate.
+    Soft delete: records are marked deleted but preserved in database.
+
     Attributes:
         deployment: link to the particular logger deployment.
         value: Measured magnitude (inherited from TimeSeriesModel).
         timestamp: The date and time the measurement was taken.
+        created_at, created_by: Record creation tracking (inherited from TimeSeriesModel)
+        is_deleted, deleted_at, deleted_by: Soft delete fields (inherited from TimeSeriesModel)
     """
 
     # TimeSeriesModel configuration

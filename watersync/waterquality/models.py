@@ -11,6 +11,9 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
+from simple_history.models import HistoricalRecords
+from watersync.core.generics.models import SetupSimpleHistory
+
 
 from watersync.core.config import (
     get_all_wq_unit_choices,
@@ -20,11 +23,12 @@ from watersync.core.config import (
     get_wq_unit_label,
     is_valid_unit_for_parameter,
 )
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+from watersync.core.managers import WithCountsManager, SoftDeleteLocationScopedManager
+from watersync.core.generics.models import SoftDeleteMixin
 from watersync.waterquality.models_setup import Protocol
 
 
-class Sample(models.Model, InterfaceModelTemplate):
+class Sample(models.Model, SetupSimpleHistory):
     """Samples taken for analysis.
 
     Each sample represents a volume of water collected for analysis of specific parameters.
@@ -40,10 +44,6 @@ class Sample(models.Model, InterfaceModelTemplate):
             sample.
     """
 
-    # URL configuration fo
-    # Sample URLs are: /projects/<project_pk>/samples/<sample_pk>/
-    # We need to traverse: sample.location.project to get project_pk
-    _url_app_label = "waterquality"
     # In case of internal samples, fieldwork is required
     fieldwork = models.ForeignKey(
         "core.Fieldwork", on_delete=models.CASCADE, related_name="samples",
@@ -78,7 +78,13 @@ class Sample(models.Model, InterfaceModelTemplate):
     is_external = models.BooleanField(default=False)
     source = models.CharField(max_length=100, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
-    
+
+    objects = WithCountsManager()
+    history = HistoricalRecords()
+
+    # Fields to count in with_counts() - used for overview pages
+    _count_fields = ['measurements']
+
     _list_view_fields = {
         "Location": "location",
         "Fieldwork": "fieldwork",
@@ -135,19 +141,19 @@ class Sample(models.Model, InterfaceModelTemplate):
         lab = self.measurements.all() if self.parameter_group != 'FIELD' else Measurement.objects.none()
         return field | lab
 
-class Measurement(models.Model, InterfaceModelTemplate):
+
+class Measurement(SoftDeleteMixin, models.Model):
     """Individual measurements of parameters in a sample.
 
     It is possible to create a sample first, let's say in the field when it's taken, and
     then add the measurements later when the analysis is done.
 
+    Records are immutable: update not allowed, use delete and recreate.
+    Soft delete: records are marked deleted but preserved in database.
+
     Uses config-based parameter and unit definitions with Pint integration
     for unit conversions.
     """
-
-    # URL configuration fo
-    # Measurement URLs are: /projects/<project_pk>/measurements/<measurement_pk>/
-    _url_app_label = "waterquality"
 
     sample = models.ForeignKey(
         Sample, on_delete=models.CASCADE, related_name="measurements"
@@ -173,6 +179,22 @@ class Measurement(models.Model, InterfaceModelTemplate):
         help_text="The detection limit value (same unit as measurement)",
     )
 
+    # Record creation tracking
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="measurements_created",
+    )
+
+    objects = SoftDeleteLocationScopedManager()
+
+    # Records are immutable - no update allowed
+    _has_update = False
+    _has_bulk_create = True
+
     _list_view_fields = {
         "Sample": "sample",
         "Parameter": "parameter_display",
@@ -187,8 +209,6 @@ class Measurement(models.Model, InterfaceModelTemplate):
         "Unit": "unit_display",
         "Detection Limit": "formatted_detection_limit",
     }
-
-    _has_bulk_create = True
 
     def __str__(self):
         return f"{self.sample} - {self.parameter_display}: {self.formatted_value}"

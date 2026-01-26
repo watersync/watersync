@@ -18,7 +18,6 @@ from bootstrap_datepicker_plus.widgets import TimePickerInput, DatePickerInput
 
 from watersync.core.forms_detail import LakeDetailForm, PiezometerDetailForm, PrecipitationDetailForm, PumpingWellDetailForm, RiverDetailForm, WastewaterDetailForm
 from watersync.core.generics.forms import FormWithDetailMixin, FormWithHistory
-from watersync.core.generics.forms import HTMXChoiceField
 from watersync.core.models import Location, Project, Fieldwork
 from watersync.core.parsers import (
     parse_bulk_fieldwork_data,
@@ -61,7 +60,6 @@ class ProjectForm(ModelForm):
         model = Project
         fields = [
             "name",
-            "is_active",
             "description",
             "start_date",
             "end_date",
@@ -278,7 +276,7 @@ class LocationForm(FormWithDetailMixin, FormWithHistory):
     # geom field is important because in the template latitude and longitude are used to
     # populate the geometry from coordinates
     geom = CharField(required=False, widget=HiddenInput())
-    type = HTMXChoiceField(
+    type = ChoiceField(
         choices=Location.LocationTypes.choices,
         required=True,
         label="Type",

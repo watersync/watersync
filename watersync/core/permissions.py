@@ -31,11 +31,44 @@ class ProjectPermissionMixin(UserPassesTestMixin):
     Mixin that verifies the user has permission to access the project.
     """
     def test_func(self):
-        project_id = self.kwargs.get("project_id")
-        if not project_id:
+        project_pk = self.kwargs.get("project_pk")
+        if not project_pk:
             return False
 
-        return self.request.user.projects.filter(id=project_id).exists()
+        return self.request.user.projects.filter(pk=project_pk).exists()
+
+    def handle_no_permission(self):
+        if self.raise_exception:
+            raise PermissionDenied
+        return super().handle_no_permission()
+
+
+class UserOwnershipMixin(UserPassesTestMixin):
+    """
+    Mixin that verifies the user owns the object (via user M2M).
+    
+    Used for models with direct user relationship like Sensor.
+    For list views (no object pk), always passes - queryset filtering handles access.
+    For detail/update/delete views, checks user is in object's user M2M.
+    """
+    # Override in subclass to specify the pk kwarg name
+    object_pk_kwarg = None
+    
+    def test_func(self):
+        # Determine pk kwarg name from model if not set
+        pk_kwarg = self.object_pk_kwarg
+        if not pk_kwarg and hasattr(self, 'model'):
+            pk_kwarg = f"{self.model._meta.model_name}_pk"
+        
+        object_pk = self.kwargs.get(pk_kwarg)
+        
+        # List views don't have object pk - rely on queryset filtering
+        if not object_pk:
+            return True
+        
+        # Check user owns the object
+        model = self.model if hasattr(self, 'model') else self.get_queryset().model
+        return model.objects.filter(pk=object_pk, user=self.request.user).exists()
 
     def handle_no_permission(self):
         if self.raise_exception:

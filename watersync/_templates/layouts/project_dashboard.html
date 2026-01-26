@@ -49,6 +49,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{% url 'groundwater:gwlmanualmeasurements' project.pk %}"
+                                class="custom-nav-link align-middle px-0">
+                                <i class="fa-solid fa-water p-2"></i> <span
+                                    class="ms-1 d-none d-sm-inline">GW Levels</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{% url 'sensor:deployments' project.pk %}"
                                 class="custom-nav-link align-middle px-0">
                                 <i class="fa-solid fa-tower-broadcast p-2"></i> <span

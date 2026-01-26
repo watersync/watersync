@@ -10,11 +10,10 @@ Use watersync.core.config for accessing parameter definitions.
 
 from django.db import models
 from django.utils.text import slugify
+from simple_history.models import HistoricalRecords
 
-from watersync.core.generics.interfaces import InterfaceModelTemplate
 
-
-class Protocol(models.Model, InterfaceModelTemplate):
+class Protocol(models.Model):
     """Protocols for sampling and analysis.
 
     Protocol describes the details of the sampling collection and analysis process,
@@ -43,6 +42,8 @@ class Protocol(models.Model, InterfaceModelTemplate):
     data_postprocessing = models.TextField(blank=True, null=True)
     standard_reference = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(max_length=256, blank=True, null=True)
+
+    history = HistoricalRecords()
 
     _list_view_fields = {
         "Method Name": "method_name",

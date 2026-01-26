@@ -1,15 +1,13 @@
 from django.contrib.gis.db import models as geomodels
-from django_extensions.db.models import TimeStampedModel
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-from watersync.core.generics.model_setup import SetupSimpleHistory
-from watersync.core.managers import LocationManager, ProjectManager, WatersyncManager
-from watersync.core.generics.interfaces import InterfaceModelTemplate
+from watersync.core.generics.models import SetupSimpleHistory
+from watersync.core.managers import LocationManager, ProjectManager, WithCountsManager
 from watersync.users.models import User
 
 
-class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
+class Project(models.Model, SetupSimpleHistory):
     """List of projects.
 
     Project is the main object of the database. All other objects are
@@ -23,13 +21,6 @@ class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
         geom (PolygonField): The location of the project.
         start_date (DateField): The date when the project started.
         end_date (DateField): The date when the project ended.
-        is_active (BooleanField): The status of the project.
-        created (DateTimeField): The date and time when the project was
-            created. Handled by TimesStampedModel. This field will autoupdate
-            when created.
-        modified (DateTimeField): The date and time when the project was
-            updated. Handled by TimesStampedModel. This field will update
-            when created.
     """
 
     user = models.ManyToManyField(User, related_name="projects")
@@ -38,16 +29,22 @@ class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     geom = geomodels.PolygonField(srid=4326, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
 
     objects = ProjectManager()
     history = HistoricalRecords()
 
+    # Fields to count in with_counts() - used for dashboard
+    _count_fields = ['locations', 'fieldworks']
+
     _detail_view_fields = {
         "Started": "start_date",
         "Ended": "end_date",
-        "Active": "is_active",
+        "Active": "active",
     }
+
+    def active(self):
+        """Check if the project is currently active."""
+        return self.end_date is None or self.end_date >= models.functions.Now()
 
     def natural_key(self):
         return (self.name,)
@@ -55,7 +52,7 @@ class Project(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     def __str__(self):
         return self.name
 
-class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
+class Location(models.Model, SetupSimpleHistory):
     """List of locations.
 
     Locations are attached to projects and most of other types of data in projects like
@@ -75,9 +72,6 @@ class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
         detail (JSONField): JSON field with station detail to provide flexible
             schema and avoid related models.
     """
-
-    _url_parent_field = "project"
-    _url_parent_param = "project_pk"
 
     class LocationTypes(models.TextChoices):
         WELL = "pumping_well", "Pumping well"
@@ -109,8 +103,10 @@ class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
-    watersync = WatersyncManager()
     history = HistoricalRecords()
+
+    # Fields to count in with_counts() - used for overview pages
+    _count_fields = ['gwlmeasurements', 'deployments', 'samples']
 
     _detail_view_fields = {
         "Type": "type",
@@ -127,7 +123,7 @@ class Location(models.Model, InterfaceModelTemplate, SetupSimpleHistory):
     def __str__(self):
         return f"{self.name}"
 
-class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
+class Fieldwork(models.Model, SetupSimpleHistory):
     """Reports from days spent in the field.
 
     This model aggregates data from a fieldwork event. During one fieldwork event,
@@ -136,11 +132,7 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
     relevant information about what happened during the fieldwork. There can be only one
     fieldwork per day.
     """
-
-    _url_parent_field = "project"
-    _url_parent_param = "project_pk"
     
-    # Enable bulk creation
     _has_bulk_create = True
     
     class WeatherConditions(models.TextChoices):
@@ -165,6 +157,12 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
     )
     description = models.TextField(blank=True, null=True)
 
+    objects = WithCountsManager()
+    history = HistoricalRecords()
+
+    # Fields to count in with_counts() - used for overview pages
+    _count_fields = ['gwlmeasurements', 'samples']
+
     _list_view_fields = {
         "Date": "date",
     }
@@ -174,9 +172,7 @@ class Fieldwork(TimeStampedModel, InterfaceModelTemplate):
         "Date": "date",
         "Start time": "start_time",
         "End time": "end_time",
-        "Weather": "weather",
-        "Created at": "created",
-        "Modified at": "modified",
+        "Weather": "weather"
     }
 
     def __str__(self):

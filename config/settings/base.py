@@ -100,6 +100,7 @@ THIRD_PARTY_APPS = [
     "simple_history",
     "leaflet",
     "django_htmx",
+    "django_filters",
 ]
 
 LOCAL_APPS = [

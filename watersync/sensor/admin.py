@@ -28,7 +28,7 @@ class SensorRecordAdmin(admin.ModelAdmin):
 
 @admin.register(Deployment)
 class DeploymentRecordAdmin(admin.ModelAdmin):
-    list_display = ("location", "sensor", "deployed_at", "decommissioned_at")
+    list_display = ("location", "sensor")
     search_fields = (
         "location",
         "sensor",

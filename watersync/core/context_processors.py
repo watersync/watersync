@@ -20,12 +20,12 @@ def url_context(request):
     
     base_template Selection Logic:
         ┌─────────────────────────────────────────────────────────────────┐
-        │ Request Type          │ base_template                          │
+        │ Request Type          │ base_template                           │
         ├─────────────────────────────────────────────────────────────────┤
-        │ HTMX request          │ 'layouts/partial.html'                 │
-        │ Full page + project   │ 'layouts/project_dashboard.html'       │
-        │ Full page (no proj)   │ 'layouts/base_dashboard.html'          │
-        │ No resolver match     │ 'layouts/base_dashboard.html'          │
+        │ HTMX request          │ 'layouts/partial.html'                  │
+        │ Full page + project   │ 'layouts/project_dashboard.html'        │
+        │ Full page (no proj)   │ 'layouts/base_dashboard.html'           │
+        │ No resolver match     │ 'layouts/base_dashboard.html'           │
         └─────────────────────────────────────────────────────────────────┘
     
     HTMX Template Pattern:

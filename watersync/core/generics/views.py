@@ -20,43 +20,69 @@ from django.views.generic import (
 from docstring_parser import parse_from_object
 
 from watersync.core.generics.context import ListConfig
-from watersync.core.generics.mixins import CreateUpdateDetailMixin, ExportCsvMixin, StandardURLMixin
+from watersync.core.generics.mixins import DetailFormMixin, ExportCsvMixin
+from watersync.core.models import Project
 
 
 class HTMXFormMixin:
-    """Mixin providing HTMX form handling with parent object prefilling.
+    """Mixin providing HTMX form handling with automatic parent prefilling.
     
     This mixin handles:
-    1. Pre-filling form fields from request parameters (via hx-vals)
-    2. Hiding pre-filled parent fields
+    1. Auto-detecting parent PKs from request params (e.g., location_pk → location field)
+    2. Pre-filling and hiding parent fields in forms
     3. HTMX-compatible form_valid/form_invalid responses
     4. User field auto-population
     
+    Parent detection works by:
+    - Finding request params ending in '_pk' (e.g., location_pk, fieldwork_pk)
+    - Matching to form fields (stripping '_pk' suffix)
+    - Getting the model class from the field's queryset
+    
     Attributes:
-        prefill_from_parent: Dict mapping form field names to (param_name, model_class).
-            Example: {'location': ('location_pk', Location)}
         htmx_response_status: HTTP status code for successful HTMX responses (default: 204)
         htmx_invalid_status: HTTP status code for invalid form HTMX responses (default: 400)
         htmx_render_template: Template for re-rendering form on validation errors
     """
     
-    # Configure parent object prefilling: {'form_field': ('request_param', ModelClass)}
-    prefill_from_parent: dict = None
     htmx_response_status: int = 204
     htmx_invalid_status: int = 400
     htmx_render_template: str = None
+    
+    # Cache for detected parent PKs
+    _parent_pks_cache = None
 
-    def _get_parent_pks(self):
-        """Get parent PKs from GET (initial load) or POST (form submission)."""
-        pks = {}
-        if not self.prefill_from_parent:
-            return pks
+    def _get_parent_pks(self, form=None):
+        """Auto-detect parent PKs from request params.
+        
+        Looks for params ending in '_pk', matches them to form fields,
+        and returns dict of {field_name: (param_name, pk_value, model_class)}.
+        """
+        if self._parent_pks_cache is not None:
+            return self._parent_pks_cache
             
-        for field_name, (param_name, model_class) in self.prefill_from_parent.items():
-            # Check POST first (form submission), then GET (initial load)
-            pk = self.request.POST.get(param_name) or self.request.GET.get(param_name)
-            if pk:
-                pks[field_name] = (param_name, pk, model_class)
+        pks = {}
+        
+        # Combine GET and POST params, POST takes precedence
+        params = {**self.request.GET.dict(), **self.request.POST.dict()}
+        
+        for param_name, pk_value in params.items():
+            if not param_name.endswith('_pk') or not pk_value:
+                continue
+                
+            # Derive field name from param (location_pk → location)
+            field_name = param_name[:-3]  # strip '_pk'
+            
+            # Get model class from form field if available
+            model_class = None
+            if form and field_name in form.fields:
+                field = form.fields[field_name]
+                if hasattr(field, 'queryset'):
+                    model_class = field.queryset.model
+            
+            if model_class:
+                pks[field_name] = (param_name, pk_value, model_class)
+        
+        self._parent_pks_cache = pks
         return pks
 
     def get_initial(self):
@@ -67,24 +93,25 @@ class HTMXFormMixin:
         if self.request.user.is_authenticated:
             initial["user"] = self.request.user.pk
 
-        # Parent object prefilling from request params
-        for field_name, (param_name, pk, model_class) in self._get_parent_pks().items():
-            try:
-                initial[field_name] = model_class.objects.get(pk=pk)
-            except model_class.DoesNotExist:
-                pass
-
         return initial
-
+    
     def get_form(self, form_class=None):
-        """Hide pre-filled parent fields (values come via hidden inputs)."""
+        """Pre-fill parent fields and disable them."""
         form = super().get_form(form_class)
         
-        # Hide parent fields that are prefilled
-        parent_pks = self._get_parent_pks()
-        for field_name in parent_pks.keys():
+        # Now that we have the form, detect and apply parent PKs
+        parent_pks = self._get_parent_pks(form)
+        
+        for field_name, (param_name, pk, model_class) in parent_pks.items():
             if field_name in form.fields:
-                form.fields[field_name].widget = form.fields[field_name].hidden_widget()
+                # Set initial value
+                try:
+                    form.initial[field_name] = model_class.objects.get(pk=pk)
+                except model_class.DoesNotExist:
+                    continue
+                    
+                # Disable the field so user can see but not change
+                form.fields[field_name].disabled = True
         
         return form
 
@@ -92,10 +119,14 @@ class HTMXFormMixin:
         """Add parent PKs to context for hidden inputs in template."""
         context = super().get_context_data(**kwargs)
         
+        # Get form from context to detect parent PKs
+        form = context.get('form')
+        parent_pks = self._get_parent_pks(form)
+        
         # Pass parent PKs to template for hidden inputs
         context['parent_pks'] = [
             (param_name, pk) 
-            for field_name, (param_name, pk, model_class) in self._get_parent_pks().items()
+            for field_name, (param_name, pk, model_class) in parent_pks.items()
         ]
         
         return context
@@ -107,7 +138,7 @@ class HTMXFormMixin:
         """
         if not instance or not hasattr(instance, 'user') or not self.request.user:
             return
-
+ 
         # ManyToMany field (has 'add' method)
         if hasattr(instance.user, 'add'):
             if self.request.user not in instance.user.all():
@@ -171,7 +202,6 @@ class HTMXFormMixin:
 
 class WatersyncListView(
     LoginRequiredMixin,
-    StandardURLMixin,
     ExportCsvMixin,
     ListView,
 ):
@@ -193,6 +223,12 @@ class WatersyncListView(
     detail_type: str = None
     template_name = "list_page.html"
     docstr: str | None = None
+
+    def get_project(self):
+        """Get the project object from the URL kwargs."""
+        if project_pk := self.kwargs.get("project_pk"):
+            return get_object_or_404(Project, pk=project_pk)
+        return None
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -217,11 +253,12 @@ class WatersyncListView(
 
         # ListConfig with all values needed by templates
         list_config = ListConfig(
-            tbody_id=f"{self.model_name}-tbody",
+            tbody_id=f"{self.model._meta.model_name}-tbody",
             columns=list(self._get_list_view_fields().keys()),
             title=self.model._meta.verbose_name_plural,
             detail_type=self.detail_type or None,
             has_bulk_create=getattr(self.model, "_has_bulk_create", False),
+            has_update=getattr(self.model, "_has_update", False),
             explanation=self.docstr.short_description,
             explanation_detail=self.docstr.long_description,
         )
@@ -241,8 +278,7 @@ class WatersyncListView(
 class WatersyncCreateView(
     LoginRequiredMixin,
     HTMXFormMixin,
-    StandardURLMixin,
-    CreateUpdateDetailMixin,
+    DetailFormMixin,
     CreateView,
 ):
 
@@ -267,19 +303,9 @@ class WatersyncCreateView(
             kwargs.pop("instance", None)
         return kwargs
 
-    def get(self, request, *args, **kwargs):
-        # Check if this is a request for the detail form
-        # This had to be done here because the swap of the form is handled by
-        # HTMX and via the hx-get attribute in the form field
-        if request.htmx and request.GET.get("type"):
-            return self.swap_detail_form(request)
-
-        return super().get(request, *args, **kwargs)
-
 
 class WatersyncDeleteView(
     LoginRequiredMixin,
-    StandardURLMixin,
     DeleteView,
 ):
     """Delete view with HTMX support.
@@ -324,11 +350,10 @@ class WatersyncDeleteView(
         return context
 
     def get_object(self):
-        queryset = self.model.objects.all()
-        parent_field = getattr(self.model, '_url_parent_field', None)
-        if parent_field:
-            queryset = queryset.select_related(parent_field)
-        return get_object_or_404(queryset, pk=self.kwargs[self.item_pk_name])
+        return get_object_or_404(
+            self.model, 
+            pk=self.kwargs[self.model._meta.model_name + "_pk"]
+        )
 
     def _is_viewing_this_object(self, current_url: str) -> bool:
         """Check if we're on a page dedicated to this specific object."""
@@ -379,8 +404,7 @@ class WatersyncDeleteView(
 class WatersyncUpdateView(
     LoginRequiredMixin,
     HTMXFormMixin,
-    StandardURLMixin,
-    CreateUpdateDetailMixin,
+    DetailFormMixin,
     SuccessMessageMixin,
     UpdateView,
 ):
@@ -389,19 +413,16 @@ class WatersyncUpdateView(
     htmx_render_template = "shared/form.html"
 
     def get_object(self):
-        return get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
-    
-    def get(self, request, *args, **kwargs):
-        # Check if this is a request for the detail form
-        if request.htmx and request.GET.get("type"):
-            return self.swap_detail_form(request, initial=self.get_object().detail)
-            
-        return super().get(request, *args, **kwargs)
+        return get_object_or_404(self.model, pk=self.kwargs[self.model._meta.model_name + "_pk"])
+
+    def get_detail_form_initial(self):
+        """Return the existing detail data for update forms."""
+        obj = self.get_object()
+        return getattr(obj, 'detail', None) or {}
 
 
 class WatersyncDetailView(
     LoginRequiredMixin,
-    StandardURLMixin,
     DetailView,
 ):
     
@@ -409,7 +430,25 @@ class WatersyncDetailView(
 
     def get_object(self):
         # If the model has 'history', return the object as_of now()
-        obj = get_object_or_404(self.model, pk=self.kwargs[self.item_pk_name])
+        obj = get_object_or_404(self.model, pk=self.kwargs[self.model._meta.model_name + "_pk"])
         if hasattr(obj, "history"):
             return obj.history.as_of(timezone.now())
         return obj
+    
+class WatersyncHistoryListView(WatersyncListView):
+    """Base view for listing historical records with diffs.
+    
+    Uses the historical model's `instance_type` (set by django-simple-history)
+    and the parent's `get_history_with_diffs()` (from SetupSimpleHistory).
+    """
+    template_name = "shared/list_history.html"
+    detail_type = "popover"
+
+    def get_queryset(self):
+        parent_model = self.model.instance_type
+        pk_kwarg = f"{parent_model._meta.model_name}_pk"
+        parent = get_object_or_404(parent_model, pk=self.kwargs[pk_kwarg])
+        return parent.get_history_with_diffs()
+
+    def get_context_data(self, **kwargs):
+        return ListView.get_context_data(self, **kwargs)

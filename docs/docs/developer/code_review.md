@@ -87,7 +87,7 @@ User → Project → Location → [GWL Measurements, Deployments, Samples]
 
 5. **`Fieldwork.date` is unique globally**: This prevents multiple projects from having fieldwork on the same day. Should be `unique_together = ("project", "date")`.
 
-6. **`InterfaceModelTemplate` mixin issues**:
+6. **`ModelViewConfigMixin` mixin issues**:
    - Uses both `models.Model` and mixin inheritance which is verbose
    - `_list_view_fields` and `_detail_view_fields` could be class-level constants
 
@@ -129,40 +129,21 @@ This is the heart of the application's abstraction layer.
 - `WatersyncListView`, `WatersyncCreateView`, etc. reduce significant boilerplate
 - `StandardURLMixin` provides consistent URL naming conventions
 - `ListContext` and `DetailContext` dataclasses for type-safe context passing
-- `HTMXFormMixin` handles both HTMX and standard form submissions
+- `HTMXFormMixin` handles both HTMX and standard form submissions (consolidated into views.py)
 
 **Issues:**
 
-1. **`views.py` is 318 lines**: Consider splitting into:
-   - `views/base.py` - Base view classes
+1. **`views.py` is ~400 lines**: Consider splitting into:
+   - `views/base.py` - Base view classes and HTMXFormMixin
    - `views/list.py` - List-related views
    - `views/crud.py` - Create/Update/Delete views
    - `views/detail.py` - Detail views
 
-2. **`RenderToResponseMixin` is duplicated conceptually**:
+2. ~~**`RenderToResponseMixin` is duplicated conceptually**~~:
    ADDRESSED: class deleted, we use more pure htmx approach now relying on already existing variables delivered by django_htmx extension
-   ```python
-   class RenderToResponseMixin:
-       def render_to_response(self, context, **response_kwargs):
-           if self.request.htmx:
-               html = render_to_string(self.htmx_template, context, request=self.request)
-               return HttpResponse(html)
-           return super().render_to_response(context, **response_kwargs)
-   ```
-   This should integrate with Django's `TemplateResponseMixin` more elegantly.
 
-3. **`htmx.py` has tight coupling**: 
-   ```python
-   from watersync.core.models import Location, Fieldwork
-   from watersync.waterquality.models import Sample
-   ```
-   A generic module shouldn't import domain models. Use dependency injection or configuration.
-
-4. **`UpdateFormMixin.get_pk_from_hx_headers` uses regex on URLs**:
-   ```python
-   match = re.search(f'/{parameter}/(\d+)/', current_url)
-   ```
-   This is fragile. Consider using Django's `resolve()` function or passing data via HTMX headers.
+3. ~~**`htmx.py` has tight coupling**~~:
+   ADDRESSED: htmx.py was consolidated into views.py. Parent object prefilling now uses `prefill_from_parent` dict configured per-view.
 
 5. **`FormWithDetailMixin` bare except**:
    ```python
@@ -798,10 +779,9 @@ With focused effort on the priority actions above, the codebase can be stabilize
 - `admin.py` (21 lines)
 - `context_processors.py` (57 lines)
 - `permissions.py` (44 lines)
-- `generics/views.py` (318 lines)
+- `generics/views.py` (~400 lines, includes HTMXFormMixin)
 - `generics/forms.py` (110 lines)
-- `generics/htmx.py` (178 lines)
-- `generics/mixins.py` (284 lines)
+- `generics/mixins.py` (~150 lines)
 - `generics/context.py` (44 lines)
 - `generics/interfaces.py` (25 lines)
 - `generics/decorators.py` (26 lines)

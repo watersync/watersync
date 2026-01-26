@@ -3,15 +3,20 @@ from django.forms import ModelForm
 from django.template.response import TemplateResponse
 from django.views import View
 from django.views.generic import ListView, TemplateView
-from watersync.core.generics.decorators import filter_by_location
 from watersync.core.generics.utils import update_location_geom, add_current_project
 from watersync.core.forms import FieldworkForm, FieldworkBulkForm, LocationForm, ProjectForm
-from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject
-from watersync.core.generics.views import WatersyncCreateView, WatersyncDetailView, WatersyncDeleteView, WatersyncListView, WatersyncUpdateView
-from django.db.models import Count
-import json
+from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject, HistoricalFieldwork
+from watersync.core.generics.views import (
+    WatersyncCreateView,
+    WatersyncDeleteView,
+    WatersyncDetailView,
+    WatersyncHistoryListView,
+    WatersyncListView,
+    WatersyncUpdateView,
+)
 from django.shortcuts import get_object_or_404
 
+# ----- Fieldwork Views ----- #
 
 class FieldworkBulkPreviewView(LoginRequiredMixin, View):
     """HTMX endpoint for live preview of bulk fieldwork data (paste or file)."""
@@ -101,18 +106,10 @@ class FieldworkCreateView(WatersyncCreateView):
 
     def form_valid(self, form):
         """Handle bulk form submission."""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"form_valid called with form type: {type(form)}")
-        logger.error(f"isinstance check: {isinstance(form, FieldworkBulkForm)}")
-        logger.error(f"form.cleaned_data: {form.cleaned_data}")
         
         if isinstance(form, FieldworkBulkForm):
             processed_data = form.cleaned_data.get("processed_data", [])
             users = form.cleaned_data.get("user", [])
-            
-            logger.error(f"processed_data: {processed_data}")
-            logger.error(f"users: {users}")
             
             created_fieldworks = []
             for data in processed_data:
@@ -127,9 +124,6 @@ class FieldworkCreateView(WatersyncCreateView):
                 fieldwork.user.set(users)
                 created_fieldworks.append(fieldwork)
             
-            logger.error(f"Created {len(created_fieldworks)} fieldworks")
-            
-            # Build success URL manually since we don't have self.object
             from django.urls import reverse
             success_url = reverse(
                 "core:fieldworks",
@@ -169,8 +163,7 @@ class FieldworkListView(WatersyncListView):
 
 
     def get_queryset(self):
-        project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
-        return project.fieldworks.order_by("-created")
+        return Fieldwork.objects.for_project(self.kwargs["project_pk"]).order_by("-date")
 
 
 class FieldworkDetailView(WatersyncDetailView):
@@ -181,24 +174,28 @@ class FieldworkOverviewView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        fieldwork = get_object_or_404(
-            Fieldwork.objects.annotate(
-                gwlmeasurementcount=Count('gwlmeasurements'),
-                samplecount=Count('samples')
-            ),
+        context["fieldwork"] = get_object_or_404(
+            Fieldwork.objects.with_counts(),
             pk=self.kwargs["fieldwork_pk"]
         )
-        context["fieldwork"] = fieldwork
-        context["gwlmeasurementcount"] = fieldwork.gwlmeasurementcount
-        context["samplecount"] = fieldwork.samplecount
         return context
+    
+class FieldworkHistoryListView(WatersyncHistoryListView):
+    model = HistoricalFieldwork
 
+class FieldworkHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalFieldwork
+
+fieldwork_history_list_view = FieldworkHistoryListView.as_view()
+fieldwork_history_delete_view = FieldworkHistoryDeleteView.as_view()
 fieldwork_overview_view = FieldworkOverviewView.as_view()
 fieldwork_create_view = FieldworkCreateView.as_view()
 fieldwork_detail_view = FieldworkDetailView.as_view()
 fieldwork_list_view = FieldworkListView.as_view()
 fieldwork_delete_view = FieldworkDeleteView.as_view()
 fieldwork_update_view = FieldworkUpdateView.as_view()
+
+# ----- Location Views ----- #
 
 class LocationCreateView(WatersyncCreateView):
     model = Location
@@ -237,24 +234,39 @@ class LocationListView(WatersyncListView):
     detail_type = "page"
 
     def get_queryset(self):
-        stats = {
-            "locsamples": Count("samples"),
-        }
-
-        project = self.get_project()
-        return project.locations.all()
+        return Location.objects.for_project(self.kwargs["project_pk"])
 
 
 class LocationDetailView(WatersyncDetailView):
     model = Location
 
+class LocationHistoryListView(WatersyncHistoryListView):
+    model = HistoricalLocation
+
+class LocationHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalLocation
+
+class LocationOverviewView(TemplateView):
+    template_name = "core/location_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["location"] = get_object_or_404(
+            Location.objects.with_counts(),
+            pk=self.kwargs["location_pk"]
+        )
+        return context
 
 location_create_view = LocationCreateView.as_view()
 location_delete_view = LocationDeleteView.as_view()
 location_update_view = LocationUpdateView.as_view()
 location_detail_view = LocationDetailView.as_view()
 location_list_view = LocationListView.as_view()
+location_overview_view = LocationOverviewView.as_view()
+location_history_list_view = LocationHistoryListView.as_view()
+location_history_delete_view = LocationHistoryDeleteView.as_view()
 
+# ----- Project Views ----- #
 
 class ProjectCreateView(WatersyncCreateView):
     model = Project
@@ -287,71 +299,18 @@ class ProjectListView(LoginRequiredMixin, ListView):
 class ProjectDetailView(WatersyncDetailView):
     model = Project
 
+class ProjectHistoryListView(WatersyncHistoryListView):
+    model = HistoricalProject
+
+class ProjectHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalProject
 
 project_create_view = ProjectCreateView.as_view()
 project_delete_view = ProjectDeleteView.as_view()
 project_update_view = ProjectUpdateView.as_view()
 project_detail_view = ProjectDetailView.as_view()
 project_list_view = ProjectListView.as_view()
-
-class LocationOverviewView(TemplateView):
-    template_name = "core/location_overview.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        location = get_object_or_404(
-            Location.objects.annotate(
-                gwlmeasurementcount=Count('gwlmeasurements'),
-                deploymentcount=Count('deployments'),
-                samplecount=Count('samples')
-            ),
-            pk=self.kwargs["location_pk"]
-        )
-        context["location"] = location
-        context["gwlmeasurementcount"] = location.gwlmeasurementcount
-        context["deploymentcount"] = location.deploymentcount
-        context["samplecount"] = location.samplecount
-        return context
-
-location_overview_view = LocationOverviewView.as_view()
-
-class LocationHistoryDeleteView(WatersyncDeleteView):
-    model = HistoricalLocation
-
-
-class LocationHistoryListView(WatersyncListView):
-    model = HistoricalLocation
-    template_name = "shared/list_history.html"
-    htmx_template = "shared/list_history.html"
-    detail_type = "popover"
-
-    def get_queryset(self):
-        location = get_object_or_404(Location, pk=self.kwargs["location_pk"])
-        history = list(location.history.all().order_by("-history_date"))
-        history_with_diffs = []
-
-        for i, record in enumerate(history):
-            prev_record = history[i + 1] if i + 1 < len(history) else None
-            changes = None
-
-            if prev_record:
-                changes = record.diff_against(prev_record).changes
-            history_with_diffs.append({
-                'record': record,
-                'prev_record': prev_record,
-                'changes': changes,
-            })
-
-        return history_with_diffs
-
-    def get_context_data(self, **kwargs):
-        return ListView.get_context_data(self, **kwargs)
-
-
-location_history_list_view = LocationHistoryListView.as_view()
-location_history_delete_view = LocationHistoryDeleteView.as_view()
-
-class ProjectHistoryDeleteView(WatersyncDeleteView):
-    model = HistoricalProject
-
+project_history_list_view = ProjectHistoryListView.as_view()
 project_history_delete_view = ProjectHistoryDeleteView.as_view()
+
+

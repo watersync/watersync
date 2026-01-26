@@ -21,7 +21,8 @@ from watersync.core.generics.views import WatersyncListView
 from watersync.core.models import Location, Project
 from watersync.sensor.models import Deployment, Sensor, SensorRecord
 from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
-from watersync.core.generics.decorators import filter_by_location
+from watersync.core.generics.mixins import FilterMixin
+from watersync.sensor.filters import DeploymentFilter
 from watersync.core.config import get_sensor_unit_choices, get_variables_json
 from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
@@ -203,18 +204,6 @@ class SensorRecordCreateView(LoginRequiredMixin, FormView):
         return context
 
 
-class SensorRecordUpdateView(LoginRequiredMixin, UpdateView):
-    model = SensorRecord
-    form_class = SensorRecordForm
-    template_name = "sensor/sensorrecord_form.html"
-
-    def get_success_url(self):
-        return reverse_lazy(
-            "sensor:sensorrecord-list",
-            kwargs={"deployment_pk": self.object.deployment.pk},
-        )
-
-
 class SensorRecordDeleteView(LoginRequiredMixin, DeleteView):
     model = SensorRecord
     template_name = "sensor/sensorrecord_confirm_delete.html"
@@ -263,7 +252,6 @@ class SensorRecordDownloadView(LoginRequiredMixin, View):
 
 sensorrecord_create_view = SensorRecordCreateView.as_view()
 sensorrecord_delete_view = SensorRecordDeleteView.as_view()
-sensorrecord_update_view = SensorRecordUpdateView.as_view()
 sensorrecord_download_view = SensorRecordDownloadView.as_view()
 sensorrecord_list_view = SensorRecordListView.as_view()
 # ================ Deployment views ========================
@@ -272,27 +260,23 @@ sensorrecord_list_view = SensorRecordListView.as_view()
 class DeploymentCreateView(WatersyncCreateView):
     model = Deployment
     form_class = DeploymentForm
-    prefill_from_parent = {
-        'location': ('location_pk', Location),
-    }
+
 
 class DeploymentUpdateView(WatersyncUpdateView):
     model = Deployment
     form_class = DeploymentForm
 
-class DeploymentListView(WatersyncListView):
+class DeploymentListView(FilterMixin, WatersyncListView):
     model = Deployment
     detail_type = "page"
+    filterset_class = DeploymentFilter
 
-    @filter_by_location
-    def get_queryset(self, **kwargs):
-        project = self.get_project()
-        locations = project.locations.all()
-        return Deployment.objects.filter(
-            location__in=locations
-        ).order_by("-deployed_at")
+    def get_base_queryset(self, **kwargs):
+        return Deployment.objects.for_project(
+            self.kwargs["project_pk"]
+        ).order_by("-started_at")
 
-
+ 
 class DeploymentDetailView(WatersyncDetailView):
     model = Deployment
 
@@ -306,7 +290,10 @@ class DeploymentOverviewView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        deployment = get_object_or_404(Deployment, pk=self.kwargs["deployment_pk"])
+        deployment = get_object_or_404(
+            Deployment.objects.with_counts(),
+            pk=self.kwargs["deployment_pk"]
+        )
 
         # Include additional context from SensorRecordListView
         record_view = SensorRecordListView.as_view()(

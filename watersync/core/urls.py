@@ -1,19 +1,36 @@
 from django.urls import include, path
 
-from watersync.core.views import fieldwork_create_view, fieldwork_update_view, fieldwork_delete_view, fieldwork_detail_view, fieldwork_list_view, fieldwork_overview_view, fieldwork_bulk_preview_view, location_create_view, location_delete_view, location_detail_view, location_overview_view, location_update_view, project_create_view, project_delete_view, project_detail_view, project_update_view
+from watersync.core.views import (
+    fieldwork_create_view, 
+    fieldwork_update_view, 
+    fieldwork_delete_view, 
+    fieldwork_detail_view, 
+    fieldwork_list_view, 
+    fieldwork_overview_view, 
+    fieldwork_bulk_preview_view,
+    fieldwork_history_delete_view,
+    fieldwork_history_list_view,
+    )
 from watersync.core.views import (
     location_list_view,
-)
-from watersync.core.views import (
+    location_create_view, 
+    location_delete_view, 
+    location_detail_view, 
+    location_overview_view, 
+    location_update_view, 
     location_history_delete_view,
     location_history_list_view,
-    project_history_delete_view,
 )
-from watersync.core.views import (
-    project_history_delete_view,
-)
+
 from watersync.core.views import (
     project_list_view,
+    project_history_delete_view,
+    project_create_view, 
+    project_delete_view, 
+    project_detail_view, 
+    project_update_view,
+    project_history_list_view,
+    project_history_delete_view,
 )
 
 app_name = "core"
@@ -24,6 +41,7 @@ project_urlpatterns = [
     path("<str:project_pk>/", project_detail_view, name="detail-project"),
     path("<str:project_pk>/update/", project_update_view, name="update-project"),
     path("<str:project_pk>/delete/", project_delete_view, name="delete-project"),
+    path("<str:project_pk>/history/", project_history_list_view, name="list-historicalproject"),
 ]
 
 fieldwork_urlpatterns = [
@@ -34,6 +52,8 @@ fieldwork_urlpatterns = [
     path("<str:fieldwork_pk>/update/", fieldwork_update_view, name="update-fieldwork"),
     path("<str:fieldwork_pk>/delete/", fieldwork_delete_view, name="delete-fieldwork"),
     path("<str:fieldwork_pk>/overview/", fieldwork_overview_view, name="overview-fieldwork"),
+    path("<str:fieldwork_pk>/history/", fieldwork_history_list_view, name="list-historicalfieldwork"),
+    path("<str:fieldwork_pk>/history/delete/", fieldwork_history_delete_view, name="delete-historicalfieldwork"),
 ]
 
 location_urlpatterns = [
@@ -44,8 +64,8 @@ location_urlpatterns = [
     path("<str:location_pk>/update/", location_update_view, name="update-location"),
     path("<str:location_pk>/delete/", location_delete_view, name="delete-location"),
     path("<str:location_pk>/history/", location_history_list_view, name="list-historicallocation"),
+    path("<str:location_pk>/history/delete/", location_history_delete_view, name="delete-historicallocation"),
 ]
-
 urlpatterns = [
     path("projects/", include(project_urlpatterns)),
     path(

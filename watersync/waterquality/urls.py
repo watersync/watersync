@@ -12,7 +12,6 @@ from watersync.waterquality.views import (
     measurement_delete_view,
     measurement_detail_view,
     measurement_list_view,
-    measurement_update_view,
     protocol_create_view,
     protocol_delete_view,
     protocol_detail_view,
@@ -58,11 +57,6 @@ measurement_patterns = [
     path("", measurement_list_view, name="measurements"),
     path("add/", measurement_create_view, name="add-measurement"),
     path("add/preview/", measurement_bulk_preview_view, name="bulk-preview-measurement"),
-    path(
-        "<str:measurement_pk>/update/",
-        measurement_update_view,
-        name="update-measurement",
-    ),
     path(
         "<str:measurement_pk>/",
         measurement_detail_view,

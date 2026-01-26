@@ -69,9 +69,9 @@
                 <div class="card-body">
                     <h5 class="card-title">Basic Information</h5>
                     <ul class="list-group list-group-flush">
-                        {% for fld, val in object.detail_view_items %}
-                            <li class="list-group-item"><strong>{{ fld }}:</strong> {{ val }} </li>
-                        {% endfor %}
+                    {% for label, value in object|display_fields:"detail" %}
+                        <li class="list-group-item"><strong>{{ label }}:</strong> {{ value }} </li>
+                    {% endfor %}
                         {% if object.description %}
                         <li class="list-group-item"><strong>Description:</strong>
                             <div class="card-body">
