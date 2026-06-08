@@ -1,8 +1,12 @@
+from watersync.core.generics.mixins import FilterMixin
+from watersync.core.generics.views import (
+    WatersyncCreateView,
+    WatersyncDeleteView,
+    WatersyncListView,
+)
+from watersync.groundwater.filters import GWLMeasurementFilter
 from watersync.groundwater.forms import GWLForm
 from watersync.groundwater.models import GWLManualMeasurement
-from watersync.groundwater.filters import GWLMeasurementFilter
-from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDeleteView
-from watersync.core.generics.mixins import FilterMixin
 
 
 class GWLCreateView(WatersyncCreateView):

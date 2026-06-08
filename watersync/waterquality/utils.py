@@ -3,21 +3,23 @@
 High-level functions that combine parsing and validation.
 For lower-level utilities, see parsers.py and validators.py.
 """
-from typing import List, Optional
 
-from watersync.waterquality.parsers import parse_tabular_text, parse_uploaded_file, skip_header_row
+from watersync.waterquality.parsers import (
+    parse_tabular_text,
+    parse_uploaded_file,
+    skip_header_row,
+)
 from watersync.waterquality.validators import (
     check_duplicate_measurements,
     get_allowed_parameters_for_sample,
     validate_measurement_row,
-    validate_parameters_for_sample,
 )
 
 
 def parse_bulk_measurement_data(
     data_str: str, 
-    parameter_group: Optional[str] = None
-) -> List[dict]:
+    parameter_group: str | None = None
+) -> list[dict]:
     """Parse bulk measurement data and return rows with validation status.
     
     Args:
@@ -67,7 +69,7 @@ def parse_bulk_measurement_data(
     return rows
 
 
-def parse_bulk_file(file, parameter_group: Optional[str] = None) -> tuple:
+def parse_bulk_file(file, parameter_group: str | None = None) -> tuple:
     """Parse uploaded file and validate measurement data.
     
     Args:
@@ -123,7 +125,7 @@ def parse_bulk_file(file, parameter_group: Optional[str] = None) -> tuple:
     return rows, None
 
 
-def validate_bulk_data_for_sample(sample, rows: List[dict]) -> List[dict]:
+def validate_bulk_data_for_sample(sample, rows: list[dict]) -> list[dict]:
     """Add sample-specific validation to parsed rows.
     
     Checks:

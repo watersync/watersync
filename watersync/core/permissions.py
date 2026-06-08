@@ -1,9 +1,10 @@
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import AccessMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from rest_framework.exceptions import PermissionDenied
-from watersync.users.models import User
-from django.contrib.auth.mixins import AccessMixin
 from django.shortcuts import redirect
+
+from rest_framework.exceptions import PermissionDenied
+
+from watersync.users.models import User
 
 
 class ApprovalRequiredMixin(AccessMixin):
@@ -29,11 +30,16 @@ class ApprovalRequiredMixin(AccessMixin):
 class ProjectPermissionMixin(UserPassesTestMixin):
     """
     Mixin that verifies the user has permission to access the project.
+    
+    For views without project_pk in the URL (e.g., creating a new project),
+    the check is skipped and access is allowed.
     """
     def test_func(self):
         project_pk = self.kwargs.get("project_pk")
         if not project_pk:
-            return False
+            # No project_pk means this isn't a project-scoped view
+            # (e.g., creating a new project) - allow access
+            return True
 
         return self.request.user.projects.filter(pk=project_pk).exists()
 

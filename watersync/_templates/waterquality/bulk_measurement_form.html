@@ -8,8 +8,9 @@
     <div class="modal-body">
         <form hx-post="{{ request.path }}" hx-target="#dialog" hx-encoding="multipart/form-data" id="bulk-form" enctype="multipart/form-data">
             {% csrf_token %}
+            {# Hidden inputs for parent PKs - use field name (without _pk suffix) for form binding #}
             {% for param_name, pk in parent_pks %}
-            <input type="hidden" name="{{ param_name }}" value="{{ pk }}" id="hidden_{{ param_name }}">
+            <input type="hidden" name="{{ param_name|slice:':-3' }}" value="{{ pk }}" id="hidden_{{ param_name }}">
             {% endfor %}
             
             {{ form.bulk }}

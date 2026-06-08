@@ -20,11 +20,12 @@ from watersync.waterquality.views import (
     sample_create_view,
     sample_delete_view,
     sample_detail_view,
+    sample_history_delete_view,
+    sample_history_list_view,
     sample_list_view,
     sample_overview_view,
     sample_update_view,
 )
-
 
 app_name = "waterquality"
 
@@ -51,6 +52,17 @@ sample_patterns = [
     path("<str:sample_pk>/overview/", sample_overview_view, name="overview-sample"),
     path("<str:sample_pk>/update/", sample_update_view, name="update-sample"),
     path("<str:sample_pk>/delete/", sample_delete_view, name="delete-sample"),
+    path(
+        "<str:sample_pk>/history/",
+        sample_history_list_view,
+        name="list-historicalsample",
+    ),
+    path(
+        "<str:sample_pk>/history/delete/",
+        sample_history_delete_view,
+        name="delete-historicalsample",
+    ),
+
 ]
 
 measurement_patterns = [

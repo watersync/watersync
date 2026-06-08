@@ -43,3 +43,46 @@ def display_fields(obj, field_type="list"):
         (label, getattr(obj, field_name, None))
         for label, field_name in fields.items()
     ]
+
+
+@register.filter
+def detail_fields(obj):
+    """Get fields from a detail model instance for template display.
+    
+    Returns a list of (label, value) tuples for all non-pk fields on the model.
+    Labels are derived from the field's verbose_name.
+    
+    Usage:
+        {% for label, value in detail_obj|detail_fields %}
+            <li>{{ label }}: {{ value }}</li>
+        {% endfor %}
+    """
+    if obj is None:
+        return []
+    
+    result = []
+    for field in obj._meta.get_fields():
+        # Skip the primary key field (which is the OneToOne to parent)
+        if field.primary_key:
+            continue
+        # Skip reverse relations
+        if not hasattr(field, 'attname'):
+            continue
+        
+        field_name = field.name
+        label = field.verbose_name.replace("_", " ").title()
+        value = getattr(obj, field_name, None)
+        
+        # Format value for display
+        if value is None:
+            value = "-"
+        
+        result.append((label, value))
+    
+    return result
+
+
+@register.filter
+def query_to_json(query_dict):
+    """Convert QueryDict to JSON string for hx-vals."""
+    return json.dumps(dict(query_dict))

@@ -1,13 +1,16 @@
-"""Module for the base views of the application.
+"""Watersync generic views.
+
+This module provides base views for listing, creating, updating,
+deleting, and detailing objects within the Watersync application.
 """
 
 import json
+import logging
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.generic import (
     CreateView,
@@ -17,228 +20,60 @@ from django.views.generic import (
     UpdateView,
 )
 
+logger = logging.getLogger(__name__)
+
 from docstring_parser import parse_from_object
 
 from watersync.core.generics.context import ListConfig
+from watersync.core.generics.forms import WatersyncBulkForm, WatersyncForm
 from watersync.core.generics.mixins import DetailFormMixin, ExportCsvMixin
 from watersync.core.models import Project
-
-
-class HTMXFormMixin:
-    """Mixin providing HTMX form handling with automatic parent prefilling.
-    
-    This mixin handles:
-    1. Auto-detecting parent PKs from request params (e.g., location_pk → location field)
-    2. Pre-filling and hiding parent fields in forms
-    3. HTMX-compatible form_valid/form_invalid responses
-    4. User field auto-population
-    
-    Parent detection works by:
-    - Finding request params ending in '_pk' (e.g., location_pk, fieldwork_pk)
-    - Matching to form fields (stripping '_pk' suffix)
-    - Getting the model class from the field's queryset
-    
-    Attributes:
-        htmx_response_status: HTTP status code for successful HTMX responses (default: 204)
-        htmx_invalid_status: HTTP status code for invalid form HTMX responses (default: 400)
-        htmx_render_template: Template for re-rendering form on validation errors
-    """
-    
-    htmx_response_status: int = 204
-    htmx_invalid_status: int = 400
-    htmx_render_template: str = None
-    
-    # Cache for detected parent PKs
-    _parent_pks_cache = None
-
-    def _get_parent_pks(self, form=None):
-        """Auto-detect parent PKs from request params.
-        
-        Looks for params ending in '_pk', matches them to form fields,
-        and returns dict of {field_name: (param_name, pk_value, model_class)}.
-        """
-        if self._parent_pks_cache is not None:
-            return self._parent_pks_cache
-            
-        pks = {}
-        
-        # Combine GET and POST params, POST takes precedence
-        params = {**self.request.GET.dict(), **self.request.POST.dict()}
-        
-        for param_name, pk_value in params.items():
-            if not param_name.endswith('_pk') or not pk_value:
-                continue
-                
-            # Derive field name from param (location_pk → location)
-            field_name = param_name[:-3]  # strip '_pk'
-            
-            # Get model class from form field if available
-            model_class = None
-            if form and field_name in form.fields:
-                field = form.fields[field_name]
-                if hasattr(field, 'queryset'):
-                    model_class = field.queryset.model
-            
-            if model_class:
-                pks[field_name] = (param_name, pk_value, model_class)
-        
-        self._parent_pks_cache = pks
-        return pks
-
-    def get_initial(self):
-        """Get initial data for the form from request parameters."""
-        initial = super().get_initial()
-
-        # User handling
-        if self.request.user.is_authenticated:
-            initial["user"] = self.request.user.pk
-
-        return initial
-    
-    def get_form(self, form_class=None):
-        """Pre-fill parent fields and disable them."""
-        form = super().get_form(form_class)
-        
-        # Now that we have the form, detect and apply parent PKs
-        parent_pks = self._get_parent_pks(form)
-        
-        for field_name, (param_name, pk, model_class) in parent_pks.items():
-            if field_name in form.fields:
-                # Set initial value
-                try:
-                    form.initial[field_name] = model_class.objects.get(pk=pk)
-                except model_class.DoesNotExist:
-                    continue
-                    
-                # Disable the field so user can see but not change
-                form.fields[field_name].disabled = True
-        
-        return form
-
-    def get_context_data(self, **kwargs):
-        """Add parent PKs to context for hidden inputs in template."""
-        context = super().get_context_data(**kwargs)
-        
-        # Get form from context to detect parent PKs
-        form = context.get('form')
-        parent_pks = self._get_parent_pks(form)
-        
-        # Pass parent PKs to template for hidden inputs
-        context['parent_pks'] = [
-            (param_name, pk) 
-            for field_name, (param_name, pk, model_class) in parent_pks.items()
-        ]
-        
-        return context
-
-    def _update_user(self, instance):
-        """Update user field on instance if applicable.
-        
-        Handles both ForeignKey and ManyToMany user fields.
-        """
-        if not instance or not hasattr(instance, 'user') or not self.request.user:
-            return
- 
-        # ManyToMany field (has 'add' method)
-        if hasattr(instance.user, 'add'):
-            if self.request.user not in instance.user.all():
-                instance.user.add(self.request.user)
-        # ForeignKey field
-        elif not instance.user:
-            instance.user = self.request.user
-            instance.save()
-
-    def update_form_instance(self, form):
-        """Hook for updating form.instance in subclasses.
-        
-        Override to modify form.instance before save. Do not call form.save() here.
-        """
-        pass
-
-    def handle_bulk_create(self, form):
-        """Hook for handling bulk creation of objects.
-        
-        Override to implement bulk creation logic. Do not call form.save() here.
-        """
-        pass
-
-    def form_valid(self, form):
-        """Handle a valid form submission with HTMX support."""
-        self.update_form_instance(form)
-        
-        # Save the instance
-        instance = form.save() if hasattr(form, "save") else None
-            
-        if hasattr(form, "save_m2m"):
-            form.save_m2m()
-
-        # Handle bulk creation if applicable
-        if form.data.get("bulk") == "true":
-            self.handle_bulk_create(form)
-
-        # Update user AFTER saving m2m relationships
-        self._update_user(instance)
-
-        if self.request.htmx:
-            return HttpResponse(
-                status=self.htmx_response_status, 
-                headers={"HX-Trigger": "refreshList"}
-            )
-        return JsonResponse({"message": "Success"}, status=self.htmx_response_status)
-
-    def form_invalid(self, form):
-        """Handle an invalid form submission with HTMX support."""
-        if self.request.htmx:
-            self.update_form_instance(form)
-            context = self.get_context_data(form=form)
-            html = render_to_string(
-                self.htmx_render_template, context, request=self.request
-            )
-            return HttpResponse(
-                html, status=self.htmx_invalid_status, content_type="text/html"
-            )
-        return super().form_invalid(form)
+from watersync.core.permissions import ProjectPermissionMixin
 
 
 class WatersyncListView(
     LoginRequiredMixin,
+    ProjectPermissionMixin,
     ExportCsvMixin,
     ListView,
 ):
     """Base view for listing objects.
 
-    Template context includes:
-        - list_config: ListConfig with URLs, columns, title, descriptions,
-          and feature flags (has_bulk_create, detail_type)
-        
-    Template selection is handled via context processor setting `base_template`:
-    - HTMX requests: base_template = 'layouts/partial.html' (no wrapper)
-    - Full page: base_template = appropriate dashboard layout
+    The same view is used for both full page loads (e.g., list of all locations) and
+    HTMX lazy-loaded content in overview pages (e.g., measurements for a specific location).
+
+    # Template behavior
+        The template_name is set to `list_page.html`. Then the actual rendering
+        is handled conditionally within the template depending on whether the
+        request is an HTMX request or a full page load.
     
-    Within the template, list_page.html uses conditional includes:
-    - HTMX without HX-Context: renders table.html (just table rows)
-    - All other cases: renders list.html (full list component)
+    # Context
+        In this generic view we set the scene for list pages across the app. We
+        include here the template context through `list_config`
+        (see watersync.core.generics.context.ListConfig).
+
+    # Docstring parsing
+        The model's docstring is parsed using `docstring_parser` to extract
+        short and long descriptions for use in the template. The models should
+        have meaningful and properly structured docstrings for this to be effective.
+        (see watersync.core.generics.models.WatersyncBaseModel).
     """
 
     detail_type: str = None
     template_name = "list_page.html"
     docstr: str | None = None
 
-    def get_project(self):
-        """Get the project object from the URL kwargs."""
-        if project_pk := self.kwargs.get("project_pk"):
-            return get_object_or_404(Project, pk=project_pk)
-        return None
-
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
-        self.docstr = parse_from_object(self.model)
-
     def _get_list_view_fields(self):
         """Get list view fields safely."""
         return getattr(self.model, "_list_view_fields", {})
 
     def get(self, request, *args, **kwargs):
+        """Handle a specific case where a CSV export is requested.
+        
+        Normally a get request is made to render the list view template. However,
+        in the list page there might be a button which will send a request with
+        the `HX-Download` header to trigger a CSV export of the current queryset.
+        """
         if request.headers.get("HX-Download"):
             queryset = self.get_queryset()
             return self.export_as_csv(request, queryset)
@@ -248,8 +83,7 @@ class WatersyncListView(
         """Add common context data to the template."""
         context = super().get_context_data(**kwargs)
         
-        if self.docstr is None:
-            self.docstr = parse_from_object(self.model)
+        docstr = parse_from_object(self.model)
 
         # ListConfig with all values needed by templates
         list_config = ListConfig(
@@ -259,53 +93,155 @@ class WatersyncListView(
             detail_type=self.detail_type or None,
             has_bulk_create=getattr(self.model, "_has_bulk_create", False),
             has_update=getattr(self.model, "_has_update", False),
-            explanation=self.docstr.short_description,
-            explanation_detail=self.docstr.long_description,
+            explanation=docstr.short_description,
+            explanation_detail=docstr.long_description,
         )
 
         context["list_config"] = list_config
         
-        # Build hx_vals from filter parameters (location_pk, fieldwork_pk, sample_pk)
-        # These are passed via hx-vals in lazy-load requests and used for add button
-        filter_keys = ["location_pk", "fieldwork_pk", "sample_pk"]
-        hx_vals = {k: v for k, v in self.request.GET.items() if k in filter_keys}
-        if hx_vals:
-            context["hx_vals"] = json.dumps(hx_vals)
-        
         return context
+
+
+class WatersyncFormView:
+    """Base mixin for HTMX-only form handling."""
+    
+    htmx_response_status = 204
+    template_name = "shared/form.html"
+    
+    def get_form_kwargs(self):
+        """Pass parent instances and user to form if it supports them."""
+        kwargs = super().get_form_kwargs()
+        
+        # Check if form can handle custom kwargs
+        form_class = self.get_form_class()
+        try:
+            supports_custom_kwargs = issubclass(form_class, (WatersyncForm, WatersyncBulkForm))
+        except TypeError:
+            supports_custom_kwargs = False
+        
+        # Pass custom kwargs to forms that support them
+        if supports_custom_kwargs:
+            # Extract parent PKs from URL kwargs and GET params
+            parent_pks = {}
+            all_params = {**self.kwargs, **self.request.GET.dict()}
+            
+            for param_name, pk_value in all_params.items():
+                if param_name.endswith('_pk') and pk_value:
+                    field_name = param_name[:-3]
+                    parent_pks[field_name] = pk_value
+            
+            if parent_pks:
+                kwargs['parent_instances'] = parent_pks  # Form expects this key name
+            
+            # Pass current user
+            if self.request.user.is_authenticated:
+                kwargs['current_user'] = self.request.user
+        
+        return kwargs
+    
+    def form_valid(self, form):
+        """Handle valid form submission (HTMX only)."""
+        is_bulk = (
+            self.request.GET.get("bulk") == "true" or 
+            form.data.get("bulk") == "true"
+        )
+        
+        if is_bulk:
+            self.handle_bulk_create(form, None)
+        else:
+            self.pre_save(form)
+            instance = form.save()
+            
+            if hasattr(form, "save_m2m"):
+                form.save_m2m()
+            
+            # Save detail form if this view uses DetailFormMixin
+            if hasattr(self, 'save_detail_form'):
+                self.object = instance  # Ensure object is set for get_detail_instance
+                self.save_detail_form(instance)
+            
+            self.post_save(form, instance)
+        
+        # Return 204 with refreshList trigger
+        return HttpResponse(
+            status=self.htmx_response_status,
+            headers={
+                "HX-Trigger": "refreshList"  # Simple string is fine
+            }
+        )
+    
+    def form_invalid(self, form):
+        """Re-render form with errors (HTMX only)."""
+        context = self.get_context_data(form=form)
+        template = self.get_template_names()[0] if hasattr(self, 'get_template_names') else self.template_name
+        
+        return render(
+            self.request,
+            template,
+            context,
+            status=200  # Must be 2xx for HTMX to swap content
+        )
+    
+    # Hooks for subclasses
+    def pre_save(self, form):
+        """Override to modify form.instance before save."""
+        pass
+    
+    def post_save(self, form, instance):
+        """Override for actions after save."""
+        pass
+    
+    def handle_bulk_create(self, form, instance):
+        """Override to implement bulk creation logic."""
+        pass
 
 
 class WatersyncCreateView(
     LoginRequiredMixin,
-    HTMXFormMixin,
+    ProjectPermissionMixin,
+    WatersyncFormView,
     DetailFormMixin,
     CreateView,
 ):
-
-    template_name = "shared/form.html"
-    htmx_render_template = "shared/form.html"
-
+    """Generic HTMX create view."""
+    
     def get_form_class(self):
-        """Return the form class to use based on the request parameters.
-        If 'bulk' is in the request parameters or POST data, return the bulk form class.
-        """
+        """Use bulk form if bulk=true in GET or POST."""
+        is_bulk = (
+            self.request.GET.get("bulk") == "true" or
+            self.request.POST.get("bulk") == "true"
+        )
 
-        if "bulk" in self.request.GET or self.request.POST.get("bulk") == "true":
+        if is_bulk and hasattr(self, "bulk_form_class"):
             return self.bulk_form_class
         return self.form_class
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        if not hasattr(self, "bulk_form_class"):
-            return kwargs
-        if self.get_form_class() == self.bulk_form_class:
-            # This has to be done for non-ModelForm
+        
+        # Remove instance for non-ModelForm bulk forms
+        if hasattr(self, "bulk_form_class") and self.get_form_class() == self.bulk_form_class:
             kwargs.pop("instance", None)
+        
         return kwargs
-
+    
+class WatersyncUpdateView(
+    LoginRequiredMixin,
+    ProjectPermissionMixin,
+    WatersyncFormView,
+    DetailFormMixin,
+    UpdateView,
+):
+    """Generic HTMX update view."""
+    
+    def get_object(self):
+        """Get object using standardized URL pattern."""
+        model_name = self.model._meta.model_name
+        return get_object_or_404(self.model, pk=self.kwargs[f"{model_name}_pk"])
 
 class WatersyncDeleteView(
     LoginRequiredMixin,
+    ProjectPermissionMixin,
     DeleteView,
 ):
     """Delete view with HTMX support.
@@ -380,60 +316,63 @@ class WatersyncDeleteView(
         # Remove the pk segment
         return url.rsplit("/", 2)[0] + "/"
 
-    def delete(self, request, *args, **kwargs):
-
+    def post(self, request, *args, **kwargs):
+        """Handle POST - bypass Django 5's form-based deletion for HTMX-only flow."""
+        from django.db.models import ProtectedError
+        
         self.object = self.get_object()
+        
+        # Check for protected relationships before attempting delete
+        protected = self._get_protected_related_objects(self.object)
+        if protected:
+            context = self.get_context_data()
+            context['delete_error'] = "Cannot delete: related objects exist."
+            return render(request, self.template_name, context, status=400)
+        
+        current_url = getattr(request.htmx, 'current_url', None)
+        is_viewing_object = self._is_viewing_this_object(current_url)
 
-        if request.htmx:
-            current_url = request.htmx.current_url
-            is_viewing_object = self._is_viewing_this_object(current_url)
-
+        try:
             self.object.delete()
+        except ProtectedError:
+            context = self.get_context_data()
+            context['delete_error'] = "Cannot delete: protected by database constraint."
+            return render(request, self.template_name, context, status=400)
 
-            headers = {}
-            if is_viewing_object:
-                headers["HX-Redirect"] = self.truncate_url_to_list(current_url)
-            else:
-                headers["HX-Trigger"] = "refreshList"
+        headers = {}
+        if is_viewing_object:
+            headers["HX-Redirect"] = self.truncate_url_to_list(current_url)
+        else:
+            headers["HX-Trigger"] = "refreshList"
 
-            return HttpResponse(status=204, headers=headers)
-
-        return super().delete(request, *args, **kwargs)
-
-
-class WatersyncUpdateView(
-    LoginRequiredMixin,
-    HTMXFormMixin,
-    DetailFormMixin,
-    SuccessMessageMixin,
-    UpdateView,
-):
-    
-    template_name = "shared/form.html"
-    htmx_render_template = "shared/form.html"
-
-    def get_object(self):
-        return get_object_or_404(self.model, pk=self.kwargs[self.model._meta.model_name + "_pk"])
-
-    def get_detail_form_initial(self):
-        """Return the existing detail data for update forms."""
-        obj = self.get_object()
-        return getattr(obj, 'detail', None) or {}
-
+        return HttpResponse(status=204, headers=headers)
 
 class WatersyncDetailView(
     LoginRequiredMixin,
+    ProjectPermissionMixin,
     DetailView,
 ):
+    """Generic detail view with optional type-based detail support."""
     
     template_name = "detail.html"
+    detail_related_names = {}  # Override: {"type_value": "related_name", ...}
 
     def get_object(self):
-        # If the model has 'history', return the object as_of now()
-        obj = get_object_or_404(self.model, pk=self.kwargs[self.model._meta.model_name + "_pk"])
-        if hasattr(obj, "history"):
-            return obj.history.as_of(timezone.now())
-        return obj
+        """Get object using standardized URL pattern."""
+        pk_kwarg = f"{self.model._meta.model_name}_pk"
+        return get_object_or_404(self.model, pk=self.kwargs[pk_kwarg])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add detail object to context if this model has type-based details
+        if self.detail_related_names:
+            obj_type = getattr(self.object, 'type', None)
+            related_name = self.detail_related_names.get(obj_type)
+            if related_name:
+                context['detail'] = getattr(self.object, related_name, None)
+        
+        return context
     
 class WatersyncHistoryListView(WatersyncListView):
     """Base view for listing historical records with diffs.

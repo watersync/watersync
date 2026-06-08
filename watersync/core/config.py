@@ -9,11 +9,12 @@ The YAML files use anchors for reusable unit groups, making it easy to
 maintain consistent unit definitions across parameters.
 """
 
-import yaml
+from functools import cache
 from pathlib import Path
-from functools import lru_cache
+
 from django.conf import settings
 
+import yaml
 
 # =============================================================================
 # CONFIG FILE PATHS
@@ -27,7 +28,7 @@ WATER_QUALITY_CONFIG = CONFIG_DIR / "water_quality.yaml"
 # YAML LOADING
 # =============================================================================
 
-@lru_cache(maxsize=None)
+@cache
 def load_water_quality_config():
     """Load water quality parameters and sensor variables from YAML config.
     
@@ -35,7 +36,7 @@ def load_water_quality_config():
         dict with 'parameter_groups', 'parameters', 'pint_definitions', 
         and 'sensor_variables' keys
     """
-    with open(WATER_QUALITY_CONFIG, 'r', encoding='utf-8') as f:
+    with open(WATER_QUALITY_CONFIG, encoding='utf-8') as f:
         config = yaml.safe_load(f)
     return {
         "parameter_groups": config.get("parameter_groups", {}),

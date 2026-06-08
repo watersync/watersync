@@ -1,21 +1,21 @@
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from simple_history.models import HistoricalRecords
-from watersync.core.generics.models import SetupSimpleHistory
 
-
-from watersync.core.models import Location
-from watersync.core.generics.models import TimeSeriesModel
-from watersync.core.managers import WithCountsManager, UserScopedManager
-from watersync.users.models import User
 from watersync.core.config import (
-    get_variable_choices,
     get_all_sensor_unit_choices,
-    is_valid_unit_for_variable,
+    get_variable_choices,
     get_variable_label,
-    get_sensor_unit_label,
+    is_valid_unit_for_variable,
 )
+from watersync.core.generics.managers import (
+    LocationWithCountsManager,
+    UserScopedManager,
+)
+from watersync.core.generics.models import SetupSimpleHistory, TimeSeriesModel
+from watersync.core.models import Location
+from watersync.users.models import User
 
 
 class Sensor(models.Model, SetupSimpleHistory):
@@ -27,22 +27,48 @@ class Sensor(models.Model, SetupSimpleHistory):
     Attributes:
         identifier: The unique identifier of the sensor.
         user: The owner of the sensor.
-        detail: Additional information about the sensor in a JSON format.
+        manufacturer: The manufacturer of the sensor.
+        model: The model name/number of the sensor.
     """
 
     identifier = models.CharField(max_length=55, unique=True)
     user = models.ManyToManyField(User, blank=True, related_name="sensors")
-    detail = models.JSONField(null=True, blank=True)
+    manufacturer = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Manufacturer",
+        help_text="The manufacturer of the sensor",
+    )
+    model = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Model",
+        help_text="The model name/number of the sensor",
+    )
+    date_purchased = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Date Purchased",
+        help_text="The date when the sensor was purchased",
+    )
 
     objects = UserScopedManager()
     history = HistoricalRecords()
 
     _list_view_fields = {
         "Identifier": "identifier",
+        "Manufacturer": "manufacturer",
+        "Model": "model",
+        "Date Purchased": "date_purchased",
     }
 
     _detail_view_fields = {
         "Identifier": "identifier",
+        "Manufacturer": "manufacturer",
+        "Model": "model",
+        "Date Purchased": "date_purchased",
     }
 
     def __str__(self):
@@ -53,21 +79,32 @@ class Deployment(models.Model):
     """Metadata for sensor timeseries.
 
     Groups sensor records with common metadata like location, variable, and unit.
-    The detail JSONField stores sensor-specific setup information (e.g., rope length,
-    reference elevation for non-vented sensors).
+    Detail information specific to the deployment type is stored in related
+    one-to-one models (e.g., PressureSensorDeploymentDetail).
 
     Attributes:
         location: Location where measurements are taken.
         sensor: The sensor taking measurements.
+        type: The type of deployment (gauge_pressure, absolute_pressure, other).
         variable: The variable being measured (from SENSOR_VARIABLES config).
         unit: The unit of measurement (must be valid for the variable).
         started_at: When this timeseries started (optional).
         ended_at: When this timeseries ended (optional, null if ongoing).
-        detail: Sensor setup details (e.g., rope_length, reference_elevation).
     """
+
+    class DeploymentTypes(models.TextChoices):
+        GAUGE_PRESSURE = "gauge_pressure", "Gauge Pressure"
+        ABSOLUTE_PRESSURE = "absolute_pressure", "Absolute Pressure"
+        OTHER = "other", "Other"
 
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="deployments")
     sensor = models.ForeignKey(Sensor, on_delete=models.PROTECT, related_name="deployments")
+    type = models.CharField(
+        max_length=20,
+        choices=DeploymentTypes.choices,
+        default=DeploymentTypes.OTHER,
+        help_text="The type of sensor deployment"
+    )
     variable = models.CharField(
         max_length=50,
         choices=get_variable_choices(),
@@ -80,9 +117,8 @@ class Deployment(models.Model):
     )
     started_at = models.DateTimeField(null=True, blank=True, help_text="When this timeseries started")
     ended_at = models.DateTimeField(null=True, blank=True, help_text="When this timeseries ended (null if ongoing)")
-    detail = models.JSONField(null=True, blank=True)
 
-    objects = WithCountsManager()
+    objects = LocationWithCountsManager()
     history = HistoricalRecords()
 
     # Fields to count in with_counts() - used for overview pages
@@ -91,6 +127,7 @@ class Deployment(models.Model):
     _list_view_fields = {
             "Location": "location",
             "Sensor": "sensor",
+            "Type": "get_type_display",
             "Variable": "get_variable_display",
             "Unit": "get_unit_display",
             "Start": "started_at",
@@ -100,6 +137,7 @@ class Deployment(models.Model):
     _detail_view_fields = {
             "Location": "location",
             "Sensor": "sensor",
+            "Type": "get_type_display",
             "Variable": "get_variable_display",
             "Unit": "get_unit_display",
             "Start": "started_at",

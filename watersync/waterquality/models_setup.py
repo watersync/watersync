@@ -10,6 +10,7 @@ Use watersync.core.config for accessing parameter definitions.
 
 from django.db import models
 from django.utils.text import slugify
+
 from simple_history.models import HistoricalRecords
 
 

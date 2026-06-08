@@ -5,10 +5,9 @@ CSV/Excel file import or tabular text parsing.
 """
 import csv
 import io
-from typing import List, Optional, Tuple
 
 
-def parse_csv_content(content: str) -> List[List[str]]:
+def parse_csv_content(content: str) -> list[list[str]]:
     """Parse CSV content string into list of rows.
     
     Args:
@@ -21,7 +20,7 @@ def parse_csv_content(content: str) -> List[List[str]]:
     return list(reader)
 
 
-def parse_csv_file(file, encoding: str = 'utf-8-sig') -> List[List[str]]:
+def parse_csv_file(file, encoding: str = 'utf-8-sig') -> list[list[str]]:
     """Parse uploaded CSV file into list of rows.
     
     Args:
@@ -35,7 +34,7 @@ def parse_csv_file(file, encoding: str = 'utf-8-sig') -> List[List[str]]:
     return parse_csv_content(content)
 
 
-def parse_excel_file(file) -> List[List]:
+def parse_excel_file(file) -> list[list]:
     """Parse uploaded Excel file into list of rows.
     
     Args:
@@ -57,7 +56,7 @@ def parse_excel_file(file) -> List[List]:
     return [[cell.value for cell in row] for row in ws.iter_rows()]
 
 
-def parse_uploaded_file(file) -> Tuple[List[List], Optional[str]]:
+def parse_uploaded_file(file) -> tuple[list[list], str | None]:
     """Auto-detect file type and parse uploaded file.
     
     Args:
@@ -78,10 +77,10 @@ def parse_uploaded_file(file) -> Tuple[List[List], Optional[str]]:
     except ImportError as e:
         return [], str(e)
     except Exception as e:
-        return [], f"Error reading file: {str(e)}"
+        return [], f"Error reading file: {e!s}"
 
 
-def parse_tabular_text(text: str, delimiter: Optional[str] = None) -> List[List[str]]:
+def parse_tabular_text(text: str, delimiter: str | None = None) -> list[list[str]]:
     """Parse tab or comma-separated text into list of rows.
     
     Args:
@@ -110,7 +109,7 @@ def parse_tabular_text(text: str, delimiter: Optional[str] = None) -> List[List[
     return rows
 
 
-def skip_header_row(rows: List[List], header_indicators: List[str] = None) -> int:
+def skip_header_row(rows: list[list], header_indicators: list[str] = None) -> int:
     """Determine the starting index, skipping header if present.
     
     Args:

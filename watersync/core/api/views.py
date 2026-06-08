@@ -1,14 +1,14 @@
 from rest_framework import permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from watersync.users.models import User
 
-from watersync.core.models import Location, Project, Fieldwork
 from watersync.core.api.serializers import (
+    FieldworkSerializer,
     LocationSerializer,
     ProjectSerializer,
-    FieldworkSerializer,
 )
+from watersync.core.models import Fieldwork, Location, Project
+from watersync.users.models import User
 
 
 class BaseListViewSet(viewsets.ModelViewSet):

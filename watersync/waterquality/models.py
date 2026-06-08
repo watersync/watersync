@@ -5,26 +5,24 @@ Other samples (Sample) are defined, e.g., for nutrients (NUT), metals (MET), etc
 Once the measurements (MEASUREMENT) are completed, they are created and linked to the previously created samples.
 """
 
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
-from simple_history.models import HistoricalRecords
-from watersync.core.generics.models import SetupSimpleHistory
 
+from simple_history.models import HistoricalRecords
 
 from watersync.core.config import (
-    get_all_wq_unit_choices,
-    get_parameter_choices,
-    get_parameter_group_choices,
     get_parameter_label,
     get_wq_unit_label,
     is_valid_unit_for_parameter,
 )
-from watersync.core.managers import WithCountsManager, SoftDeleteLocationScopedManager
-from watersync.core.generics.models import SoftDeleteMixin
+from watersync.core.generics.managers import (
+    LocationWithCountsManager,
+    SoftDeleteLocationScopedManager,
+)
+from watersync.core.generics.models import SetupSimpleHistory, SoftDeleteMixin
 from watersync.waterquality.models_setup import Protocol
 
 
@@ -79,7 +77,7 @@ class Sample(models.Model, SetupSimpleHistory):
     source = models.CharField(max_length=100, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
 
-    objects = WithCountsManager()
+    objects = LocationWithCountsManager()
     history = HistoricalRecords()
 
     # Fields to count in with_counts() - used for overview pages

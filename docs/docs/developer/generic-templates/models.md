@@ -1,6 +1,6 @@
 # Customized models
 
-Generally the idea is to control as much of the appearance of the application as possible from the Python code. Models also play a role here. Some things to keep in mind when creating new models:
+Generally the idea is to control as much of the appearance and functionality of the application as possible from the Python code. Models also play a role here. Some things to keep in mind when creating new models:
 
 __## Relations__
 

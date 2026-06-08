@@ -2,8 +2,9 @@
 Tests for sensor models and Pint unit validation.
 """
 
-import pytest
 from django.core.exceptions import ValidationError
+
+import pytest
 
 from watersync.sensor.models import Deployment, Sensor, SensorVariable
 
@@ -82,8 +83,9 @@ class TestDeploymentUnitValidation:
     @pytest.fixture
     def location(self, db):
         """Create a test location."""
-        from watersync.core.models import Project, Location
         from django.contrib.gis.geos import Point
+
+        from watersync.core.models import Location, Project
         
         project = Project.objects.create(name="Test Project")
         return Location.objects.create(
@@ -209,8 +211,9 @@ class TestDeploymentVariableFK:
     @pytest.fixture
     def location(self, db):
         """Create a test location."""
-        from watersync.core.models import Project, Location
         from django.contrib.gis.geos import Point
+
+        from watersync.core.models import Location, Project
         
         project = Project.objects.create(name="Test Project 2")
         return Location.objects.create(

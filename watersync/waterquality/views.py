@@ -1,29 +1,31 @@
-import json
 
-from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView
 
+from watersync.core.config import get_parameter_choices, get_parameters_json
 from watersync.core.generics.mixins import FilterMixin
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
     WatersyncDetailView,
+    WatersyncHistoryListView,
     WatersyncListView,
     WatersyncUpdateView,
 )
-from watersync.core.models import Fieldwork, Location, Project
+from watersync.core.models import Project
 from watersync.waterquality.filters import SampleFilter
 from watersync.waterquality.forms import (
     MeasurementBulkForm,
     MeasurementForm,
+    MeasurementRowFormSet,
     SampleForm,
 )
 from watersync.waterquality.forms_setup import ProtocolForm
-from watersync.waterquality.models import Measurement, Sample
+from watersync.waterquality.models import HistoricalSample, Measurement, Sample
 from watersync.waterquality.models_setup import Protocol
 
 
@@ -103,6 +105,15 @@ class SampleOverviewView(TemplateView):
             pk=self.kwargs["sample_pk"]
         )
         return context
+    
+class SampleHistoryListView(WatersyncHistoryListView):
+    model = HistoricalSample
+
+class SampleHistoryDeleteView(WatersyncDeleteView):
+    model = HistoricalSample
+
+sample_history_list_view = SampleHistoryListView.as_view()
+sample_history_delete_view = SampleHistoryDeleteView.as_view()
 
 sample_overview_view = SampleOverviewView.as_view()
 sample_create_view = SampleCreateView.as_view()
@@ -115,7 +126,7 @@ sample_detail_view = SampleDetailView.as_view()
 # ================ Measurement views ========================
 
 class MeasurementBulkPreviewView(LoginRequiredMixin, View):
-    """HTMX endpoint for live preview of bulk measurement data (paste or file)."""
+    """HTMX endpoint for live preview of bulk measurement data."""
     
     def post(self, request, *args, **kwargs):
         from watersync.waterquality.utils import (
@@ -134,19 +145,16 @@ class MeasurementBulkPreviewView(LoginRequiredMixin, View):
             data_str = request.POST.get("data", "")
             rows = parse_bulk_measurement_data(data_str)
         
-        # Get sample for additional validation
+        # Get sample for validation
         sample_pk = request.POST.get("sample_pk") or request.POST.get("sample")
         sample = None
         
         if sample_pk:
             try:
                 sample = Sample.objects.get(pk=sample_pk)
+                rows = validate_bulk_data_for_sample(sample, rows)
             except Sample.DoesNotExist:
                 pass
-        
-        # Add sample-specific validation (parameter group, duplicates)
-        if sample:
-            rows = validate_bulk_data_for_sample(sample, rows)
         
         valid_count = sum(1 for r in rows if r["is_valid"])
         invalid_count = sum(1 for r in rows if not r["is_valid"])
@@ -175,51 +183,23 @@ class MeasurementCreateView(WatersyncCreateView):
         """Use custom template for bulk form."""
         if self.get_form_class() == self.bulk_form_class:
             return ["waterquality/bulk_measurement_form.html"]
-        return super().get_template_names()
-
-    def dispatch(self, request, *args, **kwargs):
-        """Set htmx_render_template dynamically based on form type."""
-        response = super().dispatch(request, *args, **kwargs)
-        return response
-
-    def get_htmx_template(self):
-        """Get the correct template for HTMX responses."""
-        if self.get_form_class() == self.bulk_form_class:
-            return "waterquality/bulk_measurement_form.html"
-        return self.htmx_render_template
-
-    def form_invalid(self, form):
-        """Override to use correct template for bulk form errors."""
-        if self.request.htmx:
-            from django.template.loader import render_to_string
-            from django.http import HttpResponse
-            
-            self.update_form_instance(form)
-            context = self.get_context_data(form=form)
-            template = self.get_htmx_template()
-            html = render_to_string(template, context, request=self.request)
-            return HttpResponse(
-                html, status=self.htmx_invalid_status, content_type="text/html"
-            )
-        return super().form_invalid(form)
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add context for bulk form
+        
+        # Add context for bulk form only
         if self.get_form_class() == self.bulk_form_class:
-            from django.urls import reverse
-            from watersync.core.config import get_parameters_json, get_parameter_choices
-            from watersync.waterquality.forms import MeasurementRowFormSet
-            
             # Preview URL for paste mode
             context["preview_url"] = reverse(
                 "waterquality:bulk-preview-measurement",
                 kwargs={"project_pk": self.kwargs.get("project_pk")}
             )
             
-            # Get sample's parameter group to filter formset choices
+            # Get sample's parameter group for filtering
             sample_pk = self.request.GET.get("sample_pk") or self.request.POST.get("sample_pk")
             parameter_group = None
+            
             if sample_pk:
                 try:
                     sample = Sample.objects.get(pk=sample_pk)
@@ -228,7 +208,7 @@ class MeasurementCreateView(WatersyncCreateView):
                 except Sample.DoesNotExist:
                     pass
             
-            # Formset for manual entry mode with filtered parameters
+            # Formset for manual entry mode
             if self.request.method == "POST":
                 formset = MeasurementRowFormSet(self.request.POST, prefix="form")
             else:
@@ -241,53 +221,53 @@ class MeasurementCreateView(WatersyncCreateView):
                     form.fields["parameter"].choices = filtered_choices
             
             context["formset"] = formset
-            
-            # Parameters JSON for JavaScript unit filtering
             context["parameters_json"] = get_parameters_json()
-            
+        
         return context
 
-    def handle_bulk_create(self, form):
-        if isinstance(form, self.bulk_form_class):
-            input_mode = form.cleaned_data.get("input_mode", "paste")
+    def handle_bulk_create(self, form, instance):
+        """Handle bulk creation based on input mode."""
+        if not isinstance(form, self.bulk_form_class):
+            return
+        
+        input_mode = form.cleaned_data.get("input_mode", "paste")
+        
+        if input_mode == "formset":
+            # Handle formset data
+            formset = MeasurementRowFormSet(self.request.POST, prefix="form")
             
-            if input_mode == "formset":
-                # Handle formset data
-                from watersync.waterquality.forms import MeasurementRowFormSet
-                formset = MeasurementRowFormSet(self.request.POST, prefix="form")
+            if formset.is_valid():
+                sample = form.cleaned_data.get("sample")
+                measurements = []
                 
-                if formset.is_valid():
-                    sample = form.cleaned_data.get("sample")
-                    measurements = []
-                    
-                    for row_form in formset:
-                        if row_form.cleaned_data and row_form.cleaned_data.get("parameter"):
-                            measurements.append(
-                                Measurement(
-                                    sample=sample,
-                                    parameter=row_form.cleaned_data["parameter"],
-                                    value=row_form.cleaned_data["value"],
-                                    unit=row_form.cleaned_data["unit"],
-                                )
+                for row_form in formset:
+                    if row_form.cleaned_data and row_form.cleaned_data.get("parameter"):
+                        measurements.append(
+                            Measurement(
+                                sample=sample,
+                                parameter=row_form.cleaned_data["parameter"],
+                                value=row_form.cleaned_data["value"],
+                                unit=row_form.cleaned_data["unit"],
                             )
-                    
-                    if measurements:
-                        Measurement.objects.bulk_create(measurements)
-            else:
-                # Handle paste or file mode
-                processed_data = form.cleaned_data.get("processed_data", [])
-                measurements = [
-                    Measurement(
-                        sample=data["sample"],
-                        parameter=data["parameter"],
-                        value=data["value"],
-                        unit=data["unit"],
-                    )
-                    for data in processed_data
-                ]
+                        )
                 
                 if measurements:
                     Measurement.objects.bulk_create(measurements)
+        else:
+            # Handle paste or file mode
+            processed_data = form.cleaned_data.get("processed_data", [])
+            measurements = [
+                Measurement(
+                    sample=data["sample"],
+                    parameter=data["parameter"],
+                    value=data["value"],
+                    unit=data["unit"],
+                )
+                for data in processed_data
+            ]
+            
+            if measurements:
+                Measurement.objects.bulk_create(measurements)
 
 
 class MeasurementDeleteView(WatersyncDeleteView):

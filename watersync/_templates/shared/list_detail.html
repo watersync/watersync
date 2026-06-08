@@ -20,7 +20,7 @@
       </div>
     </div>
     {% endif %}
-    {% if object.detail %}
+    {% if detail %}
     <div class="accordion-item">
       <h2 class="accordion-header" id="detail-heading">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-detail" aria-expanded="false" aria-controls="collapse-detail">
@@ -29,9 +29,9 @@
       </h2>
       <div id="collapse-detail" class="accordion-collapse collapse" aria-labelledby="detail-heading" data-bs-parent="#accordeonDetails">
         <ul class="list-group list-group-flush">
-            {% for key, item in object.detail.items %}
+            {% for label, value in detail|detail_fields %}
             <li class="list-group-item">
-                <strong>{{ key|field_title }}:</strong> {{ item }}
+                <strong>{{ label }}:</strong> {{ value }}
             </li>
             {% empty %}
             <li class="list-group-item">

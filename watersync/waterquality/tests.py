@@ -10,9 +10,10 @@ Tests cover:
 
 from decimal import Decimal
 
-import pytest
 from django.contrib.gis.geos import Point
 from django.core.exceptions import ValidationError
+
+import pytest
 
 from watersync.core.config import (
     get_all_wq_unit_choices,
@@ -23,7 +24,6 @@ from watersync.core.config import (
 from watersync.core.models import Fieldwork, Location, Project
 from watersync.waterquality.models import Measurement, Sample
 from watersync.waterquality.models_setup import Protocol
-
 
 # =============================================================================
 # Fixtures
@@ -374,7 +374,6 @@ class TestMeasurementPintIntegration:
 
     def test_convert_to_valid_unit(self, sample):
         """Can convert measurement to compatible unit."""
-        from django.conf import settings
         
         measurement = Measurement(
             sample=sample,

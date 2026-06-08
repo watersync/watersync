@@ -1,36 +1,30 @@
 from django.urls import include, path
 
 from watersync.core.views import (
-    fieldwork_create_view, 
-    fieldwork_update_view, 
-    fieldwork_delete_view, 
-    fieldwork_detail_view, 
-    fieldwork_list_view, 
-    fieldwork_overview_view, 
     fieldwork_bulk_preview_view,
+    fieldwork_create_view,
+    fieldwork_delete_view,
+    fieldwork_detail_view,
     fieldwork_history_delete_view,
     fieldwork_history_list_view,
-    )
-from watersync.core.views import (
-    location_list_view,
-    location_create_view, 
-    location_delete_view, 
-    location_detail_view, 
-    location_overview_view, 
-    location_update_view, 
+    fieldwork_list_view,
+    fieldwork_overview_view,
+    fieldwork_update_view,
+    location_create_view,
+    location_delete_view,
+    location_detail_view,
     location_history_delete_view,
     location_history_list_view,
-)
-
-from watersync.core.views import (
-    project_list_view,
+    location_list_view,
+    location_overview_view,
+    location_update_view,
+    project_create_view,
+    project_delete_view,
+    project_detail_view,
     project_history_delete_view,
-    project_create_view, 
-    project_delete_view, 
-    project_detail_view, 
-    project_update_view,
     project_history_list_view,
-    project_history_delete_view,
+    project_list_view,
+    project_update_view,
 )
 
 app_name = "core"

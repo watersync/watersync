@@ -1,85 +1,53 @@
 import json
 
-import pandas as pd
 from django import forms
-from django.conf import settings
-from django.forms import HiddenInput
 
-from watersync.core.generics.forms import FormWithDetailMixin
-from watersync.sensor.models import Deployment, Sensor
+import pandas as pd
+
 from watersync.core.config import (
-    get_variable_choices,
     get_sensor_unit_choices,
+    get_variable_choices,
+    get_variable_label,
     get_variables_json,
     is_valid_unit_for_variable,
-    get_variable_label,
 )
+from watersync.core.generics.forms import WatersyncForm
+from watersync.sensor.models import Deployment, Sensor
 
 
-class SensorDetailForm(forms.Form):
-    """Form for additional details about the sensor."""
+class SensorForm(WatersyncForm):
+    """Form for creating/editing Sensor objects."""
 
-    # Add any additional fields you need for the sensor detail
-    # For example, if you want to add a field for the sensor's model:
-    model = forms.CharField(
-        label="Sensor Model",
-        max_length=100,
-        required=False,
-        help_text="Optional: Enter the model of the sensor.",
-    )
-    manufacturer = forms.CharField(
-        label="Manufacturer",
-        max_length=100,
-        required=False,
-        help_text="Optional: Enter the manufacturer of the sensor.",
-    )
-
-class SensorForm(FormWithDetailMixin):
     title = "Add Sensor"
-    type = forms.ChoiceField(
-        choices={"vented": "Vented", "unvented": "Unvented", "other": "Other"},
-        required=True,
-        label="Type",
-    )
-    detail_forms = {
-        "vented": SensorDetailForm,
-        "unvented": SensorDetailForm,
-        "other": SensorDetailForm,
-    }
 
     class Meta:
         model = Sensor
-        fields = ("identifier", "user", "detail")
-        widgets = {"detail": HiddenInput(), "user": forms.CheckboxSelectMultiple()}
+        fields = ("identifier", "manufacturer", "model", "user")
+        widgets = {"user": forms.CheckboxSelectMultiple()}
 
 
-class DeploymentVentedDetailForm(forms.Form):
-    """Information necessary for further processing of data from deployments of
-    vented sensors."""
+class DeploymentForm(WatersyncForm):
+    """Form for creating/editing sensor deployments.
 
-    rope_length = forms.FloatField(
-        label="Rope length (m)",
-        help_text="Length of the rope in meters.",
+    Detail forms for specific deployment types (pressure sensor details)
+    are handled separately via HTMX and saved in the view's post_save hook.
+    """
+
+    title = "Deployment Form"
+
+    type = forms.ChoiceField(
+        choices=Deployment.DeploymentTypes.choices,
+        label="Type",
         required=True,
+        help_text="The type of sensor deployment",
     )
 
-class DeploymentForm(FormWithDetailMixin):
-    """Form for creating/editing sensor deployments."""
-    
-    title = "Deployment Form"
-    
     sensor = forms.ModelChoiceField(
         queryset=Sensor.objects.all(),
         label="Sensor",
         required=True,
-        widget=forms.Select(
-            attrs={
-                "hx-trigger": "change, revealed, click",
-                "hx-target": "#id_type",
-            }
-        ),
     )
-    
+
     variable = forms.ChoiceField(
         choices=get_variable_choices(),
         label="Variable",
@@ -90,7 +58,7 @@ class DeploymentForm(FormWithDetailMixin):
             "onchange": "updateUnitChoices(this.value)",
         })
     )
-    
+
     unit = forms.ChoiceField(
         choices=[],  # Will be populated by JavaScript based on variable
         label="Unit",
@@ -101,10 +69,10 @@ class DeploymentForm(FormWithDetailMixin):
 
     class Meta:
         model = Deployment
-        fields = ["sensor", "location", "variable", "unit", "detail"]
+        fields = ["sensor", "location", "type", "variable", "unit", "started_at", "ended_at"]
         widgets = {
-            "decommissioned_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "detail": forms.HiddenInput(),
+            "started_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "ended_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -129,11 +97,11 @@ class DeploymentForm(FormWithDetailMixin):
         cleaned_data = super().clean()
         variable = cleaned_data.get('variable')
         unit = cleaned_data.get('unit')
-        
+
         if variable and unit:
             if not is_valid_unit_for_variable(variable, unit):
                 self.add_error('unit', f"Unit '{unit}' is not valid for '{get_variable_label(variable)}'.")
-        
+
         return cleaned_data
 
 

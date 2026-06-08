@@ -3,7 +3,6 @@
 Extends the base parsers from waterquality for fieldwork-specific needs.
 """
 from datetime import datetime, time
-from typing import List, Optional, Tuple
 
 from watersync.waterquality.parsers import (
     parse_tabular_text,
@@ -12,7 +11,7 @@ from watersync.waterquality.parsers import (
 )
 
 
-def parse_date(value: str) -> Tuple[Optional[datetime], Optional[str]]:
+def parse_date(value: str) -> tuple[datetime | None, str | None]:
     """Parse a date string into a date object.
     
     Supports common formats: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
@@ -45,7 +44,7 @@ def parse_date(value: str) -> Tuple[Optional[datetime], Optional[str]]:
     return None, f"Invalid date format '{value}'. Use YYYY-MM-DD"
 
 
-def parse_time(value: str) -> Tuple[Optional[time], Optional[str]]:
+def parse_time(value: str) -> tuple[time | None, str | None]:
     """Parse a time string into a time object.
     
     Supports: HH:MM, HH:MM:SS, with optional AM/PM
@@ -77,7 +76,7 @@ def parse_time(value: str) -> Tuple[Optional[time], Optional[str]]:
     return None, f"Invalid time format '{value}'. Use HH:MM"
 
 
-def parse_weather(value: str) -> Tuple[Optional[str], Optional[str]]:
+def parse_weather(value: str) -> tuple[str | None, str | None]:
     """Parse and validate weather condition.
     
     Args:
@@ -199,7 +198,7 @@ def validate_fieldwork_row(
     return result
 
 
-def parse_bulk_fieldwork_data(data_str: str) -> List[dict]:
+def parse_bulk_fieldwork_data(data_str: str) -> list[dict]:
     """Parse bulk fieldwork data from pasted text.
     
     Expected columns: date, start_time, end_time, weather, description (optional)
@@ -244,7 +243,7 @@ def parse_bulk_fieldwork_data(data_str: str) -> List[dict]:
     return rows
 
 
-def parse_bulk_fieldwork_file(file) -> Tuple[List[dict], Optional[str]]:
+def parse_bulk_fieldwork_file(file) -> tuple[list[dict], str | None]:
     """Parse uploaded file for fieldwork data.
     
     Args:
@@ -296,7 +295,7 @@ def parse_bulk_fieldwork_file(file) -> Tuple[List[dict], Optional[str]]:
     return rows, None
 
 
-def check_duplicate_fieldwork_dates(project, dates: List) -> List:
+def check_duplicate_fieldwork_dates(project, dates: list) -> list:
     """Check which dates already have fieldwork entries.
     
     Args:
@@ -316,7 +315,7 @@ def check_duplicate_fieldwork_dates(project, dates: List) -> List:
     return [d for d in dates if d in existing_dates]
 
 
-def validate_bulk_fieldwork_for_project(project, rows: List[dict]) -> List[dict]:
+def validate_bulk_fieldwork_for_project(project, rows: list[dict]) -> list[dict]:
     """Add project-specific validation to parsed rows.
     
     Checks for duplicate dates within the project.

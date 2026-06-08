@@ -28,7 +28,7 @@
         </button>
         {% if not protected_objects %}
         <button type="button" class="btn btn-danger" 
-                hx-delete="{{ request.path }}" 
+                hx-post="{{ request.path }}" 
                 hx-target="#dialog">
             Confirm delete
         </button>

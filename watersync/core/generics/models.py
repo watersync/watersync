@@ -1,10 +1,10 @@
+from abc import ABC
+
 from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
 
-
-from watersync.core.managers import TimeSeriesManager
-from abc import ABC
+from watersync.core.generics.managers import TimeSeriesManager
 
 
 class SetupSimpleHistory:
@@ -140,13 +140,33 @@ class TimeSeriesModel(SoftDeleteMixin, models.Model):
     class Meta:
         abstract = True
 
+
 class WatersyncBaseModel(ABC):
     """Abstract base class enforcing implementation of core methods and properties.
     
-    _list_view_fields: Dict defining fields for list views rendered in tables.
-    _detail_view_fields: Dict defining what will be shown in detail views.
-    _csv_columns: Dict defining columns for CSV export.
-    _count_fields: List of items from related fields to count for overview pages.
+    # Docstring structure
+        Docstrings of models are used for explanations in the UI. They are
+        parsed using the parse_docstring package to extract short and long descriptions.
+        This means, that each model should have a docstring structured as follows:
+
+        >>> ModelName(models.Model):
+        ...     \"""Short description of the model.
+        ...
+        ...     Long description of the model that can span multiple lines.
+        ...     This description will be shown in detail views and other places
+        ...     where more context is needed.
+        ...     \"""
+
+    # Inheritance
+        The models in Watersync should inherit functionality from either the SetupSimpleHistory
+        or the TimeSeriesModel abstract base classes, depending on the level of audit trail
+        and history tracking required.
+
+    # Class attributes to define
+        _list_view_fields: Dict defining fields for list views rendered in tables.
+        _detail_view_fields: Dict defining what will be shown in detail views.
+        _csv_columns: Dict defining columns for CSV export.
+        _count_fields: List of items from related fields to count for overview pages.
     """
     _list_view_fields = {}
     _detail_view_fields = {}

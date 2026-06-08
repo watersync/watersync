@@ -1,7 +1,7 @@
 """Django-filter classes for water quality app."""
 
-from watersync.core.generics.filters import TimeseriesFilterSet, ProjectScopedFilterSet
-from watersync.waterquality.models import Sample, Measurement
+from watersync.core.generics.filters import ProjectScopedFilterSet, TimeseriesFilterSet
+from watersync.waterquality.models import Measurement, Sample
 
 
 class SampleFilter(TimeseriesFilterSet):

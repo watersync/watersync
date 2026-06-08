@@ -33,7 +33,7 @@
         hx-get="{{ request.path }}add/"
         hx-target="#dialog"
         hx-trigger="click"
-        hx-vals='{{ hx_vals|default:"{}" }}'>
+        hx-vals='{{ request.GET|query_to_json }}'>
         <i class="fa-solid fa-plus"></i>
     </button>
     <button class="btn btn-secondary"

@@ -1,7 +1,7 @@
 from typing import ClassVar
 
 from django.contrib.auth.models import AbstractUser
-from django.db.models import CharField, EmailField, BooleanField
+from django.db.models import BooleanField, CharField, EmailField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 

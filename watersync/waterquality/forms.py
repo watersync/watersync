@@ -1,17 +1,17 @@
-from bootstrap_datepicker_plus.widgets import DatePickerInput
 from django import forms
 from django.conf import settings
 from django.forms import Textarea
 
+from bootstrap_datepicker_plus.widgets import DatePickerInput
+
 from watersync.core.config import (
     get_all_wq_unit_choices,
     get_parameter_choices,
-    get_parameter_default_unit,
     get_parameter_group_choices,
     get_parameters_json,
-    get_wq_unit_choices,
     is_valid_unit_for_parameter,
 )
+from watersync.core.generics.forms import WatersyncBulkForm, WatersyncForm
 from watersync.waterquality.models import Measurement, Sample
 from watersync.waterquality.utils import parse_bulk_file, parse_bulk_measurement_data
 from watersync.waterquality.validators import (
@@ -20,7 +20,7 @@ from watersync.waterquality.validators import (
 )
 
 
-class SampleForm(forms.ModelForm):
+class SampleForm(WatersyncForm):
     title = "Add Sample"
     measured_on = forms.DateField(
         label="Measured On",
@@ -83,7 +83,7 @@ class SampleForm(forms.ModelForm):
         )
 
 
-class MeasurementForm(forms.ModelForm):
+class MeasurementForm(WatersyncForm):
     title = "Add Measurement"
 
     parameter = forms.ChoiceField(
@@ -185,49 +185,42 @@ class MeasurementRowForm(forms.Form):
 
 # Create formset for multiple measurement rows
 from django.forms import formset_factory
+
 MeasurementRowFormSet = formset_factory(MeasurementRowForm, extra=5, can_delete=False)
 
 
-class MeasurementBulkForm(forms.Form):
-    """Form for bulk adding measurements from pasted data.
-
-    Supports three input modes:
-    - paste: Tab or comma separated text
-    - formset: Interactive form with dropdowns
-    - file: CSV/Excel file upload
-    """
+class MeasurementBulkForm(WatersyncBulkForm):
+    """Form for bulk adding measurements (paste/file/formset)."""
 
     title = "Bulk Add Measurements"
     
+    # Override input mode choices if needed
     INPUT_MODE_CHOICES = [
         ("paste", "Paste Data"),
-        ("formset", "Manual Entry"),
+        ("formset", "Manual Entry"),  # Custom label
         ("file", "Upload File"),
     ]
     
-    bulk = forms.CharField(widget=forms.HiddenInput(), initial="true", required=False)
     input_mode = forms.ChoiceField(
         choices=INPUT_MODE_CHOICES,
         initial="paste",
         widget=forms.HiddenInput(),
         required=False,
     )
-    # Note: sample can come from 'sample' field OR 'sample_pk' hidden input
+    
     sample = forms.ModelChoiceField(
         queryset=Sample.objects.all(),
         label="Sample",
-        required=False,  # We'll validate in clean()
         help_text="Select the sample to which these measurements belong.",
     )
-    # Paste mode field
+    
     data = forms.CharField(
         label="Paste Data",
-        help_text="Paste tab-separated or comma-separated data with columns: "
-        "parameter, value, unit.",
+        help_text="Paste tab-separated or comma-separated data with columns: parameter, value, unit.",
         required=False,
         widget=Textarea(attrs={"rows": 8}),
     )
-    # File upload field
+    
     file = forms.FileField(
         label="Upload File",
         help_text="Upload a CSV or Excel file with columns: parameter, value, unit",
@@ -237,15 +230,7 @@ class MeasurementBulkForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         input_mode = cleaned_data.get("input_mode", "paste")
-        
-        # Handle sample from either 'sample' field or 'sample_pk' hidden input
         sample = cleaned_data.get("sample")
-        if not sample and self.data.get("sample_pk"):
-            try:
-                sample = Sample.objects.get(pk=self.data.get("sample_pk"))
-                cleaned_data["sample"] = sample
-            except Sample.DoesNotExist:
-                raise forms.ValidationError("Invalid sample selected.")
         
         if not sample:
             raise forms.ValidationError("Please select a sample.")
@@ -289,13 +274,11 @@ class MeasurementBulkForm(forms.Form):
                         "unit": row["unit"],
                     })
         
-        # Formset data is handled separately in the view
-        
         if not processed_data and input_mode != "formset":
             raise forms.ValidationError("No valid measurement data provided.")
         
-        # Validate parameters and check for duplicates using validators
-        if processed_data and sample:
+        # Validate parameters and check for duplicates
+        if processed_data:
             allowed_params = get_allowed_parameters_for_sample(sample)
             invalid_params = [
                 d["parameter"] for d in processed_data 
@@ -312,7 +295,7 @@ class MeasurementBulkForm(forms.Form):
             )
             if duplicates:
                 raise forms.ValidationError(
-                    f"Measurements for these parameters already exist for this sample: {', '.join(duplicates)}"
+                    f"Measurements for these parameters already exist: {', '.join(duplicates)}"
                 )
             
         cleaned_data["processed_data"] = processed_data

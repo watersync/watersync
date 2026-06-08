@@ -1,9 +1,11 @@
 from django.contrib.gis.db import models as geomodels
 from django.db import models
+
 from simple_history.models import HistoricalRecords
 
+from watersync.core.generics.managers import LocationWithCountsManager
 from watersync.core.generics.models import SetupSimpleHistory
-from watersync.core.managers import LocationManager, ProjectManager, WithCountsManager
+from watersync.core.managers import LocationManager, ProjectManager
 from watersync.users.models import User
 
 
@@ -61,16 +63,21 @@ class Location(models.Model, SetupSimpleHistory):
     It is useful in cases when the location parameters like height of the top of the
     casing change, but old measurement still refer to the old location height.
 
+    Detail information for each location type is stored in related one-to-one models:
+    - PiezometerDetail
+    - PumpingWellDetail
+    - LakeDetail
+    - WastewaterDetail
+    - RiverDetail
+    - PrecipitationDetail
+
     Attributes:
         project (ForeignKey): The project to which the location is attached.
         name (CharField): The name of the location.
         geom (PointField): The geographic coordinates of the location.
-        altitude (DecimalField): The altitude of the location.
         type (CharField): The type of the location. The type is one of the
-            following: well, river, lake, wastewater, precipitation.
+            following: piezometer, pumping_well, river, lake, wastewater, precipitation.
         description (TextField): The description of the location.
-        detail (JSONField): JSON field with station detail to provide flexible
-            schema and avoid related models.
     """
 
     class LocationTypes(models.TextChoices):
@@ -91,7 +98,7 @@ class Location(models.Model, SetupSimpleHistory):
         Project, on_delete=models.PROTECT, related_name="locations"
     )
     name = models.CharField(max_length=50)
-    geom = geomodels.PointField(dim=3,srid=4326)
+    geom = geomodels.PointField(dim=3, srid=4326)
     type = models.CharField(choices=LocationTypes.choices, max_length=20)
     installation_date = models.DateField(null=True, blank=True)
     decommision_date = models.DateField(null=True, blank=True)
@@ -100,10 +107,19 @@ class Location(models.Model, SetupSimpleHistory):
         max_length=20, choices=StatusChoices.choices,
         default=StatusChoices.OPERATIONAL
     )
-    detail = models.JSONField(null=True, blank=True)
 
     objects = LocationManager()
     history = HistoricalRecords()
+
+    # Mapping from location type to related detail attribute name
+    DETAIL_RELATED_NAMES = {
+        "piezometer": "piezometer_detail",
+        "pumping_well": "pumping_well_detail",
+        "lake": "lake_detail",
+        "wastewater": "wastewater_detail",
+        "river": "river_detail",
+        "precipitation": "precipitation_detail",
+    }
 
     # Fields to count in with_counts() - used for overview pages
     _count_fields = ['gwlmeasurements', 'deployments', 'samples']
@@ -115,13 +131,14 @@ class Location(models.Model, SetupSimpleHistory):
         "Name": "name",
     }
 
-    _csv_columns = {"Name": "name", "Type": "type", "Depth": "detail__depth"}
+    _csv_columns = {"Name": "name", "Type": "type"}
 
     class Meta:
         unique_together = ("project", "name")
 
     def __str__(self):
         return f"{self.name}"
+    
 
 class Fieldwork(models.Model, SetupSimpleHistory):
     """Reports from days spent in the field.
@@ -157,7 +174,7 @@ class Fieldwork(models.Model, SetupSimpleHistory):
     )
     description = models.TextField(blank=True, null=True)
 
-    objects = WithCountsManager()
+    objects = LocationWithCountsManager()
     history = HistoricalRecords()
 
     # Fields to count in with_counts() - used for overview pages

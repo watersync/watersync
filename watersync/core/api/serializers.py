@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from watersync.core.models import Location, Project, Fieldwork
+from watersync.core.models import Fieldwork, Location, Project
 
 
 class ProjectSerializer(serializers.ModelSerializer):

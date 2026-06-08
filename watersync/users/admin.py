@@ -1,8 +1,9 @@
-from allauth.account.decorators import secure_admin_login
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import admin as auth_admin
 from django.utils.translation import gettext_lazy as _
+
+from allauth.account.decorators import secure_admin_login
 
 from .forms import UserAdminChangeForm, UserAdminCreationForm
 from .models import User

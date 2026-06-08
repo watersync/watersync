@@ -2,31 +2,38 @@ import csv
 import json
 from decimal import Decimal
 
-import pandas as pd
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import (
     DeleteView,
-    DetailView,
     FormView,
     ListView,
-    UpdateView,
+    TemplateView,
     View,
-    TemplateView
 )
-from watersync.core.generics.views import WatersyncListView
-from watersync.core.models import Location, Project
-from watersync.sensor.models import Deployment, Sensor, SensorRecord
-from watersync.core.generics.views import WatersyncListView, WatersyncCreateView, WatersyncDetailView, WatersyncUpdateView, WatersyncDeleteView
-from watersync.core.generics.mixins import FilterMixin
-from watersync.sensor.filters import DeploymentFilter
+
+import pandas as pd
+
 from watersync.core.config import get_sensor_unit_choices, get_variables_json
+from watersync.core.generics.mixins import FilterMixin
+from watersync.core.generics.views import (
+    WatersyncCreateView,
+    WatersyncDeleteView,
+    WatersyncDetailView,
+    WatersyncListView,
+    WatersyncUpdateView,
+)
+from watersync.core.models import Project
+from watersync.sensor.filters import DeploymentFilter
+from watersync.sensor.forms_detail import DEPLOYMENT_TYPE_DETAIL_FORMS
+from watersync.sensor.models import Deployment, Sensor, SensorRecord
+from watersync.sensor.models_detail import DEPLOYMENT_TYPE_DETAIL_RELATED_NAMES
+
 from .forms import DeploymentForm, SensorForm, SensorRecordForm
 from .plotting import create_sensor_graph
-
 
 # ================ Variable/Unit API View ========================
 
@@ -257,14 +264,66 @@ sensorrecord_list_view = SensorRecordListView.as_view()
 # ================ Deployment views ========================
 
 
+
+
 class DeploymentCreateView(WatersyncCreateView):
     model = Deployment
     form_class = DeploymentForm
+    detail_forms = DEPLOYMENT_TYPE_DETAIL_FORMS
+    detail_related_names = DEPLOYMENT_TYPE_DETAIL_RELATED_NAMES
+
+    def post_save(self, form, instance):
+        """Save the deployment detail form after the deployment is saved."""
+        self._save_deployment_detail(instance)
+
+    def _save_deployment_detail(self, deployment):
+        """Save the appropriate detail model for this deployment."""
+        deployment_type = deployment.type
+        form_class = DEPLOYMENT_TYPE_DETAIL_FORMS.get(deployment_type)
+
+        if not form_class:
+            return
+
+        detail_form = form_class(data=self.request.POST)
+        if detail_form.is_valid():
+            detail_instance = detail_form.save(commit=False)
+            detail_instance.deployment = deployment
+            detail_instance.save()
 
 
 class DeploymentUpdateView(WatersyncUpdateView):
     model = Deployment
     form_class = DeploymentForm
+    detail_forms = DEPLOYMENT_TYPE_DETAIL_FORMS
+    detail_related_names = DEPLOYMENT_TYPE_DETAIL_RELATED_NAMES
+
+    def post_save(self, form, instance):
+        """Save the deployment detail form after the deployment is saved."""
+        self._save_deployment_detail(instance)
+
+    def _save_deployment_detail(self, deployment):
+        """Save or update the appropriate detail model for this deployment."""
+        deployment_type = deployment.type
+        form_class = DEPLOYMENT_TYPE_DETAIL_FORMS.get(deployment_type)
+
+        if not form_class:
+            return
+
+        # Try to get existing detail instance
+        detail_instance = None
+        related_name = DEPLOYMENT_TYPE_DETAIL_RELATED_NAMES.get(deployment_type)
+        if related_name:
+            try:
+                detail_instance = getattr(deployment, related_name)
+            except Exception:
+                pass
+
+        detail_form = form_class(data=self.request.POST, instance=detail_instance)
+        if detail_form.is_valid():
+            detail_obj = detail_form.save(commit=False)
+            detail_obj.deployment = deployment
+            detail_obj.save()
+
 
 class DeploymentListView(FilterMixin, WatersyncListView):
     model = Deployment
@@ -279,6 +338,7 @@ class DeploymentListView(FilterMixin, WatersyncListView):
  
 class DeploymentDetailView(WatersyncDetailView):
     model = Deployment
+    detail_related_names = DEPLOYMENT_TYPE_DETAIL_RELATED_NAMES
 
 
 class DeploymentDeleteView(WatersyncDeleteView):

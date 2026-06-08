@@ -1,7 +1,8 @@
 """Django-filter classes for sensor app."""
 
-import django_filters
 from django import forms
+
+import django_filters
 
 from watersync.core.generics.filters import ProjectScopedFilterSet, TimeseriesFilterSet
 from watersync.sensor.models import Deployment, SensorRecord

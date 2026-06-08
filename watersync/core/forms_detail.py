@@ -1,79 +1,82 @@
-from django.db import models
-from django.forms import CharField, ChoiceField, FloatField, Form, IntegerField
+from django.forms import ModelForm
+
+from watersync.core.models_detail import (
+    LakeDetail,
+    PiezometerDetail,
+    PrecipitationDetail,
+    PumpingWellDetail,
+    RiverDetail,
+    WastewaterDetail,
+)
 
 
-class PiezometerDetailForm(Form):
+class PiezometerDetailForm(ModelForm):
     """Form for Piezometer details.
 
     Total length can be obtained by adding the top of piezometer and total depth.
     Screen length is the length of the perforated section of the piezometer.
     """
-    class PiezometerMaterialTypes(models.TextChoices):
-        PVC = "pvc", "PVC"
-        STEEL = "steel", "Steel"
-        OTHER = "other", "Other"
 
-    class PiezometerDrillTypes(models.TextChoices):
-        HAND_AUGER = "hand_auger", "Hand Auger"
-        DIRECT_PUSH = "direct_push", "Direct Push"
-        ROTARY_DRILLING = "rotary_drilling", "Rotary Drilling"
-        SONIC_RIG = "sonic_rig", "Sonic Rig"
-        OTHER = "other", "Other"
-
-    depth = FloatField(required=True, label="Total depth below ground (m)")
-    casing_top = FloatField(
-        required=True, label="Top of Piezometer below (-)/above ground (+) (m)"
-    )
-    screen_top = FloatField(
-        required=True, label="Top of Screen below ground (+) (m)"
-    )
-    screen_bottom = FloatField(
-        required=True, label="Bottom of Screen below ground (+) (m)"
-    )
-    drill_type = ChoiceField(
-        required=True, choices=PiezometerDrillTypes.choices, label="Drill Type"
-    )
-    profile_description = CharField(
-        required=False,
-        label="Profile Description",
-        widget=CharField.widget(attrs={"placeholder": "e.g. Sandy, Clayey"}),
-    )
-    diameter = FloatField(required=True, label="Diameter (mm)")
-    material = ChoiceField(
-        required=True, choices=PiezometerMaterialTypes.choices, label="Material"
-    )
+    class Meta:
+        model = PiezometerDetail
+        fields = [
+            "depth",
+            "casing_top",
+            "screen_top",
+            "screen_bottom",
+            "drill_type",
+            "profile_description",
+            "diameter",
+            "material",
+        ]
 
 
-class PumpingWellDetailForm(Form):
+class PumpingWellDetailForm(ModelForm):
     """Form for Pumping Well details."""
-    pumping_rate = FloatField(
-        required=False, label="Pumping Rate (m³/h)",
-        widget=CharField.widget(attrs={"placeholder": "e.g. 10 m³/h"})
-    )
+
+    class Meta:
+        model = PumpingWellDetail
+        fields = ["pumping_rate"]
 
 
-class LakeDetailForm(Form):
-    depth = FloatField(required=False, label="Depth (m)")
-    area = FloatField(required=False, label="Area (m²)")
-    volume = FloatField(required=False, label="Volume (m³)")
-    water_quality = CharField(
-        required=False,
-        label="Water Quality",
-        widget=CharField.widget(attrs={"placeholder": "e.g. Clear, Murky"}),
-    )
+class LakeDetailForm(ModelForm):
+    """Form for Lake details."""
+
+    class Meta:
+        model = LakeDetail
+        fields = ["depth", "area", "volume", "water_quality"]
 
 
-class WastewaterDetailForm(Form):
-    number_of_tanks = IntegerField(required=False, label="Number of tanks")
-    treatment_level = IntegerField(required=False, label="Treatment level")
+class WastewaterDetailForm(ModelForm):
+    """Form for Wastewater details."""
+
+    class Meta:
+        model = WastewaterDetail
+        fields = ["number_of_tanks", "treatment_level"]
 
 
-class RiverDetailForm(Form):
-    width = FloatField(required=False, label="Width (m)")
-    depth = FloatField(required=False, label="Depth (m)")
-    flow_rate = FloatField(required=False, label="Flow rate (m³/s)")
+class RiverDetailForm(ModelForm):
+    """Form for River details."""
+
+    class Meta:
+        model = RiverDetail
+        fields = ["width", "depth", "flow_rate"]
 
 
-class PrecipitationDetailForm(Form):
-    intensity = FloatField(required=False, label="Intensity (mm/h)")
-    duration = IntegerField(required=False, label="Duration (minutes)")
+class PrecipitationDetailForm(ModelForm):
+    """Form for Precipitation details."""
+
+    class Meta:
+        model = PrecipitationDetail
+        fields = ["intensity", "duration"]
+
+
+# Mapping from location type to detail form class
+LOCATION_TYPE_DETAIL_FORMS = {
+    "piezometer": PiezometerDetailForm,
+    "pumping_well": PumpingWellDetailForm,
+    "lake": LakeDetailForm,
+    "wastewater": WastewaterDetailForm,
+    "river": RiverDetailForm,
+    "precipitation": PrecipitationDetailForm,
+}

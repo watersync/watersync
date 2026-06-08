@@ -21,33 +21,9 @@ document.addEventListener('htmx:afterSwap', function (e) {
                     initializeModalMap(mapContainer);
                 }, 100);
             }
-        initializeDatePickers();
-        initializeTimePickers();
         }, { once: true });
     }
 });
-
-function initializeDatePickers() {
-    $('.datepickerinput').each(function() {
-        // Prevent double initialization
-        if (!$(this).data('DateTimePicker')) {
-            $(this).datetimepicker({
-                format: 'YYYY-MM-DD' // Adjust format as needed
-            });
-        }
-    });
-}
-
-function initializeTimePickers() {
-    $('.timepickerinput').each(function() {
-        // Prevent double initialization
-        if (!$(this).data('DateTimePicker')) {
-            $(this).datetimepicker({
-                format: 'HH:mm:ss' // Adjust format as needed
-            });
-        }
-    });
-}
 
 
 function cleanupModalMap() {

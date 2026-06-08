@@ -1,4 +1,4 @@
-from watersync.core.models import Project, Location, Fieldwork
+from watersync.core.models import Fieldwork, Location, Project
 
 
 def url_context(request):

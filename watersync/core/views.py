@@ -1,11 +1,18 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.forms import ModelForm
+from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, TemplateView
-from watersync.core.generics.utils import update_location_geom, add_current_project
-from watersync.core.forms import FieldworkForm, FieldworkBulkForm, LocationForm, ProjectForm
-from watersync.core.models import Fieldwork, Location, Project, HistoricalLocation, HistoricalProject, HistoricalFieldwork
+
+from watersync.core.forms import (
+    FieldworkBulkForm,
+    FieldworkForm,
+    LocationForm,
+    ProjectForm,
+)
+from watersync.core.forms_detail import LOCATION_TYPE_DETAIL_FORMS
+from watersync.core.generics.utils import update_location_geom
 from watersync.core.generics.views import (
     WatersyncCreateView,
     WatersyncDeleteView,
@@ -14,7 +21,14 @@ from watersync.core.generics.views import (
     WatersyncListView,
     WatersyncUpdateView,
 )
-from django.shortcuts import get_object_or_404
+from watersync.core.models import (
+    Fieldwork,
+    HistoricalFieldwork,
+    HistoricalLocation,
+    HistoricalProject,
+    Location,
+    Project,
+)
 
 # ----- Fieldwork Views ----- #
 
@@ -75,87 +89,48 @@ class FieldworkCreateView(WatersyncCreateView):
     form_class = FieldworkForm
     bulk_form_class = FieldworkBulkForm
 
-    def get_form_class(self):
-        """Return bulk form if bulk=true in request."""
-        if self.request.GET.get("bulk") == "true" or self.request.POST.get("bulk"):
-            return self.bulk_form_class
-        return super().get_form_class()
-
     def get_template_names(self):
         """Use custom template for bulk form."""
         if self.get_form_class() == self.bulk_form_class:
             return ["core/bulk_fieldwork_form.html"]
-        return super().get_template_names()
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add context for bulk form
+        
+        # Add context for bulk form only
         if self.get_form_class() == self.bulk_form_class:
-            from django.urls import reverse
-            project_pk = self.kwargs.get("project_pk")
-            context["project_pk"] = project_pk
             context["preview_url"] = reverse(
                 "core:preview-fieldwork",
-                kwargs={"project_pk": project_pk}
+                kwargs={"project_pk": self.kwargs.get("project_pk")}
             )
         return context
 
-    def update_form_instance(self, form):
-        """Always set the current project for the fieldwork instance."""
-        add_current_project(self.kwargs, form)
-
-    def form_valid(self, form):
-        """Handle bulk form submission."""
+    def handle_bulk_create(self, form, instance):
+        """Handle bulk fieldwork creation."""
+        if not isinstance(form, FieldworkBulkForm):
+            return
         
-        if isinstance(form, FieldworkBulkForm):
-            processed_data = form.cleaned_data.get("processed_data", [])
-            users = form.cleaned_data.get("user", [])
-            
-            created_fieldworks = []
-            for data in processed_data:
-                fieldwork = Fieldwork.objects.create(
-                    project=data["project"],
-                    date=data["date"],
-                    start_time=data["start_time"],
-                    end_time=data["end_time"],
-                    weather=data["weather"],
-                    description=data["description"],
-                )
-                fieldwork.user.set(users)
-                created_fieldworks.append(fieldwork)
-            
-            from django.urls import reverse
-            success_url = reverse(
-                "core:fieldworks",
-                kwargs={"project_pk": self.kwargs.get("project_pk")}
-            )
-            
-            # Return success response
-            from django.http import HttpResponse
-            return HttpResponse(
-                status=204,
-                headers={
-                    "HX-Trigger": "fieldworkCreated",
-                    "HX-Redirect": success_url,
-                }
-            )
+        processed_data = form.cleaned_data.get("processed_data", [])
+        users = form.cleaned_data.get("user", [])
         
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        """Handle bulk form errors."""
-        if isinstance(form, FieldworkBulkForm):
-            return self.render_to_response(self.get_context_data(form=form))
-        return super().form_invalid(form)
+        for data in processed_data:
+            fieldwork = Fieldwork.objects.create(
+                project=data["project"],
+                date=data["date"],
+                start_time=data["start_time"],
+                end_time=data["end_time"],
+                weather=data["weather"],
+                description=data["description"],
+            )
+            fieldwork.user.set(users)
 
 class FieldworkUpdateView(WatersyncUpdateView):
     model = Fieldwork
     form_class = FieldworkForm
 
-
 class FieldworkDeleteView(WatersyncDeleteView):
     model = Fieldwork
-
 
 class FieldworkListView(WatersyncListView):
     model = Fieldwork
@@ -163,8 +138,12 @@ class FieldworkListView(WatersyncListView):
 
 
     def get_queryset(self):
-        return Fieldwork.objects.for_project(self.kwargs["project_pk"]).order_by("-date")
-
+        return (
+            Fieldwork.objects
+            .for_project(self.kwargs["project_pk"])
+            .for_user(self.request.user)
+            .order_by("-date")
+        )
 
 class FieldworkDetailView(WatersyncDetailView):
     model = Fieldwork
@@ -200,18 +179,22 @@ fieldwork_update_view = FieldworkUpdateView.as_view()
 class LocationCreateView(WatersyncCreateView):
     model = Location
     form_class = LocationForm
+    detail_forms = LOCATION_TYPE_DETAIL_FORMS
+    detail_related_names = Location.DETAIL_RELATED_NAMES
 
-
-    def update_form_instance(self, form: ModelForm):
+    def pre_save(self, form):
+        """Set geometry from lat/lon/alt before saving."""
         update_location_geom(form)
-        add_current_project(self.kwargs, form)
 
 
 class LocationUpdateView(WatersyncUpdateView):
     model = Location
     form_class = LocationForm
+    detail_forms = LOCATION_TYPE_DETAIL_FORMS
+    detail_related_names = Location.DETAIL_RELATED_NAMES
 
-    def update_form_instance(self, form: ModelForm):
+    def pre_save(self, form):
+        """Update geometry from lat/lon/alt before saving."""
         update_location_geom(form)
 
 
@@ -239,6 +222,8 @@ class LocationListView(WatersyncListView):
 
 class LocationDetailView(WatersyncDetailView):
     model = Location
+    detail_related_names = Location.DETAIL_RELATED_NAMES
+
 
 class LocationHistoryListView(WatersyncHistoryListView):
     model = HistoricalLocation

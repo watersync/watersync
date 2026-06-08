@@ -16,11 +16,6 @@ View for now.
 from django.urls import include, path
 
 from watersync.sensor.views import (
-    sensor_create_view,
-    sensor_delete_view,
-    sensor_update_view,
-    sensor_detail_view,
-    sensor_list_view,
     deployment_create_view,
     deployment_decommission_view,
     deployment_delete_view,
@@ -28,6 +23,11 @@ from watersync.sensor.views import (
     deployment_list_view,
     deployment_overview_view,
     deployment_update_view,
+    sensor_create_view,
+    sensor_delete_view,
+    sensor_detail_view,
+    sensor_list_view,
+    sensor_update_view,
     sensorrecord_create_view,
     sensorrecord_delete_view,
     sensorrecord_download_view,

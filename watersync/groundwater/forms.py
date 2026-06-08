@@ -1,9 +1,8 @@
-from django.forms import ModelForm
-
+from watersync.core.generics.forms import WatersyncForm
 from watersync.groundwater.models import GWLManualMeasurement
 
 
-class GWLForm(ModelForm):
+class GWLForm(WatersyncForm):
     title = "Groundwater Level Measurement"
 
     class Meta:

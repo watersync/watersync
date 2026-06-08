@@ -5,18 +5,18 @@ URLs for CRUD operations, eliminating the need for placeholder-based
 URL building in templates.
 """
 
-import pytest
 from datetime import date
-from django.urls import reverse
-from django.contrib.gis.geos import Point
-from django.utils import timezone
 
-from watersync.core.models import Project, Location, Fieldwork
-from watersync.waterquality.models import Sample, Measurement
-from watersync.sensor.models import Sensor, Deployment
+from django.contrib.gis.geos import Point
+
+import pytest
+
+from watersync.core.models import Fieldwork, Location, Project
 from watersync.groundwater.models import GWLManualMeasurement
-from watersync.waterquality.models_setup import Protocol
+from watersync.sensor.models import Deployment, Sensor
 from watersync.users.tests.factories import UserFactory
+from watersync.waterquality.models import Measurement, Sample
+from watersync.waterquality.models_setup import Protocol
 
 
 @pytest.fixture

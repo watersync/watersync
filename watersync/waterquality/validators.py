@@ -3,7 +3,6 @@
 These validators can be reused across forms, views, and API endpoints
 for consistent validation logic.
 """
-from typing import List, Optional, Set, Tuple
 
 from watersync.core.config import (
     get_parameter_choices,
@@ -14,8 +13,8 @@ from watersync.core.config import (
 
 def validate_parameter(
     parameter: str, 
-    group: Optional[str] = None
-) -> Tuple[bool, Optional[str], Optional[str]]:
+    group: str | None = None
+) -> tuple[bool, str | None, str | None]:
     """Validate a parameter code.
     
     Args:
@@ -35,7 +34,7 @@ def validate_parameter(
     return True, None, get_parameter_label(parameter)
 
 
-def validate_unit(parameter: str, unit: str) -> Tuple[bool, Optional[str]]:
+def validate_unit(parameter: str, unit: str) -> tuple[bool, str | None]:
     """Validate that a unit is valid for a parameter.
     
     Args:
@@ -51,7 +50,7 @@ def validate_unit(parameter: str, unit: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def validate_numeric_value(value: str) -> Tuple[bool, Optional[float], Optional[str]]:
+def validate_numeric_value(value: str) -> tuple[bool, float | None, str | None]:
     """Validate and convert a string value to float.
     
     Args:
@@ -69,8 +68,8 @@ def validate_numeric_value(value: str) -> Tuple[bool, Optional[float], Optional[
 
 def check_duplicate_measurements(
     sample, 
-    parameters: List[str]
-) -> List[str]:
+    parameters: list[str]
+) -> list[str]:
     """Check which parameters already have measurements for a sample.
     
     Args:
@@ -90,7 +89,7 @@ def check_duplicate_measurements(
     return [p for p in parameters if p in existing_params]
 
 
-def get_allowed_parameters_for_sample(sample) -> Set[str]:
+def get_allowed_parameters_for_sample(sample) -> set[str]:
     """Get the set of allowed parameter codes for a sample's group.
     
     Args:
@@ -104,8 +103,8 @@ def get_allowed_parameters_for_sample(sample) -> Set[str]:
 
 def validate_parameters_for_sample(
     sample, 
-    parameters: List[str]
-) -> Tuple[List[str], List[str]]:
+    parameters: list[str]
+) -> tuple[list[str], list[str]]:
     """Validate that parameters belong to a sample's parameter group.
     
     Args:
@@ -125,7 +124,7 @@ def validate_measurement_row(
     parameter: str,
     value: str,
     unit: str,
-    parameter_group: Optional[str] = None,
+    parameter_group: str | None = None,
 ) -> dict:
     """Validate a single measurement row.
     

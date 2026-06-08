@@ -84,7 +84,7 @@ URL parameters use `_pk` suffix: `project_pk`, `location_pk`, `fieldwork_pk`
 ### Forms
 
 1. **Use Crispy Forms** with Bootstrap 5: `crispy_bootstrap5`
-2. **DatePicker widget**: Use `bootstrap_datepicker_plus.widgets.DatePickerInput`
+2. **Date/Time pickers**: Use `bootstrap_datepicker_plus.widgets.DatePickerInput` and `TimePickerInput`. Tempus Dominus JS/CSS is loaded in base.html.
 3. **Dynamic detail forms**: Use `FormWithDetailMixin` for forms with type-dependent detail sections
 4. **Form validation**: Include `FormWithHistory` mixin for history change reason support
 

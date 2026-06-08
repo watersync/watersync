@@ -1,8 +1,9 @@
 from decimal import Decimal
+
 from django.db import models
 
-from watersync.core.models import Location
 from watersync.core.generics.models import TimeSeriesModel
+from watersync.core.models import Location
 
 
 class GWLManualMeasurement(TimeSeriesModel):
@@ -33,9 +34,7 @@ class GWLManualMeasurement(TimeSeriesModel):
     location = models.ForeignKey(
         Location,
         on_delete=models.PROTECT,
-        related_name="gwlmeasurements",
-        null=True,
-        blank=True,
+        related_name="gwlmeasurements"
     )
     description = models.TextField(null=True, blank=True)
 

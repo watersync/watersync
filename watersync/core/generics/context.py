@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 
 @dataclass
@@ -28,5 +28,5 @@ class ListConfig:
     detail_type: Literal['modal', 'page', 'popover'] | None = None
     has_bulk_create: bool = False
     has_update: bool = False
-    explanation: Optional[str] = None
-    explanation_detail: Optional[str] = None
+    explanation: str | None = None
+    explanation_detail: str | None = None

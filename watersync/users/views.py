@@ -5,8 +5,8 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, TemplateView, UpdateView
 
-from watersync.users.models import User
 from watersync.core.permissions import ApprovalRequiredMixin
+from watersync.users.models import User
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):

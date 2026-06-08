@@ -1,7 +1,8 @@
 from http import HTTPStatus
 
-import pytest
 from django.urls import reverse
+
+import pytest
 
 
 def test_swagger_accessible_by_admin(admin_client):

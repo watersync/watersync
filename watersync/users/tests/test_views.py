@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import pytest
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -10,6 +9,8 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+
+import pytest
 
 from watersync.users.forms import UserAdminChangeForm
 from watersync.users.models import User

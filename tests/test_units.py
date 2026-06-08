@@ -6,7 +6,6 @@ This module tests the custom unit definitions in config/parameters/water_quality
 are properly defined and can be converted between each other.
 """
 
-import pytest
 from django.conf import settings
 
 

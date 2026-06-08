@@ -1,31 +1,29 @@
+from django import forms
 from django.forms import (
     CharField,
     CheckboxSelectMultiple,
     ChoiceField,
-    FileField,
-    ModelChoiceField,
-    Textarea,
-    TimeField,
     DateField,
+    FileField,
     FloatField,
     HiddenInput,
+    ModelChoiceField,
     ModelForm,
     ModelMultipleChoiceField,
+    Textarea,
+    TimeField,
 )
-from django import forms
 
-from bootstrap_datepicker_plus.widgets import TimePickerInput, DatePickerInput
+from bootstrap_datepicker_plus.widgets import DatePickerInput, TimePickerInput
 
-from watersync.core.forms_detail import LakeDetailForm, PiezometerDetailForm, PrecipitationDetailForm, PumpingWellDetailForm, RiverDetailForm, WastewaterDetailForm
-from watersync.core.generics.forms import FormWithDetailMixin, FormWithHistory
-from watersync.core.models import Location, Project, Fieldwork
+from watersync.core.generics.forms import FormWithHistory, WatersyncBulkForm, WatersyncForm
+from watersync.core.models import Fieldwork, Location, Project
 from watersync.core.parsers import (
+    check_duplicate_fieldwork_dates,
     parse_bulk_fieldwork_data,
     parse_bulk_fieldwork_file,
-    check_duplicate_fieldwork_dates,
 )
 from watersync.users.models import User
-
 
 
 class ProjectForm(ModelForm):
@@ -76,7 +74,7 @@ class ProjectForm(ModelForm):
         return instance
 
 
-class FieldworkForm(ModelForm):
+class FieldworkForm(WatersyncForm):
     title = "Fieldwork Form"
 
     date = DateField(
@@ -113,6 +111,7 @@ class FieldworkForm(ModelForm):
     class Meta:
         model = Fieldwork
         fields = [
+            "project",
             "date",
             "start_time",
             "end_time",
@@ -122,7 +121,7 @@ class FieldworkForm(ModelForm):
         ]
 
 
-class FieldworkBulkForm(forms.Form):
+class FieldworkBulkForm(WatersyncBulkForm):
     """Form for bulk adding fieldwork entries from pasted data or file.
 
     Supports two input modes:
@@ -134,18 +133,14 @@ class FieldworkBulkForm(forms.Form):
 
     title = "Bulk Add Fieldwork"
     
+    # Override INPUT_MODE_CHOICES for fieldwork-specific modes
     INPUT_MODE_CHOICES = [
         ("paste", "Paste Data"),
         ("file", "Upload File"),
     ]
     
-    bulk = CharField(widget=HiddenInput(), initial="true", required=False)
-    input_mode = ChoiceField(
-        choices=INPUT_MODE_CHOICES,
-        initial="paste",
-        widget=HiddenInput(),
-        required=False,
-    )
+    # 'bulk' and 'input_mode' inherited from WatersyncBulkForm
+    
     project = ModelChoiceField(
         queryset=Project.objects.all(),
         label="Project",
@@ -265,9 +260,15 @@ class FieldworkBulkForm(forms.Form):
         return cleaned_data
 
 
-class LocationForm(FormWithDetailMixin, FormWithHistory):
-    """Temporary solution to the geometry not being properly created is to make the gemo field a CharField
-    and not required. The latitude and longitude fields are used to create the geometry field in update_form_instance method."""
+class LocationForm(FormWithHistory, WatersyncForm):
+    """Form for creating/editing Location objects.
+    
+    Note: The geometry is created from latitude/longitude/altitude fields
+    in the view's pre_save hook using update_location_geom().
+
+    Detail forms for each location type are handled separately via HTMX
+    and saved in the view's post_save hook.
+    """
 
     title = "Add or Edit Location"
     latitude = FloatField(required=False, label="Latitude")
@@ -282,18 +283,10 @@ class LocationForm(FormWithDetailMixin, FormWithHistory):
         label="Type",
     )
 
-    detail_forms = {
-        "piezometer": PiezometerDetailForm,
-        "pumping_well": PumpingWellDetailForm,
-        "lake": LakeDetailForm,
-        "wastewater": WastewaterDetailForm,
-        "river": RiverDetailForm,
-        "precipitation": PrecipitationDetailForm,
-    }
-
     class Meta:
         model = Location
         fields = (
+            "project",
             "name",
             "type",
             "status",
@@ -301,10 +294,6 @@ class LocationForm(FormWithDetailMixin, FormWithHistory):
             "altitude",
             "latitude",
             "longitude",
-            "detail",
             "geom",
             "history_date",
         )
-        widgets = {
-            "detail": HiddenInput(),
-        }
